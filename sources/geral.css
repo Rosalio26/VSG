@@ -1,0 +1,76 @@
+@charset "UTF-8";
+
+* {
+    border: none; outline: none;
+    margin: 0; padding: 0;
+    box-sizing: border-box;
+    list-style-type: none;
+    text-decoration: none;
+}
+
+@font-face {
+ font-family: 'inria-light';
+ src: url(fonts/Inria_Sans/InriaSans-Light.ttf) format('woff2');
+}
+
+:root {
+    /*=== GENERAL BACKGROUND ===*/
+    --color-bg-pr: #ffffff;
+
+    /*=== GENERAL BACKGROUND ===*/
+    --geral-bg-pr: #080E2B;
+
+    /*=== GENERAL BORDER ===*/
+    --border-cl-pr: #9BE9A0;
+}
+
+body {
+    background-color: var(--geral-bg-pr);
+    width: 100vw; height: 100vh;
+    overflow: hidden scroll;
+}
+
+header {
+    height: 8vh;
+    border-bottom: 1px solid var(--border-cl-pr);
+    position: relative;
+    padding: 0px 70px 0px 20px;
+    overflow: hidden;
+}
+
+.content-logo {
+    overflow: hidden;
+    width: max-content; height: 100%;
+}
+
+.content-logo img {
+    width: 200px;
+}
+
+header ul {
+    display: flex; align-items: center; 
+    justify-content: space-between;
+}
+
+header ul.content-link-ass {
+    gap: 100px;
+}
+
+li.ass-link-hed > a.link-header {
+    color: var(--color-bg-pr);
+    display: block;
+    font-family: inria-light;
+    font-size: 12pt;
+    font-weight: 100;
+    letter-spacing: 1px;
+}
+
+/*=============== CONFIGURAÇÕES DO MAINS ==============*/
+.fr-mn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: column;
+    background-color: transparent;
+    height: 92vh;
+}
