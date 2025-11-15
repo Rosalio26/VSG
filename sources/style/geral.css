@@ -6,6 +6,7 @@
     box-sizing: border-box;
     list-style-type: none;
     text-decoration: none;
+    font-family: 'inria-light';
 }
 
 @font-face {
@@ -14,8 +15,10 @@
 }
 
 :root {
-    /*=== GENERAL BACKGROUND ===*/
+    /*=== GENERAL TEXT COLOR ===*/
     --color-bg-pr: #ffffff;
+    --color-bg-sc: #9be9a0;
+    --color-bg-sc-oth: #7abb6f;
 
     /*=== GENERAL BACKGROUND ===*/
     --geral-bg-pr: #080E2B;
@@ -69,7 +72,31 @@ li.ass-link-hed > a.link-header {
 .fr-mn {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    /* justify-content: space-between; */
     flex-direction: column;
     height: 92vh;
+    overflow: hidden;
+    padding: 40px 20px;
+}
+
+.colo-vsg-wel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    height: 50%;
+}
+
+.img-logo {
+    width: 300px;
+}
+
+.vsg-tlt-txt {
+    color: var(--color-bg-sc);
+    font-size: 45pt;
+}
+
+.vsg-par-txt {
+    color: var(--color-bg-sc-oth);
+    font-size: 25pt;
 }
