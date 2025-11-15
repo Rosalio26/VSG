@@ -21,20 +21,81 @@
     </header>
     <main>
         <section class="block-mn fr-mn">
-            <div class="colo-vsg-wel">
-                <img class="img-logo" src="sources/img/logo Bing.png" alt="Imagem da VSG">
-                <h1 class="vsg-tlt-txt">VSG vision green</h1>
-                <p class="vsg-par-txt">sustentando um futuro verde</p>
-            </div>
-
-            <p class="fin-txt-mn">Encotre, escolhe e venda em diversos cantos do mundo. <br> Onde estiveres, estaras sempre no verde.</p>
-
-            <section class="block-mn camp-btn-reg">
-                <button class="regi-btn sign-up-btn">cadastre-se</button>
-                <span class="th-opt-txt">ou</span>
-                <button class="regi-btn login-btn">login</button>
+            <section class="col-sld-cmp fr-col-land">
+                <div class="asp-col">
+                    <div class="colo-vsg-wel">
+                        <img class="img-logo" src="sources/img/logo Bing.png" alt="Imagem da VSG">
+                        <h1 class="vsg-tlt-txt">VSG vision green</h1>
+                        <p class="vsg-par-txt">sustentando um futuro verde</p>
+                    </div>
+                    <div class="arb-th-cmp">
+                        <p class="fin-txt-mn">Encotre, escolhe e venda em diversos cantos do mundo. <br> Onde estiveres, estaras sempre no verde.</p>
+                        <section class="block-mn camp-btn-reg">
+                            <button class="regi-btn sign-up-btn">cadastre-se</button>
+                            <span class="th-opt-txt">ou</span>
+                            <button class="regi-btn login-btn">login</button>
+                        </section>
+                    </div>
+                </div>
+                <p class="mini-footer-landing">&copy;2025 group - layout</p>
             </section>
+
+            <section class="col-sld-cmp sc-col-land"></section>
+
+            <section class="col-sld-cmp tr-col-land"></section>
+
+            <section class="col-sld-cmp fr-col-land"></section>
         </section>
     </main>
+    <script>
+        let currentSlide = 0;
+        const slidesContainer = document.querySelector(".fr-mn");
+        const totalSlides = document.querySelectorAll(".col-sld-cmp").length;
+
+        let isScrolling = false;
+
+        window.addEventListener("wheel", (event) => {
+            if (isScrolling) return;
+
+            if (event.deltaY > 0) {
+                if (currentSlide < totalSlides - 1) currentSlide++;
+            } else {
+                if (currentSlide > 0) currentSlide--;
+            }
+
+            updateSlide();
+        });
+
+        const headerLinks = document.querySelectorAll(".link-header");
+        // ATUALIZA O HEADER CONFORME O SLIDE
+        function updateHeader() {
+            headerLinks.forEach(link => link.classList.remove("active"));
+
+            if (currentSlide === 1) {
+                headerLinks[0].classList.add("active"); // Sobre
+            }
+            if (currentSlide === 2) {
+                headerLinks[1].classList.add("active"); // Contato
+            }
+            if (currentSlide === 3) {
+                headerLinks[2].classList.add("active"); // Info
+            }
+        }
+
+        function updateSlide() {
+            isScrolling = true;
+
+            const slideHeight = document.querySelector(".col-sld-cmp").offsetHeight;
+            const offset = currentSlide * slideHeight;
+
+            slidesContainer.style.transform = `translateY(-${offset}px)`;
+
+            updateHeader();
+
+            setTimeout(() => {
+                isScrolling = false;
+            }, 900);
+        }
+    </script>
 </body>
 </html>
