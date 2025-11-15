@@ -10,7 +10,7 @@
 
 @font-face {
  font-family: 'inria-light';
- src: url(fonts/Inria_Sans/InriaSans-Light.ttf) format('woff2');
+ src: url(../fonts/Inria_Sans/InriaSans-Light.ttf) format('woff2');
 }
 
 :root {
@@ -71,6 +71,5 @@ li.ass-link-hed > a.link-header {
     align-items: center;
     justify-content: space-between;
     flex-direction: column;
-    background-color: transparent;
     height: 92vh;
 }
