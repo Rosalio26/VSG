@@ -40,7 +40,47 @@
                 <p class="mini-footer-landing">&copy;2025 group - layout</p>
             </section>
 
-            <section class="col-sld-cmp sc-col-land"></section>
+            <section class="col-sld-cmp sc-col-land">
+                <div class="content-in-ab ab-content">
+                    <h1 class="tlt-cmp-ab ab-tlt">SOBRE VSG</h1>
+                    <ul class="mn-lis">
+                        <li class="item-list"><a href="" class="link-vw">Oque é a VSG</a></li>
+                        <li class="item-list"><a href="" class="link-vw">Como a VSG funciona</a></li>
+                        <li class="item-list"><a href="" class="link-vw">Que foi o criador da VSG</a></li>
+                        <li class="item-list"><a href="" class="link-vw">Onde localizar a sede da VSG</a></li>
+                        <li class="item-list"><a href="" class="link-vw">Como me registrar na VSG</a></li>
+                    </ul>
+                    <di class="trig-ct trig-ab"></di>
+                </div>
+
+                <div class="content-in-ab or-content">
+                    <h1 class="tlt-cmp-ab or-tlt">NOSSOS SERVIÇOS</h1>
+                    <p>Todos os serviçõs que oferecemos são todos internos e do suporte ao cliente ou usuário logado ou cadastrado na nossa plataforma.</p>
+                    <di class="trig-ct trig-or"></di>
+                </div>
+
+                <div class="content-in-ab if-content">
+                    <h1 class="tlt-cmp-ab if-tlt">INFORMAÇÕES ADICIONAIS</h1>
+                    <ul class="mn-lis">
+                        <li class="item-list"><a href="" class="link-vw">Como usar a VSG</a></li>
+                        <li class="item-list"><a href="" class="link-vw">Qual a finalidade da VSG</a></li>
+                        <li class="item-list"><a href="" class="link-vw">Porquê VSG</a></li>
+                        <li class="item-list"><a href="" class="link-vw">Serviços temporarios</a></li>
+                        <li class="item-list"><a href="" class="link-vw">Outros...</a></li>
+                    </ul>
+                    <di class="trig-ct trig-if"></di>
+                </div>
+                
+                <div id="regContent" class="content-in-ab reg-content">
+                    <button onclick="fecharDiv()" class="close-reg-cmp">X</button>
+                    <p>Compra e venda mais perto com um verde</p>
+                    <button class="regi-btn sign-up-btn">cadastre-se</button>
+                    <span class="th-opt-txt">ou</span>
+                    <button class="regi-btn login-btn">login</button>
+                </div>
+                <button id="openReg" onclick="mostrarDiv()" class="open-reg-cmp">Registrar ></button>
+            </section>
+            
 
             <section class="col-sld-cmp tr-col-land"></section>
 
@@ -48,6 +88,16 @@
         </section>
     </main>
     <script>
+        function fecharDiv() {
+            document.getElementById("regContent").style.display = "none";
+            document.getElementById("openReg").style.display = "block";
+        }
+
+        function mostrarDiv() {
+            document.getElementById("regContent").style.display = "flex";
+        }
+
+
         let currentSlide = 0;
         const slidesContainer = document.querySelector(".fr-mn");
         const totalSlides = document.querySelectorAll(".col-sld-cmp").length;
