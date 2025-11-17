@@ -104,8 +104,8 @@ main {
 }
 
 .fr-col-land {    
-    display: flex;
-    /* display: none; */
+    /* display: flex; */
+    display: none;
     align-items: center;
     justify-content: space-between;
     flex-direction: column;
@@ -159,6 +159,9 @@ main {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+}
+
+.add-gap-1 {
     gap: 100px;
 }
 
@@ -195,7 +198,8 @@ main {
 
 /*================== CONFIGURACOES DO SOBRE =================*/
 .sc-col-land {
-    display: flex;
+    /* display: flex; */
+    display: none;
     align-items: center;
     justify-content: center;
     gap: 70px;
@@ -222,16 +226,20 @@ main {
             letter-spacing: 1.8px;
         }
 
-        .or-content p{
-            color: var(--color-bg-pr);
-            text-align: justify;
-            font-family: 'inria-light';
-            font-weight: 100;
-            font-size: 14pt;
-            letter-spacing: 2px;
-            line-height: 40px;
-            padding: 10px;
-        }
+    .ab-content {margin-top: 150px;}
+
+    .or-content p{
+        color: var(--color-bg-pr);
+        text-align: justify;
+        font-family: 'inria-light';
+        font-weight: 100;
+        font-size: 14pt;
+        letter-spacing: 2px;
+        line-height: 40px;
+        padding: 10px;
+    }
+
+    .if-content {margin-bottom: 150px;}
 
         .trig-ct {
             position: absolute;
@@ -301,3 +309,57 @@ main {
             display: none;
         }
         .reg-content p {color: var(--color-bg-pr); font-size: 14pt; margin-bottom: 25px;}
+
+
+/*================== CONFIGURACOES DO SOBRE =================*/
+.tr-col-land {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.add-gap-2 {gap: 50px;} 
+
+.fr-col-tr {
+    background-color: rgba(192, 192, 192, 0.09);
+    border: 1px solid var(--border-cl-pr);
+    border-radius: 5px;
+    padding: 10px;
+    width: 400px; height: 550px;
+}
+
+    .tlt-tr {color: #C994FF; margin: 10px 0px; padding-bottom: 3px; position: relative;}
+    .tlt-tr::before {
+        content: "";
+        background-color: var(--border-cl-pr);
+        width: 60px; height: 1px;
+        position: absolute;
+        left: 0; bottom: 0;
+    }
+
+    .li-am-lk {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+        .cnt-img-con {
+            border: .5px solid var(--border-cl-pr);
+            border-radius: 1000px;
+            display: inline-block;
+            width: 30px; height: 30px;
+        }
+
+.sc-col-tr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 60px;
+    padding: 20px 200px;
+    border-bottom: 2px solid var(--border-cl-pr);
+}
+    .tlt-sc-col, .cnt-txt-sc-tr {text-align: center;}
+
+    .tlt-sc-col {color: #C994FF; letter-spacing: 1.5px;}
+    .cnt-txt-sc-tr {color: var(--color-bg-pr); font-size: 14pt; letter-spacing: 1.7px; line-height: 35px; font-weight: 900;}
+    .term-cond {color: var(--color-bg-pr); letter-spacing: 1.5px; font-size: 11pt;}
