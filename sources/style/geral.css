@@ -20,6 +20,7 @@
     --color-bg-sc: #9be9a0;
     --color-bg-sc-oth: #7abb6f;
     --color-bg-tr-oth: #abedaa;
+    --color-tlt: #E5FFE7;
 
     /*=== GENERAL BACKGROUND ===*/
     --geral-bg-pr: #080E2B;
@@ -218,6 +219,7 @@ main {
     }
 
         .tlt-cmp-ab {
+            /* color: var(--color-tlt); */
             font-size: 16pt;
             font-weight: bolder;
             text-align: center;
@@ -337,18 +339,38 @@ main {
         left: 0; bottom: 0;
     }
 
-    .li-am-lk {
+    .fr-cmp-tr {
+        border-bottom: 1px solid var(--border-cl-pr);
+        margin: 25px 0px;
+        padding-bottom: 20px;
+    }
+
+    .tlt-cmp {color: var(--color-bg-sc);}
+
+    .li-am-lk a.lk-li-item {
+        color: var(--color-bg-pr);
+        text-decoration: underline;
+        font-size: 12pt;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 3px;
+        margin-top: 10px;
+    }
+
+    .li-am-lk a.lk-li-item:hover {
+        color: var(--color-bg-sc-oth);
+        text-decoration: none;
     }
 
         .cnt-img-con {
-            border: .5px solid var(--border-cl-pr);
+            /* border: .5px solid var(--border-cl-pr); */
             border-radius: 1000px;
             display: inline-block;
             width: 30px; height: 30px;
+            overflow: hidden;
         }
+
+            .cnt-img-con img {width: 100%; height: 100%;}
 
 .sc-col-tr {
     display: flex;
@@ -363,3 +385,26 @@ main {
     .tlt-sc-col {color: #C994FF; letter-spacing: 1.5px;}
     .cnt-txt-sc-tr {color: var(--color-bg-pr); font-size: 14pt; letter-spacing: 1.7px; line-height: 35px; font-weight: 900;}
     .term-cond {color: var(--color-bg-pr); letter-spacing: 1.5px; font-size: 11pt;}
+
+
+.sc-cmp-tr, .lk-flw {display: flex; align-items: center;}
+.sc-cmp-tr {gap: 20px;}
+    .sc-cmp-tr p {color: var(--color-bg-pr);}
+    .lk-flw {gap: 35px;}
+
+        .itm-lk-flw {
+            /* border: 1px solid var(--border-cl-pr); */
+            border-radius: 1000px;
+            width: 45px;
+            height: 45px;
+        }
+
+        .itm-flw {
+            display: inline-block;
+            width: 100%; height: 100%;
+            /* overflow: hidden; */
+        }
+
+            .itm-flw img{
+                width: 100%; height: 100%;
+            }
