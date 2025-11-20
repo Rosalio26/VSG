@@ -21,15 +21,16 @@
 
 :root {
     /*=== GENERAL TEXT COLOR ===*/
-    --color-bg-pr: #ffffff;
-    --color-bg-sc: #9be9a0;
+    --color-bg-pr: #abb3c1;
+    --color-bg-sc: #00A63E;
     --color-bg-sc-oth: #7abb6f;
     --color-bg-tr-oth: #abedaa;
     --color-tlt: #E5FFE7;
     --color-tlt-oth: #66FF82;
 
     /*=== GENERAL BACKGROUND ===*/
-    --geral-bg-pr: #080E2B;
+    --geral-bg-pr: #111827;
+    /* --geral-bg-pr: #080E2B; */
     --oth-bg-pr: #88ff90;
     --oth-bg-sc: rgba(217, 217, 217, 0.09);
 
@@ -82,7 +83,7 @@ li.ass-link-hed > a.link-header {
 }
 
 .link-header.active {
-    background-color: var(--oth-bg-pr);
+    background-color: var(--color-bg-sc);
     padding: 5px 15px;
     border-radius: 8px;
     color: var(--geral-bg-pr) !important;
@@ -183,7 +184,7 @@ main {
 }
 
 .sign-up-btn {
-    background-color: var(--oth-bg-pr);
+    background-color: var(--color-bg-sc);
     color: var(--geral-bg-pr);
 }
 
