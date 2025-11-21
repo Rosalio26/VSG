@@ -135,8 +135,8 @@ main {
 }
 
 .fr-col-land {    
-    display: flex;
-    /* display: none; */
+    /* display: flex; */
+    display: none;
     align-items: center;
     justify-content: space-between;
     flex-direction: column;
@@ -229,7 +229,8 @@ main {
 
 /*================== CONFIGURACOES DO SOBRE =================*/
 .sc-col-land {
-    background-color: var(--color-bg-001);;
+    display: none;
+    background-color: var(--color-bg-001);
     padding: 20px 100px;
 }
 
