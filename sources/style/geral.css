@@ -21,32 +21,41 @@
 
 :root {
     /*=== GENERAL TEXT COLOR ===*/
+    --color-bg-000: #dcfce7;
+    --color-bg-001: #ffffff;
+    --color-bg-100: #1f2937;
+    --color-bg-101: #111827;
+    --color-bg-102: #101828;
+    --color-bg-103: #364153;
+    --color-bg-104: #00a63e;
+    --color-bg-105: #4a5565;
+    --color-bg-106: #99a1af;
+    --color-bg-107: #111827;
+
     --color-bg-pr: #abb3c1;
-    --color-bg-sc: #00A63E;
     --color-bg-sc-oth: #7abb6f;
     --color-bg-tr-oth: #abedaa;
     --color-tlt: #E5FFE7;
     --color-tlt-oth: #66FF82;
 
     /*=== GENERAL BACKGROUND ===*/
-    --geral-bg-pr: #111827;
-    /* --geral-bg-pr: #080E2B; */
     --oth-bg-pr: #88ff90;
     --oth-bg-sc: rgba(217, 217, 217, 0.09);
 
     /*=== GENERAL BORDER ===*/
     --border-cl-pr: #9BE9A0;
+
 }
 
 body {
-    background-color: var(--geral-bg-pr);
+    background-color: var(--color-bg-101);
     width: 100vw; height: 100vh;
     overflow: hidden;
 }
 
 header {
-    border-bottom: 1px solid var(--border-cl-pr);
-    padding: 0px 70px 0px 20px;
+    border-bottom: 1px solid var(--color-bg-100);
+    padding: 0px 70px 0px 70px;
     overflow: hidden;
     
     position: fixed;
@@ -55,18 +64,27 @@ header {
     z-index: 10;
 }
 
-.content-logo {
-    overflow: hidden;
-    width: max-content; height: 100%;
+.content-logo a {
+    color: var(--color-bg-000);
+    font-size: 15pt;
+    letter-spacing: 1.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 100%;
 }
 
-.content-logo img {
-    width: 200px;
+.content-logo a img {
+    background-color: var(--color-bg-104);
+    border-radius: 3px;
+    width: 40px;
+    padding: 2px 5px;
 }
 
 header ul {
     display: flex; align-items: center; 
     justify-content: space-between;
+    height: 100%;
 }
 
 header ul.content-link-ass {
@@ -74,7 +92,7 @@ header ul.content-link-ass {
 }
 
 li.ass-link-hed > a.link-header {
-    color: var(--color-bg-pr);
+    color: var(--color-bg-000);
     display: block;
     font-family: inria-light;
     font-size: 12pt;
@@ -83,10 +101,10 @@ li.ass-link-hed > a.link-header {
 }
 
 .link-header.active {
-    background-color: var(--color-bg-sc);
+    background-color: var(--color-bg-104);
     padding: 5px 15px;
     border-radius: 8px;
-    color: var(--geral-bg-pr) !important;
+    color: var(--color-bg-101) !important;
     font-weight: bolder;
     transition: 0.3s;
 }
@@ -112,11 +130,12 @@ main {
 }
 
 .fr-col-land {    
-    display: flex;
+    /* display: flex; */
+    display: none;
     align-items: center;
     justify-content: space-between;
     flex-direction: column;
-    padding: 40px 0px;
+    padding: 40px 0px 20px 0px;
 }
 
 .colo-vsg-wel {
@@ -128,7 +147,7 @@ main {
 }
 
 .img-logo {
-    width: 220px;
+    width: 130px;
 }
 
 .vsg-tlt-txt,
@@ -140,7 +159,7 @@ main {
 }
 
 .vsg-tlt-txt {
-    color: var(--color-bg-sc);
+    color: var(--color-bg-104);
     font-size: 35pt;
 }
 
@@ -151,7 +170,7 @@ main {
 
 .fin-txt-mn {
     text-align: center;
-    color: var(--color-bg-pr);
+    color: var(--color-bg-000);
     font-size: 16pt;
     line-height: 50px;
     font-weight: 600;
@@ -162,14 +181,13 @@ main {
     background-color: transparent;
     width: max-content;
     overflow: hidden;
-
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
+    margin: 0px auto;
 }
 
 .add-gap-1 {
-    gap: 100px;
+    gap: 50px;
 }
 
 .regi-btn {
@@ -184,13 +202,14 @@ main {
 }
 
 .sign-up-btn {
-    background-color: var(--color-bg-sc);
-    color: var(--geral-bg-pr);
+    background-color: var(--color-bg-104);
+    color: var(--color-bg-000);
 }
 
 .login-btn {
-    background-color: var(--oth-bg-sc);
-    color: var(--color-bg-sc);
+    background-color: var(--color-bg-100);
+    border: 1px solid var(--color-bg-104);
+    color: var(--color-bg-104);
 }
 
 .th-opt-txt {
@@ -200,122 +219,46 @@ main {
 }
 
 .mini-footer-landing {
-    color: var(--color-bg-tr-oth);
+    color: var(--color-bg-105);
 }
 
 /*================== CONFIGURACOES DO SOBRE =================*/
 .sc-col-land {
+    background-color: var(--color-bg-001);
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
-    gap: 70px;
-    position: relative;
-    overflow: hidden;
+    gap: 50px;
+    padding: 100px 100px;
 }
 
-    .content-in-ab {
-        border: 1px solid var(--color-bg-tr-oth);
-        border-radius: 5px;
-        width: 400px;
-        height: 70%;
-        padding: 5px;
-        overflow: hidden;
-        position: relative;
-    }
-
-        .tlt-cmp-ab {
-            /* color: var(--color-tlt); */
-            font-size: 16pt;
-            font-weight: bolder;
-            text-align: center;
-            border-bottom: 1px solid var(--color-bg-tr-oth);
-            padding: 15px 0px;
-            letter-spacing: 1.8px;
-        }
-
-    .ab-content {margin-top: 150px;}
-
-    .or-content p{
-        color: var(--color-bg-pr);
-        text-align: justify;
-        font-family: 'inria-light';
-        font-weight: 100;
-        font-size: 14pt;
-        letter-spacing: 2px;
-        line-height: 40px;
+    .cnt-int-sc {
+        background-color: var(--color-bg-001);
+        border: 1.5px solid var(--color-bg-104);
+        box-shadow: 1px 1px 20px 2px var(--color-bg-000);
+        border-radius: 10px;
+        width:380px;
+        height: 230px;
         padding: 10px;
     }
 
-    .if-content {margin-bottom: 150px;}
-
-        .trig-ct {
-            position: absolute;
-            right: 0; bottom: 0;
-            width: 0px; height: 0px;
-            border-top: 200px solid transparent;
-            border-bottom: 0px solid transparent;
-            border-right: 200px solid transparent;
+        .cnt-int-sc h2 {
+            color: var(--color-bg-101);
+            background-color: var(--color-bg-000);
+            border-radius: 10px;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
         }
 
-        .trig-or {border-right: 200px solid rgba(217, 217, 217, 0.10);}
-        .trig-if {border-right: 200px solid rgba(16, 178, 5, 0.17);}
-        .trig-ab {border-right: 200px solid rgba(127, 0, 255, 0.19);}
-
-        .ab-tlt {color: #7f00ff;}
-        .or-tlt {color: #c0c0c0;}
-        .if-tlt {color: #66ff82;}
-
-        .mn-lis {
-            margin-left: 30px;
-        }
-
-            .item-list {
-                color: var(--color-bg-pr);
-                list-style-type: disc;
-                margin-top: 20px;
+            .cnt-int-sc h2 img {
+                background-color: var(--color-bg-104);
+                border-radius: 5px;
+                width: 40px;
+                padding: 4px;
             }
-                .item-list a {color: var(--color-bg-pr); letter-spacing: 1.5px; font-size: 14pt;}
-
-
-    .reg-content {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-
-        background-color: var(--geral-bg-pr);
-        position: absolute;
-        right: 2%;
-        bottom: 2%;
-        height: 300px;
-        z-index: 5;
-    }
-        .close-reg-cmp {
-            background-color: rgba(217, 217, 217, 0.09);
-            border-radius: 1000px;
-            color: #66ff82;
-            font-size: 14pt;
-            position: absolute;
-            top: 4px; right: 10px;
-            width: 35px; height: 35px;
-            cursor: pointer;
-        }
-
-        .open-reg-cmp {
-            background-color: rgba(217, 217, 217, 0.09);
-            border: 1px solid var(--border-cl-pr);
-            border-radius: 1000px;
-            color: #66ff82;
-            cursor: pointer;
-            font-size: 14pt;
-            position: absolute;
-            right: 40px; bottom: 20px;
-            padding: 10px 30px;
-            letter-spacing: 2px;
-            display: none;
-        }
-        .reg-content p {color: var(--color-bg-pr); font-size: 14pt; margin-bottom: 25px;}
 
 
 /*================== CONFIGURACOES DO SOBRE =================*/
@@ -350,7 +293,7 @@ main {
         padding-bottom: 20px;
     }
 
-    .tlt-cmp {color: var(--color-bg-sc);}
+    .tlt-cmp {color: var(--color-bg-104);}
 
     .li-am-lk a.lk-li-item {
         color: var(--color-bg-pr);
