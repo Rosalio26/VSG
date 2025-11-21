@@ -91,13 +91,18 @@ header ul.content-link-ass {
     gap: 100px;
 }
 
-li.ass-link-hed > a.link-header {
+li.ass-link-hed > .link-header {
     color: var(--color-bg-000);
     display: block;
     font-family: inria-light;
     font-size: 12pt;
     font-weight: lighter;
     letter-spacing: 1px;
+}
+
+.link-lg.act {
+    color: var(--color-bg-101) !important;
+    font-weight: 600 !important;
 }
 
 .link-header.active {
@@ -130,8 +135,8 @@ main {
 }
 
 .fr-col-land {    
-    /* display: flex; */
-    display: none;
+    display: flex;
+    /* display: none; */
     align-items: center;
     justify-content: space-between;
     flex-direction: column;
@@ -224,42 +229,62 @@ main {
 
 /*================== CONFIGURACOES DO SOBRE =================*/
 .sc-col-land {
-    background-color: var(--color-bg-001);
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 50px;
-    padding: 100px 100px;
+    background-color: var(--color-bg-001);;
+    padding: 20px 100px;
 }
 
-    .cnt-int-sc {
-        background-color: var(--color-bg-001);
-        border: 1.5px solid var(--color-bg-104);
-        box-shadow: 1px 1px 20px 2px var(--color-bg-000);
-        border-radius: 10px;
-        width:380px;
-        height: 230px;
-        padding: 10px;
+    .sc-col-land > h1 {
+        font-size: 40pt;
+        letter-spacing: 2px;
     }
 
-        .cnt-int-sc h2 {
-            color: var(--color-bg-101);
-            background-color: var(--color-bg-000);
-            border-radius: 10px;
-            letter-spacing: 1px;
+    .sc-col-land > p {
+        color: var(--color-bg-103);
+        font-size: 20pt;
+        margin: 10px 0px 40px 0px;
+    }
+
+        .sc-col-land > .col-land {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
-            gap: 10px;
-            padding: 10px;
+            gap: 50px;
         }
 
-            .cnt-int-sc h2 img {
-                background-color: var(--color-bg-104);
-                border-radius: 5px;
-                width: 40px;
-                padding: 4px;
+            .cnt-int-sc {
+                background-color: var(--color-bg-001);
+                border: 1.5px solid var(--color-bg-104);
+                box-shadow: 1px 1px 400px 2px var(--color-bg-000);
+                border-radius: 10px;
+                width:370px;
+                height: 200px;
+                padding: 10px;
             }
 
+                .cnt-int-sc > h2 {
+                    color: var(--color-bg-101);
+                    background-color: var(--color-bg-000);
+                    border-radius: 5px;
+                    letter-spacing: 1px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 7px 10px;
+                }
+                
+                .cnt-int-sc h2 img {
+                    background-color: var(--color-bg-104);
+                    border-radius: 5px;
+                    width: 30px;
+                    padding: 4px;
+                }
+
+                .cnt-int-sc > p {
+                    color: var(--color-bg-101);
+                    font-size: 14pt;
+                    text-align: justify;
+                    line-height: 35px;
+                }
 
 /*================== CONFIGURACOES DO SOBRE =================*/
 .tr-col-land {

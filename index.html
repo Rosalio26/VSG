@@ -7,18 +7,18 @@
     <link rel="stylesheet" href="sources/style/geral.css">
 </head>
 <body>
-    <header>
+    <header id="headerBloc">
         <ul>
             <li class="content-logo">
                 <a href="index.html" class="home_logo">
                     <img src="sources/img/logo_small_wh.png" alt="Logo">
-                    <span>vision green</span>
+                    <span class="link-lg">vision green</span>
                 </a>
             </li>
             <ul class="content-link-ass">
-                <li class="ass-link-hed"><a href="" class="link-header">Sobre</a></li>
-                <li class="ass-link-hed"><a href="" class="link-header">Contato</a></li>
-                <li class="ass-link-hed"><a href="" class="link-header">Info</a></li>
+                <li class="ass-link-hed"><a href="" class="link-header link-lg">Sobre</a></li>
+                <li class="ass-link-hed"><a href="" class="link-header link-lg">Contato</a></li>
+                <li class="ass-link-hed"><a href="" class="link-header link-lg">Info</a></li>
             </ul>
         </ul>
     </header>
@@ -44,33 +44,37 @@
             </section>
 
             <section class="col-sld-cmp sc-col-land">
-                <div class="cnt-int-sc">
-                    <h2>
-                        <img src="sources/img/globo.png" alt="Globo Icon">
-                        <span>Mercado Global</span>
-                    </h2>
-                    <p>Conecte-se com compradores e vendedores eco-conscientes de todo o mundo</p>
-                </div>
-                <div class="cnt-int-sc">
-                    <h2>
-                        <img src="sources/img/truck.png" alt="Truck Icon">
-                        <span>Frete neutro em carbono</span>
-                    </h2>
-                    <p>Compensamos todas as actividades de preveção ao meio ambiente para minimizar o impacto ambiental</p>
-                </div>
-                <div class="cnt-int-sc">
-                    <h2>
-                        <img src="sources/img/eco.png" alt="Eco Icon">
-                        <span>100% Eco Amigável</span>
-                    </h2>
-                    <p>Todos os produtos cumprem rigorosos critérios ambientais e de sustentabilidade</p>
-                </div>
-                <div class="cnt-int-sc">
-                    <h2>
-                        <img src="sources/img/app.png" alt="community Icon">
-                        <span>Comunidade Dirigida</span>
-                    </h2>
-                    <p>Join a thriving community of environmentally conscious individuals</p>
+                <h1>Vision <span style="color: var(--color-bg-104);">Green</span></h1>
+                <p>Você pode comprar, vender produtos sustentaveis.</p>
+                <div class="col-land">
+                    <div class="cnt-int-sc">
+                        <h2>
+                            <img src="sources/img/globo.png" alt="Globo Icon">
+                            <span>Mercado Global</span>
+                        </h2>
+                        <p>Conecte-se com compradores e vendedores eco-conscientes de todo o mundo</p>
+                    </div>
+                    <div class="cnt-int-sc">
+                        <h2>
+                            <img src="sources/img/cargo-truck.png" alt="Truck Icon">
+                            <span>Frete neutro em carbono</span>
+                        </h2>
+                        <p>Compensamos todas as actividades de preveção ao meio ambiente para minimizar o impacto ambiental</p>
+                    </div>
+                    <div class="cnt-int-sc">
+                        <h2>
+                            <img src="sources/img/eco.png" alt="Eco Icon">
+                            <span>100% Eco Amigável</span>
+                        </h2>
+                        <p>Todos os produtos cumprem rigorosos critérios ambientais e de sustentabilidade</p>
+                    </div>
+                    <div class="cnt-int-sc">
+                        <h2>
+                            <img src="sources/img/app.png" alt="community Icon">
+                            <span>Comunidade Dirigida</span>
+                        </h2>
+                        <p>Join a thriving community of environmentally conscious individuals</p>
+                    </div>
                 </div>
             </section>
             
@@ -192,14 +196,14 @@
         </section>
     </main>
     <script>
-        function fecharDiv() {
-            document.getElementById("regContent").style.display = "none";
-            document.getElementById("openReg").style.display = "block";
-        }
+        //function fecharDiv() {
+          //  document.getElementById("regContent").style.display = "none";
+            //document.getElementById("openReg").style.display = "block";
+        //}
 
-        function mostrarDiv() {
-            document.getElementById("regContent").style.display = "flex";
-        }
+        // function mostrarDiv() {
+            // document.getElementById("regContent").style.display = "flex";
+        // }
 
 
         let currentSlide = 0;
@@ -221,16 +225,26 @@
         });
 
         const headerLinks = document.querySelectorAll(".link-header");
+        const headerBloc = document.getElementById("headerBloc");
+        const textColor = document.querySelectorAll(".link-lg");
         // ATUALIZA O HEADER CONFORME O SLIDE
         function updateHeader() {
             headerLinks.forEach(link => link.classList.remove("active"));
+            headerBloc.style.background = "var(--color-bg-101)";
+            textColor.forEach(el => el.classList.remove("act"));
 
             if (currentSlide === 1) {
                 headerLinks[0].classList.add("active"); // Sobre
+                headerBloc.style.background = "var(--color-bg-001)";
+                textColor.forEach(el => el.classList.add("act"));
             }
+
             if (currentSlide === 2) {
                 headerLinks[1].classList.add("active"); // Contato
+                headerBloc.style.background = "var(--color-bg-101)";
+                textColor.forEach(el => el.classList.remove("act"));
             }
+
             if (currentSlide === 3) {
                 headerLinks[2].classList.add("active"); // Info
             }
