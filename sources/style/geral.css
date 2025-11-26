@@ -289,100 +289,44 @@ main {
 
 /*================== CONFIGURACOES DO SOBRE =================*/
 .tr-col-land {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background-color: var(--color-bg-001);
 }
 
-.add-gap-2 {gap: 50px;} 
-
-.fr-col-tr {
-    background-color: rgba(192, 192, 192, 0.09);
-    border: 1px solid var(--border-cl-pr);
-    border-radius: 5px;
-    padding: 10px;
-    width: 400px; height: 550px;
-}
-
-    .tlt-tr {color: #C994FF; margin: 10px 0px; padding-bottom: 3px; position: relative;}
-    .tlt-tr::before {
-        content: "";
-        background-color: var(--border-cl-pr);
-        width: 60px; height: 1px;
-        position: absolute;
-        left: 0; bottom: 0;
+    .fil-cnt-tr {
+        background-color: var(--color-bg-001);
+        height: 50%;
+        padding: 20px 300px 20px 100px;
     }
+        .fil-cnt-tr > h1, .fil-cnt-tr > p {text-align: justify;}
+        .fil-cnt-tr > h1 {color: var(--color-bg-104); font-size: 30pt; margin-bottom: 20px;}
+        .fil-cnt-tr > p {color: var(--color-bg-105); font-size: 16pt; margin-bottom: 10px; line-height: 40px; letter-spacing: 1.5px;}
 
-    .fr-cmp-tr {
-        border-bottom: 1px solid var(--border-cl-pr);
-        margin: 25px 0px;
-        padding-bottom: 20px;
-    }
-
-    .tlt-cmp {color: var(--color-bg-104);}
-
-    .li-am-lk a.lk-li-item {
-        color: var(--color-bg-pr);
-        text-decoration: underline;
-        font-size: 12pt;
+    .set-fil-tr {
+        background-color: var(--color-bg-104);
+        border-radius: 30px 30px 0px 0px;
+        height: 50%;
         display: flex;
-        align-items: center;
-        gap: 3px;
-        margin-top: 10px;
+        justify-content: center;
+        gap: 100px;
+        padding: 30px;
     }
 
-    .li-am-lk a.lk-li-item:hover {
-        color: var(--color-bg-sc-oth);
-        text-decoration: none;
-    }
-
-        .cnt-img-con {
-            /* border: .5px solid var(--border-cl-pr); */
-            border-radius: 1000px;
-            display: inline-block;
-            width: 30px; height: 30px;
-            overflow: hidden;
+        .set-fil-tr > div {
+            border: 1px solid var(--color-bg-101);
+            width: 370px; height: 250px;
+            padding: 20px;
+            
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
         }
+            .set-fil-tr > div > img { background: var(--color-bg-000);border-radius: 1000px; width: 50px; height: 50px; }
+            .set-fil-tr > div > h2 { color: var(--color-bg-001); font-weight: lighter; font-family: 'inter'; letter-spacing: 1.3px; font-size: 16pt;}
+            .set-fil-tr > div > p { color: var(--color-bg-000); font-weight: lighter; font-size: 12pt; font-family: 'inter'; letter-spacing: 1.3px; text-align: center; line-height: 28px;}
 
-            .cnt-img-con img {width: 100%; height: 100%;}
-
-.sc-col-tr {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 60px;
-    padding: 20px 200px;
-    border-bottom: 2px solid var(--border-cl-pr);
-}
-    .tlt-sc-col, .cnt-txt-sc-tr {text-align: center;}
-
-    .tlt-sc-col {color: #C994FF; letter-spacing: 1.5px;}
-    .cnt-txt-sc-tr {color: var(--color-bg-pr); font-size: 14pt; letter-spacing: 1.7px; line-height: 35px; font-weight: 900;}
-    .term-cond {color: var(--color-bg-pr); letter-spacing: 1.5px; font-size: 11pt;}
-
-
-.sc-cmp-tr, .lk-flw {display: flex; align-items: center;}
-.sc-cmp-tr {gap: 20px;}
-    .sc-cmp-tr p {color: var(--color-bg-pr);}
-    .lk-flw {gap: 35px;}
-
-        .itm-lk-flw {
-            /* border: 1px solid var(--border-cl-pr); */
-            border-radius: 1000px;
-            width: 45px;
-            height: 45px;
-        }
-
-        .itm-flw {
-            display: inline-block;
-            width: 100%; height: 100%;
-            /* overflow: hidden; */
-        }
-
-            .itm-flw img{
-                width: 100%; height: 100%;
-            }
-
+/*================== CONFIGURACOES DO FOOTER =================*/
+.add-gap-2 {gap: 50px;} 
 .fo-col-land {
     /* display: flex;
     flex-direction: column; */
