@@ -307,30 +307,31 @@ main {
         height: 50%;
         display: flex;
         justify-content: center;
-        gap: 100px;
         padding: 30px;
     }
 
         .set-fil-tr > div {
-            border: 1px solid var(--color-bg-101);
-            width: 370px; height: 250px;
-            padding: 20px;
+            /* border: 1px solid var(--color-bg-101); */
+            width: 400px; height: 250px;
+            padding: 10px 30px;
             
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 10px;
         }
-            .set-fil-tr > div > img { background: var(--color-bg-000);border-radius: 1000px; width: 50px; height: 50px; }
-            .set-fil-tr > div > h2 { color: var(--color-bg-001); font-weight: lighter; font-family: 'inter'; letter-spacing: 1.3px; font-size: 16pt;}
-            .set-fil-tr > div > p { color: var(--color-bg-000); font-weight: lighter; font-size: 12pt; font-family: 'inter'; letter-spacing: 1.3px; text-align: center; line-height: 28px;}
+
+        .set-fil-tr > div.sc {border-right: 2px solid #00000026; border-left: 2px solid #00000026}
+            .set-fil-tr > div > img { background: #00000026; border-radius: 1000px; width: 80px; height: 80px; padding: 5px;}
+            .set-fil-tr > div > h2 { color: rgba(202, 255, 190, 0.911); font-weight: 600; font-family: 'inter'; letter-spacing: 1.3px; font-size: 16pt;}
+            .set-fil-tr > div > p { color: var(--color-bg-100); font-weight: lighter; font-size: 12pt; font-family: 'inter'; letter-spacing: 1.3px; text-align: center; line-height: 28px;}
 
 /*================== CONFIGURACOES DO FOOTER =================*/
 .add-gap-2 {gap: 50px;} 
-.fo-col-land {
-    /* display: flex;
-    flex-direction: column; */
-}
+/* .fo-col-land {
+    display: flex;
+    flex-direction: column; 
+} */
 
     .fo-col-sld {
         display: flex;
