@@ -120,26 +120,42 @@
                 </div>
                 <div class="col-sld-fo sc-col-sld">
                     <div class="cnt-fo-sld-sc">
-                        <ul class="cnt-f-ls">
-                            <li class="tlt-f-ls">Informações gerais</li>
-                            <li class="tlt-f">1. Funcionamento da plataforma VSG</li>
-                            <li class="tlt-f">2. Formas de registro</li>
-                            <li class="tlt-f">3. Tipos de contas disponiveis na VSG</li>
-                            <li class="tlt-f">4. Gereciamento de contas</li>
-                            <li class="tlt-f">5. Validade das contas</li>
-                            <li class="tlt-f">6. Prazo de eliminação de contas discartaveis</li>
-                        </ul>
-
-                        <div class="bloc-info">
-                            <h2>Contacte - Nos</h2>
-                            <p>Tás curioso e queres saber como é que a vision green funciona? Simples! Envia o seu email no campo abaixo e receba informações sobre a VSG + <span style="font-weight: 900;">NOVIDADES</span></p>
-
-                            <input type="email" name="mail_info" id="mailInfo" placeholder="exemplo@email.com">
-
-                            <h4>@informações da VSG</h4>
-                        </div>
+                        <li class="content-logo">
+                            <a href="index.html" class="home_logo">
+                                <img src="sources/img/logo_small_wh.png" alt="Logo">
+                                <span id="ur-logo" class="link-lg">vision green</span>
+                            </a>
+                        </li>
+                        <p>Seu mercado confiável para produtos sustentáveis e ecológicos de todo o mundo</p>
                     </div>
-                    <p style="color: var(--color-bg-pr); text-align: center; color: #A8EDAA; letter-spacing: 1px;">&copy;2025 group layout</p>
+                    <div class="cnt-fo-sld-sc">
+                        <h2>Loja</h2>
+                        <ul>
+                            <li>Todos os produtos</li>
+                            <li>Cozinha e Jantar</li>
+                            <li>Eletrônica</li>
+                            <li>Esportes e Fitness</li>
+                            <li>Acessórios</li>
+                        </ul>
+                    </div>
+                    <div class="cnt-fo-sld-sc">
+                        <h2>Empresa</h2>
+                        <ul>
+                            <li>Sobre nós</li>
+                            <li>Nossa missão</li>
+                            <li>Sustentabilidade</li>
+                            <li>Carreiras</li>
+                            <li>Contato</li>
+                        </ul>
+                    </div>
+                    <div class="cnt-fo-sld-sc">
+                        <h2>Boletim informativo</h2>
+                        <p>Inscreva-se para receber atualizações sobre novos produtos ecológicos e ofertas especiais.</p>
+                        <form action="">
+                            <input type="email" name="" id="">
+                            <button type="submit">Enviar</button>
+                        </form>
+                    </div>
                 </div>
             </section>
         </section>
@@ -174,28 +190,34 @@
         });
 
         const headerLinks = document.querySelectorAll(".link-header");
+        const headerLinksActi = document.querySelectorAll(".link-header");
         const headerBloc = document.getElementById("headerBloc");
         const textColor = document.querySelectorAll(".link-lg");
         // ATUALIZA O HEADER CONFORME O SLIDE
         function updateHeader() {
             headerLinks.forEach(link => link.classList.remove("active"));
+            headerLinksActi.forEach(link => link.classList.remove("acti"));
             headerBloc.style.background = "var(--color-bg-101)";
             textColor.forEach(el => el.classList.remove("act"));
 
             if (currentSlide === 1) {
                 headerLinks[0].classList.add("active"); // Sobre
+                // headerLinksActi[0].classList.remove("acti"); 
                 headerBloc.style.background = "var(--color-bg-001)";
                 textColor.forEach(el => el.classList.add("act"));
             }
 
             if (currentSlide === 2) {
                 headerLinks[1].classList.add("active"); // Contato
+                // headerLinksActi[1].classList.remove("acti"); 
                 headerBloc.style.background = "var(--color-bg-001)";
                 textColor.forEach(el => el.classList.add("act"));
             }
-
+            
             if (currentSlide === 3) {
                 headerLinks[2].classList.add("active"); // Info
+                headerLinksActi[2].classList.add("acti"); 
+                headerBloc.style.background = "var(--color-bg-104)";
             }
         }
 
