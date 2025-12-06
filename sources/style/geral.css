@@ -132,8 +132,8 @@ main {
 }
 
 .fr-col-land {    
-    /* display: flex; */
-    display: none;
+    display: flex;
+    /* display: none; */
     align-items: center;
     justify-content: space-between;
     flex-direction: column;
@@ -161,18 +161,21 @@ main {
 }
 
 .vsg-tlt-txt {
-    color: var(--color-bg-104);
+    background: linear-gradient(to right, var(--color-bg-104), var(--color-bg-109));
+    -webkit-background-clip: text;
+    color: transparent;
     font-size: 35pt;
+    text-transform: capitalize;
 }
 
 .vsg-par-txt {
-    color: var(--color-bg-sc-oth);
+    color: var(--color-bg-001);
     font-size: 20pt;
 }
 
 .fin-txt-mn {
     text-align: center;
-    color: var(--color-bg-000);
+    color: var(--color-bg-108);
     font-size: 16pt;
     line-height: 50px;
     font-weight: 600;
@@ -221,12 +224,17 @@ main {
 }
 
 .mini-footer-landing {
-    color: var(--color-bg-105);
+    color: var(--color-bg-108);
 }
+.mini-footer-landing > span.gl{
+    color: var(--color-bg-109);
+    text-decoration: underline;
+}
+.mini-footer-landing > span.gl:hover{color: var(--color-bg-001); cursor: pointer;}
 
 /*================== CONFIGURACOES DO SOBRE =================*/
 .sc-col-land {
-    display: none;
+    /* display: none; */
     background-color: var(--color-bg-001);
     padding: 20px 100px;
 }
@@ -286,7 +294,7 @@ main {
 
 /*================== CONFIGURACOES DO SOBRE =================*/
 .tr-col-land {
-    display: none;
+    /* display: none; */
     background-color: var(--color-bg-001);
 }
 
@@ -299,9 +307,9 @@ main {
         gap: 50px;
         overflow: hidden;
     }
-
-        .fil-cnt-tr > div.al-tx {width: 60%;}
-
+    
+    .fil-cnt-tr > div.al-tx {width: 60%;}
+    
         .fil-cnt-tr > div.al-tx > h1, .fil-cnt-tr > div.al-tx > p {text-align: justify;}
         .fil-cnt-tr > div.al-tx > h1 {color: var(--color-bg-104); font-size: 30pt; margin-bottom: 20px;}
         .fil-cnt-tr > div.al-tx > p {color: var(--color-bg-105); font-size: 15pt; margin-bottom: 10px; line-height: 40px; letter-spacing: .5px;}
@@ -338,24 +346,46 @@ main {
             .set-fil-tr > div > p { color: #e9f9f1; font-weight: lighter; font-size: 12pt; font-family: 'inter'; letter-spacing: 1.3px; text-align: center; line-height: 28px;}
 
 /*================== CONFIGURACOES DO FOOTER =================*/
-.add-gap-2 {gap: 50px;} 
-
-    .fo-col-sld {
+:root {--font-weidth: 500; --letter-spacing: .5px;}
+.fo-col-land {
+    padding: 0px;
+}
+    /*====== Primeiro capitulo de  section com o class definido como:  fo-col-land=======*/
+    .fo-col-land > .fo-col-sld {
         background-color: var(--color-bg-104);
         border-radius: 0px 0px 30px 30px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        height: 50%;
-        padding: 0px 100px;
+        padding: 30px 100px 0px 100px;
+        height: 55%;
     }
 
-        .cnt-fo-sld h1 {color: var(--color-tlt-oth); text-transform: uppercase; letter-spacing: 2px; font-size: 30pt;}
-        .cnt-fo-sld p {color: var(--color-bg-pr); margin-top: 20px; text-align: left; font-size: 18pt; letter-spacing: 1.5px;}
+        .col-bl-fo-ld {
+            width: 50%;
+        }
+
+        .fo-col-land > .fo-col-sld > div.cnt-fo-sld > p{color: var(--color-bg-001);}
+
+        .fo-col-land > .fo-col-sld > div.cnt-fo-sld > p.fo-tx-p1 {
+            background-color: #11182746;
+            border-radius: 5px;
+            font-size: 20px; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            padding: 5px 10px;
+            width: max-content;
+        }
+        .fo-col-land > .fo-col-sld > div.cnt-fo-sld > p > span{display: block;}
+        .fo-col-land > .fo-col-sld > div.cnt-fo-sld > p > span > img{background-color: var(--color-bg-104); width: 40px; border-radius: 5px; padding: 3px 5px;}
+        .fo-col-land > .fo-col-sld > div.cnt-fo-sld > h1{color: var(--color-bg-100); font-size: 2.5rem; margin: 20px 0px 15px 0px;}
+        .fo-col-land > .fo-col-sld > div.cnt-fo-sld > h1 > span{color: var(--color-bg-109);}
+
+        .fo-col-land > .fo-col-sld > div.cnt-fo-sld > p.fo-tx-p2{
+            font-size: 1.2rem;
+            letter-spacing: var(--letter-spacing);
+            line-height: 35px;
+        }
 
         /*====== Ultimo capitulo de  section com o class definido como:  fo-col-land=======*/
-        :root {--font-weidth: 500; --letter-spacing: .5px;}
         .fo-col-land > div.sc-col-sld > div.cnt-fo-sld-sc > li.content-logo{
             margin-bottom: 10px;
         }
@@ -387,16 +417,18 @@ main {
         
         .sc-col-sld {
             border-bottom: 1px solid var(--color-bg-103);
-            padding: 50px 100px;
+            padding: 40px 100px;
             display: flex;
             justify-content: space-between;
-            height: 40%;
         }
             .sc-col-sld > div.cnt-fo-sld-sc {width: 20%;}
 
         /*====== CAMPO DE NEWLETTER ======*/
         .fo-col-land > div.sc-col-sld > div.cnt-fo-sld-sc > form {
             margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
             .fo-col-land > div.sc-col-sld > div.cnt-fo-sld-sc > form > input[type="email"] {
                 color: var(--color-bg-001);
@@ -407,4 +439,20 @@ main {
             }
             .fo-col-land > div.sc-col-sld > div.cnt-fo-sld-sc > form > button[type="submit"] {
                 background-color: var(--color-bg-104);
+                border-radius: 4px;
+                padding: 4px 5px 1px 5px;
             }
+            .fo-col-land > div.sc-col-sld > div.cnt-fo-sld-sc > form > button[type="submit"] > img {
+                width: 30px;
+            }
+
+            .fouter-co {
+                letter-spacing: var(--letter-spacing);
+                display: flex;
+                justify-content: space-between;
+                padding: 20px 100px;
+            }
+                .fouter-co > .copy-tx {color: var(--color-bg-108);}
+                .fouter-co > .pry-tx > a {color: var(--color-bg-108); margin-right: 25px;}
+                .fouter-co > p {color: var(--color-bg-108); display: flex; align-items: center; gap: 5px;}
+                .fouter-co > p > img {width: 20px;}

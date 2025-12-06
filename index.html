@@ -28,7 +28,7 @@
                 <div class="asp-col">
                     <div class="colo-vsg-wel">
                         <img class="img-logo" src="sources/img/logo_bing_gr.png" alt="Imagem da VSG">
-                        <h1 class="vsg-tlt-txt">VSG vision green</h1>
+                        <h1 class="vsg-tlt-txt">Vision Green</h1>
                         <p class="vsg-par-txt">sustentando um futuro verde</p>
                     </div>
                     <div class="arb-th-cmp">
@@ -40,7 +40,7 @@
                         </section>
                     </div>
                 </div>
-                <p class="mini-footer-landing">&copy;2025 vision green by <span style="text-decoration: underline;">group - layout</span></p>
+                <p class="mini-footer-landing">&copy;<span class="ano"></span> vision green by <span class="gl">group - layout</span></p>
             </section>
 
             <section class="col-sld-cmp sc-col-land">
@@ -108,16 +108,14 @@
 
             <section class="col-sld-cmp fo-col-land">
                 <div class="col-sld-fo fo-col-sld">
-                    <div class="cnt-fo-sld">
-                        <h1>Ainda tás com dúvidas?</h1>
-                        <p>Mantenha a certeza e fica cada vez mais verde.</p>
+                    <div class="col-bl-fo-ld cnt-fo-sld">
+                        <p class="fo-tx-p1"><span><img src="sources/img/logo_small_wh.png" alt="Logo"></span> Compras sustentáveis</p>
+                        <h1>Descubra produtos <span>ecológicos</span> em todo o mundo</h1>
+                        <p class="fo-tx-p2">Junte-se ao Vision Green marketplace - onde a sustentabilidade encontra conveniência. Compre diversos produtos ecológicos  verificados em todo o mundo.</p>
                     </div>
-                    <section class="block-mn camp-btn-reg add-gap-2">
-                        <button class="regi-btn sign-up-btn">cadastre-se</button>
-                        <span class="th-opt-txt">ou</span>
-                        <button class="regi-btn login-btn">login</button>
-                    </section>
+                    <div class="col-bl-fo-ld cnt-sec-sld"></div>
                 </div>
+
                 <div class="col-sld-fo sc-col-sld">
                     <div class="cnt-fo-sld-sc">
                         <li class="content-logo">
@@ -153,22 +151,31 @@
                         <p>Inscreva-se para receber atualizações sobre novos produtos ecológicos e ofertas especiais.</p>
                         <form action="">
                             <input type="email" name="" id="">
-                            <button type="submit">Enviar</button>
+                            <button type="submit"><img src="sources/img/empty-email_wh.png" alt="Icon email"></button>
                         </form>
                     </div>
+                </div>
+                <div class="fouter-co">
+                    <div class="copy-tx"> &copy;<span class="ano"></span> Vision Green - Mercado Sunstetavel</div>
+                    <div class="pry-tx">
+                        <a href="#">Termos e condições</a>
+                        <a href="#">Politica de Privacidade</a>
+                        <a href="#">Cookie Policy</a>
+                    </div>
+                    <p>by Group Layout <img src="sources/img/logo_gl.png" alt="GL icon"></p>
                 </div>
             </section>
         </section>
     </main>
     <script>
-        //function fecharDiv() {
-          //  document.getElementById("regContent").style.display = "none";
-            //document.getElementById("openReg").style.display = "block";
-        //}
-
-        // function mostrarDiv() {
-            // document.getElementById("regContent").style.display = "flex";
-        // }
+        // Obter o ano atual
+        const anoAtual = new Date().getFullYear();
+        // Selecionar todos os spans com a classe "ano"
+        const spansAno = document.querySelectorAll('.ano');
+        // Atribuir o ano a todos os spans
+        spansAno.forEach(span => {
+            span.textContent = anoAtual;
+        });
 
 
         let currentSlide = 0;
