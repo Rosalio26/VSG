@@ -235,26 +235,33 @@ main {
 /*================== CONFIGURACOES DO SOBRE =================*/
 .sc-col-land {
     /* display: none; */
+    display: flex;
     background-color: var(--color-bg-001);
-    padding: 20px 100px;
+    padding: 20px 50px;
+    position: relative;
 }
 
-    .sc-col-land > h1 {
+.cnt-by-img {width: 80%;}
+
+
+
+    .sc-col-land > .cnt-by-img > h1 {
         font-size: 40pt;
         letter-spacing: 2px;
     }
 
-    .sc-col-land > p {
+    .sc-col-land > .cnt-by-img > p {
         color: var(--color-bg-103);
         font-size: 20pt;
         margin: 10px 0px 40px 0px;
     }
 
-        .sc-col-land > .col-land {
+        .sc-col-land > .cnt-by-img > .col-land {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             gap: 50px;
+            width: 75%;
         }
 
             .cnt-int-sc {
@@ -262,7 +269,7 @@ main {
                 border: 1.5px solid var(--color-bg-104);
                 box-shadow: 1px 1px 400px 2px var(--color-bg-000);
                 border-radius: 10px;
-                width:370px;
+                width:360px;
                 height: 200px;
                 padding: 10px;
             }
@@ -292,10 +299,34 @@ main {
                     line-height: 35px;
                 }
 
+    .cont-img-2-sl {
+        position: absolute;
+        top: 10%; right: 5%;
+
+        width: 40%;  
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 100px;
+    }
+                .cont-img-2-sl > img {
+                    display: block;
+                    width: 250px; 
+                    overflow: hidden; 
+                    border-radius: 1000px;
+                    box-shadow: 1px 1px 400px 2px #01d24ebf;
+                }
+
+                .small-img {width: 180px!important;}
+
+
 /*================== CONFIGURACOES DO SOBRE =================*/
 .tr-col-land {
     /* display: none; */
     background-color: var(--color-bg-001);
+    position: relative;
 }
 
     .fil-cnt-tr {
@@ -308,7 +339,7 @@ main {
         overflow: hidden;
     }
     
-    .fil-cnt-tr > div.al-tx {width: 60%;}
+    .fil-cnt-tr > div.al-tx {width: 50%;}
     
         .fil-cnt-tr > div.al-tx > h1, .fil-cnt-tr > div.al-tx > p {text-align: justify;}
         .fil-cnt-tr > div.al-tx > h1 {color: var(--color-bg-104); font-size: 30pt; margin-bottom: 20px;}
@@ -344,6 +375,17 @@ main {
             .set-fil-tr > div > img { background: #00000026; border-radius: 1000px; width: 80px; height: 80px; padding: 5px;}
             .set-fil-tr > div > h2 { color: rgba(1, 62, 31, 0.911); font-weight: 600; font-family: 'inter'; letter-spacing: 1.3px; font-size: 16pt;}
             .set-fil-tr > div > p { color: #e9f9f1; font-weight: lighter; font-size: 12pt; font-family: 'inter'; letter-spacing: 1.3px; text-align: center; line-height: 28px;}
+    
+    .scol-img {
+        border-radius: 20px;
+        box-shadow: 10px 10px 1px var(--color-bg-109);
+        width: 40%; height: 53%;
+        position: absolute; 
+        top: 2%; right: 5%;
+        overflow: hidden;
+        z-index: 10;
+    }
+        .scol-img > img {width: 100%; height: 100%;}
 
 /*================== CONFIGURACOES DO FOOTER =================*/
 :root {--font-weidth: 500; --letter-spacing: .5px;}
@@ -404,9 +446,13 @@ main {
         }
         .fo-col-land > div.sc-col-sld > div.cnt-fo-sld-sc > ul > li {
             color: var(--color-bg-108);
+            cursor: pointer;
             font-size: 16px;
             letter-spacing: var(--letter-spacing);
             margin-top: 5px;
+        }
+        .fo-col-land > div.sc-col-sld > div.cnt-fo-sld-sc > ul > li:hover {
+            color: var(--color-bg-109);
         }
         .fo-col-land > div.sc-col-sld > div.cnt-fo-sld-sc > p {
             color: var(--color-bg-108);
@@ -454,5 +500,6 @@ main {
             }
                 .fouter-co > .copy-tx {color: var(--color-bg-108);}
                 .fouter-co > .pry-tx > a {color: var(--color-bg-108); margin-right: 25px;}
+                .fouter-co > .pry-tx > a:hover {color: var(--color-bg-109); text-decoration: underline;}
                 .fouter-co > p {color: var(--color-bg-108); display: flex; align-items: center; gap: 5px;}
                 .fouter-co > p > img {width: 20px;}
