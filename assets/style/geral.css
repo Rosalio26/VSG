@@ -11,12 +11,12 @@
 
 @font-face {
  font-family: 'inria-light';
- src: url(../fonts/Inria_Sans/InriaSans-Light.ttf) format('woff2');
+ src: url(../../sources/fonts/Inria_Sans/InriaSans-Light.ttf) format('woff2');
 }
 
 @font-face {
  font-family: 'inter';
- src: url(../fonts/Inter/inter-Light.ttf) format('woff2');
+ src: url(../../sources/fonts/Inter/inter-Light.ttf) format('woff2');
 }
 
 :root {
@@ -218,7 +218,7 @@ main {
 }
 
 .th-opt-txt {
-    color: var(--color-bg-sc-oth);
+    color: var(--color-bg-108);
     font-size: 16pt;
     font-weight: bolder;
 }
