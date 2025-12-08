@@ -190,14 +190,25 @@
             span.textContent = anoAtual;
         });
 
-
         let currentSlide = 0;
         const slidesContainer = document.querySelector(".fr-mn");
         const totalSlides = document.querySelectorAll(".col-sld-cmp").length;
-
         let isScrolling = false;
 
+
+        const headerLinks = document.querySelectorAll(".link-header");
+        const headerLinksActi = document.querySelectorAll(".link-header");
+        const headerBloc = document.getElementById("headerBloc");
+        const textColor = document.querySelectorAll(".link-lg");
+        
+        // Adicionar o evento de rolagem
         window.addEventListener("wheel", (event) => {
+            // Verifica se a largura da janela é menor ou igual a 700px
+            if (window.innerWidth <= 768) {
+                headerBloc.classList.add("actiH");
+                return; // Desabilita o slide
+            }
+
             if (isScrolling) return;
 
             if (event.deltaY > 0) {
@@ -209,10 +220,6 @@
             updateSlide();
         });
 
-        const headerLinks = document.querySelectorAll(".link-header");
-        const headerLinksActi = document.querySelectorAll(".link-header");
-        const headerBloc = document.getElementById("headerBloc");
-        const textColor = document.querySelectorAll(".link-lg");
         // ATUALIZA O HEADER CONFORME O SLIDE
         function updateHeader() {
             headerLinks.forEach(link => link.classList.remove("active"));
@@ -222,21 +229,21 @@
 
             if (currentSlide === 1) {
                 headerLinks[0].classList.add("active"); // Sobre
-                // headerLinksActi[0].classList.remove("acti"); 
+                // headerLinksActi[0].classList.remove("acti");
                 headerBloc.style.background = "var(--color-bg-001)";
                 textColor.forEach(el => el.classList.add("act"));
             }
 
             if (currentSlide === 2) {
                 headerLinks[1].classList.add("active"); // Contato
-                // headerLinksActi[1].classList.remove("acti"); 
+                // headerLinksActi[1].classList.remove("acti");
                 headerBloc.style.background = "var(--color-bg-001)";
                 textColor.forEach(el => el.classList.add("act"));
             }
-            
+
             if (currentSlide === 3) {
                 headerLinks[2].classList.add("active"); // Info
-                headerLinksActi[2].classList.add("acti"); 
+                headerLinksActi[2].classList.add("acti");
                 headerBloc.style.background = "var(--color-bg-104)";
             }
         }
@@ -255,6 +262,7 @@
                 isScrolling = false;
             }, 900);
         }
+
     </script>
 </body>
 </html>
