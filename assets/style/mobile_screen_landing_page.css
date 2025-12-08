@@ -1,0 +1,304 @@
+/* ========================================================== */
+/* === AJUSTES DE RESPONSIVIDADE (MEDIA QUERIES) === */
+/* ========================================================== */
+
+/* Dispositivos de Tela Grande/Tablets (max-width: 1200px) */
+@media (max-width: 1200px) {
+    header {
+        /* Reduz o padding na horizontal do cabeçalho */
+        padding: 0px 40px; 
+    }
+
+    header ul.content-link-ass {
+        /* Reduz o espaçamento entre os links */
+        gap: 50px;
+    }
+
+    .fin-txt-mn {
+        /* Ajusta margem para se adequar melhor ao espaço */
+        margin: 40px 0px; 
+    }
+
+    /* === Configurações do SOBRE (Segunda seção) === */
+    .sc-col-land {
+        /* Aumenta o padding e muda a exibição para quebrar a linha se necessário */
+        padding: 40px;
+        flex-direction: column; 
+    }
+
+    .cnt-by-img {
+        /* Ocupa a largura total */
+        width: 100%; 
+    }
+
+    .cont-img-2-sl {
+        /* Remove o posicionamento absoluto e coloca o contêiner de imagens no fluxo normal */
+        position: static;
+        width: 100%;
+        margin-top: 30px;
+        gap: 50px;
+    }
+
+    /* Redimensiona imagens no 'Sobre' */
+    .cont-img-2-sl > img {
+        width: 200px; 
+    }
+
+    .small-img {
+        width: 150px !important;
+    }
+
+    /* === Configurações da Terceira Seção (TR-COL-LAND) === */
+    .fil-cnt-tr {
+        /* Ajusta o padding e gap */
+        padding: 40px;
+        gap: 30px;
+    }
+
+    .fil-cnt-tr > div.al-tx {
+        /* Aumenta a largura do texto para ocupar mais espaço */
+        width: 60%; 
+    }
+
+    .fil-cnt-tr > div.ad-col {
+        /* Diminui a largura da coluna de imagem/espaço */
+        width: 25%; 
+    }
+
+    .scol-img {
+        /* Ajusta o posicionamento da imagem flutuante */
+        width: 35%;
+        height: 50%;
+        right: 3%;
+    }
+
+    /* === Configurações do FOOTER === */
+    .fo-col-land > .fo-col-sld {
+        /* Reduz o padding horizontal no topo do footer */
+        padding: 30px 40px 0px 40px; 
+    }
+
+    .sc-col-sld {
+        /* Reduz o padding horizontal do meio do footer */
+        padding: 40px 40px; 
+    }
+}
+
+/* Dispositivos Móveis/Smartphones (max-width: 768px) */
+@media (max-width: 768px) {
+    header {
+        /* Altura maior para celular e padding ajustado */
+        height: 10vh; 
+        padding: 0px 20px;
+    }
+
+    header ul {
+        /* Alinha a logo e os links no centro */
+        justify-content: center;
+    }
+
+    header ul.content-link-ass {
+        /* Esconde os links de navegação para liberar espaço na tela pequena */
+        display: none; 
+    }
+
+    main {
+        /* Ajusta a posição de início da área principal */
+        top: 10vh; 
+        height: calc(100vh - 10vh);
+        overflow-y: auto; /* Permite rolar a tela principal */
+    }
+    
+    .fr-col-land {
+        padding: 20px 20px 10px 20px;
+    }
+
+    .vsg-tlt-txt {
+        /* Reduz o tamanho da fonte para o título */
+        font-size: 25pt; 
+        text-align: center;
+    }
+
+    .vsg-par-txt {
+        /* Reduz o tamanho da fonte para o parágrafo */
+        font-size: 16pt; 
+        text-align: center;
+    }
+
+    .fin-txt-mn {
+        /* Reduz o tamanho da fonte e margem */
+        font-size: 14pt; 
+        line-height: 30px;
+        margin: 30px 0px;
+    }
+
+    .camp-btn-reg {
+        /* Altera para layout de coluna e adiciona margem */
+        flex-direction: column; 
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    /* === Configurações do SOBRE (Segunda seção) === */
+    .sc-col-land {
+        flex-direction: column;
+        padding: 20px;
+    }
+
+    .sc-col-land > .cnt-by-img > h1 {
+        /* Reduz o tamanho da fonte do título */
+        font-size: 30pt; 
+    }
+
+    .sc-col-land > .cnt-by-img > p {
+        /* Reduz o tamanho da fonte do parágrafo */
+        font-size: 16pt; 
+        margin: 10px 0px 20px 0px;
+    }
+
+    .sc-col-land > .cnt-by-img > .col-land {
+        /* Layout de coluna única para os cards */
+        flex-direction: column;
+        width: 100%;
+        gap: 20px;
+    }
+
+    .cnt-int-sc {
+        /* Ocupa a largura total para melhor visualização do card */
+        width: 100%; 
+        height: auto;
+    }
+    
+    .cnt-int-sc > p {
+        /* Ajusta tamanho da fonte e espaçamento */
+        font-size: 12pt;
+        line-height: 25px;
+    }
+
+    .cont-img-2-sl {
+        /* Esconde as imagens flutuantes para economizar espaço */
+        display: none; 
+    }
+
+    /* === Configurações da Terceira Seção (TR-COL-LAND) === */
+    .tr-col-land {
+        height: auto;
+    }
+    
+    .fil-cnt-tr {
+        flex-direction: column;
+        height: auto;
+        padding: 20px;
+    }
+
+    .fil-cnt-tr > div.al-tx {
+        width: 100%; /* Ocupa a largura total */
+    }
+
+    .fil-cnt-tr > div.al-tx > h1 {
+        font-size: 24pt;
+    }
+    .fil-cnt-tr > div.al-tx > p {
+        font-size: 14pt;
+        line-height: 30px;
+    }
+
+    .fil-cnt-tr > div.ad-col {
+        display: none; /* Esconde este elemento se for apenas um espaço vazio ou imagem de fundo não essencial */
+    }
+
+    .scol-img {
+        /* Remove imagem flutuante */
+        display: none; 
+    }
+
+    .set-fil-tr {
+        /* Altera para layout de coluna e ajusta o padding */
+        flex-direction: column;
+        height: auto;
+        padding: 20px;
+        gap: 30px;
+    }
+
+    .set-fil-tr > div {
+        /* Remove as bordas divisórias na vertical */
+        border: none !important; 
+        width: 100%;
+        height: auto;
+        padding: 0px 20px;
+    }
+
+
+    /* === Configurações do FOOTER === */
+    .fo-col-land > .fo-col-sld {
+        /* Reduz padding */
+        padding: 20px; 
+        height: auto;
+    }
+
+    .col-bl-fo-ld {
+        width: 100%; /* Ocupa a largura total */
+    }
+
+    .fo-col-land > .fo-col-sld > div.cnt-fo-sld > h1 {
+        font-size: 2rem;
+    }
+    
+    .sc-col-sld {
+        /* Layout de coluna para as seções do footer */
+        flex-direction: column; 
+        padding: 30px 20px;
+        gap: 30px;
+    }
+
+    .sc-col-sld > div.cnt-fo-sld-sc {
+        width: 100%; /* Ocupa a largura total */
+    }
+
+    .fouter-co {
+        /* Layout de coluna para o rodapé final */
+        flex-direction: column; 
+        padding: 10px 20px;
+        gap: 10px;
+        text-align: center;
+    }
+
+    .fouter-co > .pry-tx {
+        /* Centraliza os links */
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .fouter-co > .pry-tx > a {
+        margin: 5px 0px;
+    }
+
+    .fouter-co > .copy-tx {
+        order: 1; /* Coloca o copyright por último se necessário */
+    }
+}
+
+/* Dispositivos Móveis Pequenos (max-width: 480px) */
+@media (max-width: 480px) {
+    .vsg-tlt-txt {
+        font-size: 20pt;
+    }
+
+    .vsg-par-txt {
+        font-size: 14pt;
+    }
+
+    .cnt-int-sc > h2 {
+        font-size: 14pt;
+    }
+
+    .cnt-int-sc > p {
+        font-size: 11pt;
+    }
+    
+    .fo-col-land > div.sc-col-sld > div.cnt-fo-sld-sc > form {
+        /* Altera o layout do formulário para coluna */
+        flex-direction: column; 
+        align-items: flex-start;
+    }
+}
