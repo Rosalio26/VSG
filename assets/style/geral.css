@@ -121,23 +121,21 @@ main {
 }
 
 .fr-mn {
-    height: auto;
-    height: 100%; width: 100%;
+    width: 100%;
     transition: transform 0.8s ease;
 }
 
 .col-sld-cmp {
-    width: 100%; height: 100%;
+    width: 100%; height: 100vh;
     overflow: hidden;
 }
 
 .fr-col-land {    
     display: flex;
-    /* display: none; */
     align-items: center;
     justify-content: space-between;
     flex-direction: column;
-    padding: 40px 0px 20px 0px;
+    padding: 40px 0px 70px 0px;
     width: 100%; height: 100%;
 }
 
@@ -156,8 +154,7 @@ main {
 .vsg-tlt-txt,
 .vsg-par-txt,
 .fin-txt-mn,
-.regi-btn,
-.mini-footer-landing {
+.regi-btn {
     letter-spacing: 1.5px;
 }
 
@@ -224,25 +221,21 @@ main {
     font-weight: bolder;
 }
 
-.mini-footer-landing {
-    color: var(--color-bg-108);
-}
-.mini-footer-landing > span.gl{
-    color: var(--color-bg-109);
-    text-decoration: underline;
-}
-.mini-footer-landing > span.gl:hover{color: var(--color-bg-001); cursor: pointer;}
-
 /*================== CONFIGURACOES DO SOBRE =================*/
 .sc-col-land {
     /* display: none; */
     display: flex;
+    align-items: center;
+    justify-content: center;
     background-color: var(--color-bg-001);
-    padding: 20px 50px;
+    padding: 0px 50px 0px 50px;
     position: relative;
 }
 
-.cnt-by-img {width: 80%;}
+.cnt-by-img {width: 60%;}
+@media (max-width: 1190px) {
+    .cnt-by-img {width: 100%;}
+}
 
 
 
@@ -261,8 +254,9 @@ main {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: 50px;
-            width: 75%;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
         }
 
             .cnt-int-sc {
@@ -270,12 +264,13 @@ main {
                 border: 1.5px solid var(--color-bg-104);
                 box-shadow: 1px 1px 400px 2px var(--color-bg-000);
                 border-radius: 10px;
-                width:360px;
+                width:300px;
                 height: 200px;
                 padding: 10px;
             }
 
                 .cnt-int-sc > h2 {
+                    font-size: 13pt;
                     color: var(--color-bg-101);
                     background-color: var(--color-bg-000);
                     border-radius: 5px;
@@ -295,40 +290,48 @@ main {
 
                 .cnt-int-sc > p {
                     color: var(--color-bg-101);
-                    font-size: 14pt;
+                    font-size: 12pt;
                     text-align: justify;
                     line-height: 35px;
                 }
 
     .cont-img-2-sl {
-        position: absolute;
-        top: 10%; right: 5%;
-
-        width: 40%;  
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 100px;
+        width: 45%;
     }
-                .cont-img-2-sl > img {
-                    display: block;
-                    width: 250px; 
-                    overflow: hidden; 
-                    border-radius: 1000px;
-                    box-shadow: 1px 1px 400px 2px #01d24ebf;
-                }
-
-                .small-img {width: 180px!important;}
-
+        .cont-img-2-sl > img {
+            display: block;
+            width: 100%; 
+            overflow: hidden; 
+        }
+        @media (max-width: 1190px) {
+            .cont-img-2-sl { display: none;}
+        }
 
 /*================== CONFIGURACOES DO SOBRE =================*/
 .tr-col-land {
     /* display: none; */
     background-color: var(--color-bg-001);
     position: relative;
+    padding-top: 50px;
 }
+
+.tr-col-land::before {
+    content: " ";
+    position: absolute;
+    bottom: 0; left: 0;
+    background-color: var(--color-bg-109);
+    width: 30%;
+    height: 3px;
+}
+
+/* .tr-col-land::after {
+    content: " ";
+    position: absolute;
+    bottom: 0; right: 0;
+    background-color: red;
+    width: 30%;
+    height: 3px;
+} */
 
     .fil-cnt-tr {
         background-color: var(--color-bg-001);
@@ -343,9 +346,11 @@ main {
     .fil-cnt-tr > div.al-tx {width: 50%;}
     
         .fil-cnt-tr > div.al-tx > h1, .fil-cnt-tr > div.al-tx > p {text-align: justify;}
-        .fil-cnt-tr > div.al-tx > h1 {color: var(--color-bg-104); font-size: 30pt; margin-bottom: 20px;}
+        .fil-cnt-tr > div.al-tx > h1 {color: var(--color-bg-104); font-size: 40pt; margin-bottom: 20px;}
         .fil-cnt-tr > div.al-tx > p {color: var(--color-bg-105); font-size: 15pt; margin-bottom: 10px; line-height: 40px; letter-spacing: .5px;}
-
+        @media (max-width: 1200px) {
+            .fil-cnt-tr > div.al-tx > h1 {font-size: 30pt;}
+        }
         .fil-cnt-tr > div.ad-col {
             background-color: transparent;
             width: 30%;
@@ -358,7 +363,7 @@ main {
         height: 50%;
         display: flex;
         justify-content: center;
-        padding: 30px;
+        padding: 70px;
     }
 
         .set-fil-tr > div {
@@ -380,13 +385,19 @@ main {
     .scol-img {
         border-radius: 20px;
         box-shadow: 10px 10px 1px var(--color-bg-109);
-        width: 40%; height: 53%;
+        width: 40%; height: 45%;
         position: absolute; 
         top: 2%; right: 5%;
         overflow: hidden;
         z-index: 10;
     }
         .scol-img > img {width: 100%; height: 100%;}
+        @media (max-width: 1200px) {
+            .scol-img {
+                top: 7%;
+                width: 40%; height: 35%;
+            }
+        }
 
 /*================== CONFIGURACOES DO FOOTER =================*/
 :root {--font-weidth: 500; --letter-spacing: .5px;}
@@ -397,7 +408,7 @@ main {
     .fo-col-land > .fo-col-sld {
         background-color: var(--color-bg-104);
         border-radius: 0px 0px 30px 30px;
-        padding: 30px 100px 0px 100px;
+        padding: 80px 100px 0px 100px;
         height: 55%;
     }
 
@@ -470,6 +481,9 @@ main {
         }
             .sc-col-sld > div.cnt-fo-sld-sc {width: 20%;}
 
+
+            .boletim > p {text-align: justify !important;}
+
         /*====== CAMPO DE NEWLETTER ======*/
         .fo-col-land > div.sc-col-sld > div.cnt-fo-sld-sc > form {
             margin-top: 10px;
@@ -483,6 +497,7 @@ main {
                 border-radius: 1000px;
                 font-size: 16px;
                 padding: 5px 15px;
+                width: 300px;
             }
             .fo-col-land > div.sc-col-sld > div.cnt-fo-sld-sc > form > button[type="submit"] {
                 background-color: var(--color-bg-104);
@@ -502,5 +517,5 @@ main {
                 .fouter-co > .copy-tx {color: var(--color-bg-108);}
                 .fouter-co > .pry-tx > a {color: var(--color-bg-108); margin-right: 25px;}
                 .fouter-co > .pry-tx > a:hover {color: var(--color-bg-109); text-decoration: underline;}
-                .fouter-co > p {color: var(--color-bg-108); display: flex; align-items: center; gap: 5px;}
+                .fouter-co > p {color: var(--color-bg-108); display: flex; align-items: center; gap: 5px; justify-content: normal;}
                 .fouter-co > p > img {width: 20px;}

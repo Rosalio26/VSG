@@ -4,14 +4,12 @@
 
 
 /* Dispositivos Móveis/Smartphones (max-width: 768px) */
-@media (max-width: 768px) {
+@media (max-width: 958px) {
     header {
         /* Altura maior para celular e padding ajustado */
         height: 10vh; 
         padding: 0px 20px;
     }
-
-    header.actiH {background-color: transparent;}
 
     header ul {
         /* Alinha a logo e os links no centro */
@@ -69,39 +67,36 @@
         padding: 20px;
     }
 
+    .sc-col-land > .cnt-by-img {
+        width: 100%;
+    }
+
     .sc-col-land > .cnt-by-img > h1 {
-        /* Reduz o tamanho da fonte do título */
-        font-size: 30pt; 
+        font-size: 35pt; 
     }
 
     .sc-col-land > .cnt-by-img > p {
-        /* Reduz o tamanho da fonte do parágrafo */
-        font-size: 16pt; 
+        font-size: 23pt; 
         margin: 10px 0px 20px 0px;
+        line-height: 45px;
     }
 
     .sc-col-land > .cnt-by-img > .col-land {
-        /* Layout de coluna única para os cards */
-        flex-direction: column;
-        width: 100%;
-        gap: 20px;
+        justify-content: center;
+        width: 80%;
+        margin: 0px auto;
+        padding: 20px 0px;
     }
 
     .cnt-int-sc {
-        /* Ocupa a largura total para melhor visualização do card */
-        width: 100%; 
-        height: auto;
+        width: 90%; 
+        height: 200px;
     }
     
     .cnt-int-sc > p {
-        /* Ajusta tamanho da fonte e espaçamento */
-        font-size: 12pt;
-        line-height: 25px;
-    }
-
-    .cont-img-2-sl {
-        /* Esconde as imagens flutuantes para economizar espaço */
-        display: none; 
+        line-height: 30px;
+        margin: 10px 0px;
+        font-size: 16pt;
     }
 
     /* === Configurações da Terceira Seção (TR-COL-LAND) === */
@@ -112,7 +107,7 @@
     .fil-cnt-tr {
         flex-direction: column;
         height: auto;
-        padding: 20px;
+        padding: 50px;
     }
 
     .fil-cnt-tr > div.al-tx {
@@ -139,25 +134,21 @@
     .set-fil-tr {
         /* Altera para layout de coluna e ajusta o padding */
         flex-direction: column;
-        height: auto;
         padding: 20px;
         gap: 30px;
     }
 
     .set-fil-tr > div {
-        /* Remove as bordas divisórias na vertical */
         border: none !important; 
-        width: 100%;
-        height: auto;
+        width: 80%;
         padding: 0px 20px;
+        margin: 0 auto;
     }
 
 
     /* === Configurações do FOOTER === */
     .fo-col-land > .fo-col-sld {
-        /* Reduz padding */
-        padding: 20px; 
-        height: auto;
+        padding: 70px 20px; 
     }
 
     .col-bl-fo-ld {
@@ -177,7 +168,14 @@
 
     .sc-col-sld > div.cnt-fo-sld-sc {
         width: 100%; /* Ocupa a largura total */
+        /* display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center; */
     }
+
+    .cnt-fo-sld-sc > h2 {text-align: center;}
+    .cnt-fo-sld-sc > ul > li {text-align: center;}
 
     .fouter-co {
         /* Layout de coluna para o rodapé final */
@@ -199,5 +197,25 @@
 
     .fouter-co > .copy-tx {
         order: 1; /* Coloca o copyright por último se necessário */
+    }
+
+    .fouter-co > p {justify-content: center;}
+
+    .boletim {
+        width: 60% !important; 
+        margin: 0 auto;
+    }
+    
+    .boletim > p {
+        text-align: center;
+    }
+    
+    .boletim > form {
+        width: 100%;
+    }
+    
+    .boletim > form > input[type="email"] {
+        width: 100%;
+        padding: 40px 10px;
     }
 }
