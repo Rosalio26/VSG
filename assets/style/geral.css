@@ -135,7 +135,7 @@ main {
     align-items: center;
     justify-content: space-between;
     flex-direction: column;
-    padding: 170px 70px;
+    padding: 100px 70px 170px 70px;
     width: 100%;
 }
 

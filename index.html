@@ -38,7 +38,7 @@
                     <div class="arb-th-cmp">
                         <p class="fin-txt-mn">Encotre, escolhe e venda em diversos cantos do mundo. <br> Onde estiveres, estaras sempre no verde.</p>
                         <section class="block-mn camp-btn-reg add-gap-1">
-                            <button class="regi-btn sign-up-btn">cadastrar-se</button>
+                            <button id="btn-cadastrar" class="regi-btn sign-up-btn">cadastrar-se</button>
                             <span class="th-opt-txt">ou</span>
                             <button class="regi-btn login-btn">login</button>
                         </section>
@@ -178,6 +178,24 @@
         </section>
     </main>
     <script>
+        document.getElementById("btn-cadastrar").addEventListener("click", () => {
+
+        const largura = window.innerWidth;
+        const ua = navigator.userAgent.toLowerCase();
+
+        const isMobileUA = /android|iphone|ipod|windows phone/.test(ua);
+        const isSmallScreen = largura <= 768;
+
+        let deviceType = "desktop";
+
+        if (isMobileUA && isSmallScreen) {
+            deviceType = "mobile";
+        }
+
+        // Redireciona SEMPRE para o painel
+        window.location.href = `registration/register/painel_cadastro.php?device=${deviceType}`;
+        });
+
     /*    // Obter o ano atual
         const anoAtual = new Date().getFullYear();
         // Selecionar todos os spans com a classe "ano"
