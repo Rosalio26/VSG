@@ -4,6 +4,10 @@ function rateLimit(string $key, int $max, int $seconds): void
 {
     $now = time();
 
+    if (!isset($_SESSION['rate'])) {
+        $_SESSION['rate'] = [];
+    }
+
     if (!isset($_SESSION['rate'][$key])) {
         $_SESSION['rate'][$key] = [
             'count' => 1,

@@ -1,59 +1,24 @@
 <?php
-// header('X-Frame-Options: DENY');
-// header('X-Content-Type-Options: nosniff');
-// header('Referrer-Policy: same-origin');
 
-// // CSP simples (não quebra JS inline atual)
-// header(
-//   "Content-Security-Policy: default-src 'self'; " .
-//   "script-src 'self'; " .
-//   "style-src 'self';"
-// );
-
-// // Deve rodar ANTES do session_start()
-
-// session_set_cookie_params([
-//     'lifetime' => 0,
-//     'path' => '/',
-//     'domain' => '',
-//     'secure' => isset($_SERVER['HTTPS']), // true em HTTPS
-//     'httponly' => true,
-//     'samesite' => 'Strict',
-// ]);
-
-// session_start();
-
-// // ================= CSRF TOKEN =================
-// if (empty($_SESSION['csrf_token'])) {
-//     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-// }
-
+require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../bootstrap.php';
 require_once __DIR__ . '/../includes/device.php';
+require_once __DIR__ . '/../includes/rate_limit.php';
 
 $device = detectDevice();
 
-/**
- * Regras fortes:
- * - Android / iOS → sempre mobile
- * - Windows / Mac / Linux → desktop
- */
-$isMobileReal =
-    $device['os'] === 'android' ||
-    $device['os'] === 'ios';
+/* ===== DETECÇÃO ===== */
+$isMobileReal = $device['os'] === 'android' || $device['os'] === 'ios';
+$isDesktopReal = in_array($device['os'], ['windows', 'mac', 'linux'], true);
 
-$isDesktopReal =
-    in_array($device['os'], ['windows', 'mac', 'linux'], true);
-
-// Sessão fingerprint (anti-tamper simples)
+/* ===== FINGERPRINT ===== */
 $fingerprint = hash(
     'sha256',
     $device['os'] .
     $device['browser'] .
-    ($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '')
+    ($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '') .
+    ($_SERVER['HTTP_USER_AGENT'] ?? '')
 );
-
-
 
 if (!isset($_SESSION['fingerprint'])) {
     $_SESSION['fingerprint'] = $fingerprint;
@@ -64,8 +29,7 @@ if ($_SESSION['fingerprint'] !== $fingerprint) {
     exit('Sessão inválida.');
 }
 
-/* =================== REGRAS DE NEGÓCIO =================== */
-
+/* ===== REGRAS DE NEGÓCIO ===== */
 if ($isMobileReal) {
     $_SESSION['tipos_permitidos'] = ['pessoal'];
     $_SESSION['tipo_atual'] = 'pessoal';
@@ -77,10 +41,13 @@ if ($isMobileReal) {
     exit('Dispositivo não suportado.');
 }
 
-/* =================== BLOQUEIO DE POST =================== */
-
+/* ===== BLOQUEIO POST ===== */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $tipo = $_POST['tipo'] ?? '';
+
+    $tipo = $_POST['tipo'] ?? 'geral';
+    $tipo = in_array($tipo, ['pessoal', 'business'], true) ? $tipo : 'geral';
+
+    rateLimit('cadastro_' . $tipo, 5, 60);
 
     if (!in_array($tipo, $_SESSION['tipos_permitidos'], true)) {
         http_response_code(403);
@@ -88,8 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-
-/* ===== DEBUG TEMPORÁRIO ===== */
+/* ===== DEBUG DEV ===== */
 if (($_ENV['APP_ENV'] ?? 'prod') === 'dev') {
     file_put_contents(
         __DIR__ . '/../logs/device.log',
@@ -99,5 +65,3 @@ if (($_ENV['APP_ENV'] ?? 'prod') === 'dev') {
         FILE_APPEND
     );
 }
-
-/* ============================ */
