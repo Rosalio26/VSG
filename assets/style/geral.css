@@ -126,8 +126,8 @@ main {
 }
 
 .col-sld-cmp {
-    width: 100%; height: 100vh;
-    overflow: hidden;
+    width: 100%;
+    overflow-x: hidden;
 }
 
 .fr-col-land {    
@@ -135,8 +135,8 @@ main {
     align-items: center;
     justify-content: space-between;
     flex-direction: column;
-    padding: 40px 0px 70px 0px;
-    width: 100%; height: 100%;
+    padding: 170px 70px;
+    width: 100%;
 }
 
 .colo-vsg-wel {
@@ -225,11 +225,12 @@ main {
 .sc-col-land {
     /* display: none; */
     display: flex;
-    align-items: center;
+    align-items: normal;
     justify-content: center;
     background-color: var(--color-bg-001);
-    padding: 0px 50px 0px 50px;
+    padding: 70px 50px 100px 50px;
     position: relative;
+    height: max-content;
 }
 
 .cnt-by-img {width: 60%;}
@@ -312,6 +313,7 @@ main {
     background-color: var(--color-bg-001);
     position: relative;
     padding-top: 50px;
+    height: max-content;
 }
 
 .tr-col-land::before {
@@ -334,12 +336,13 @@ main {
 
     .fil-cnt-tr {
         background-color: var(--color-bg-001);
-        height: 50%;
-        padding: 50px;
+        width: 100%;
+        padding: 0px 50px 150px 50px; 
         display: flex;
-        align-items: center;
+        align-items: normal;
+        justify-content: center;
+        
         gap: 50px;
-        overflow: hidden;
     }
     
     .fil-cnt-tr > div.al-tx {width: 50%;}
@@ -350,11 +353,6 @@ main {
         @media (max-width: 1200px) {
             .fil-cnt-tr > div.al-tx > h1 {font-size: 30pt;}
         }
-        .fil-cnt-tr > div.ad-col {
-            background-color: transparent;
-            width: 30%;
-            height: 100%;
-        }
 
     .set-fil-tr {
         background-color: var(--color-bg-104);
@@ -363,6 +361,11 @@ main {
         display: flex;
         justify-content: center;
         padding: 70px;
+    }
+
+    @media (max-width: 1100px) {
+        .fil-cnt-tr {overflow: auto;}
+        .set-fil-tr {flex-wrap: wrap; height: max-content;}
     }
 
         .set-fil-tr > div {
@@ -384,9 +387,7 @@ main {
     .scol-img {
         border-radius: 20px;
         box-shadow: 10px 10px 1px var(--color-bg-109);
-        width: 40%; height: 45%;
-        position: absolute; 
-        top: 2%; right: 5%;
+        width: 600px; height: 500px;
         overflow: hidden;
         z-index: 10;
     }
@@ -402,20 +403,24 @@ main {
 :root {--font-weidth: 500; --letter-spacing: .5px;}
 .fo-col-land {
     padding: 0px;
+    height: max-content;
 }
     /*====== Primeiro capitulo de  section com o class definido como:  fo-col-land=======*/
     .fo-col-land > .fo-col-sld {
         background-color: var(--color-bg-104);
         border-radius: 0px 0px 30px 30px;
-        padding: 80px 100px 0px 100px;
-        height: 55%;
-    }
+        padding: 80px 100px;
+            }
 
-        .col-bl-fo-ld {
+    
+        /* .col-bl-fo-ld {
             width: 50%;
-        }
+        } */
 
         .fo-col-land > .fo-col-sld > div.cnt-fo-sld > p{color: var(--color-bg-001);}
+        @media (max-width: 1100px) {
+            .cnt-fo-sld {width: 100%;}
+        }
 
         .fo-col-land > .fo-col-sld > div.cnt-fo-sld > p.fo-tx-p1 {
             background-color: #11182746;
@@ -478,7 +483,18 @@ main {
             display: flex;
             justify-content: space-between;
         }
-            .sc-col-sld > div.cnt-fo-sld-sc {width: 20%;}
+        .sc-col-sld > div.cnt-fo-sld-sc {width: 20%;}
+            @media (max-width: 1100px) {
+                .sc-col-sld {
+                    flex-direction: column; 
+                    padding: 10px 0px;
+                    gap: 35px;
+                }
+                .sc-col-sld > div.cnt-fo-sld-sc {width: 50%; margin: 0 auto;}
+                
+                .cnt-fo-sld-sc > h2 {text-align: center;}
+                .cnt-fo-sld-sc > ul > li {text-align: center;}
+            }
 
 
             .boletim > p {text-align: justify !important;}
@@ -513,8 +529,14 @@ main {
                 justify-content: space-between;
                 padding: 20px 100px;
             }
+            @media (max-width: 1100px) {
+                .fouter-co {
+                    flex-direction: column; 
+                }
+            }
                 .fouter-co > .copy-tx {color: var(--color-bg-108);}
                 .fouter-co > .pry-tx > a {color: var(--color-bg-108); margin-right: 25px;}
                 .fouter-co > .pry-tx > a:hover {color: var(--color-bg-109); text-decoration: underline;}
                 .fouter-co > p {color: var(--color-bg-108); display: flex; align-items: center; gap: 5px; justify-content: normal;}
                 .fouter-co > p > img {width: 20px;}
+

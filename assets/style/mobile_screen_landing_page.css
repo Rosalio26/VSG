@@ -4,7 +4,7 @@
 
 
 /* Dispositivos Móveis/Smartphones (max-width: 768px) */
-@media (max-width: 958px) {
+@media (max-width: 768px) {
     header {
         /* Altura maior para celular e padding ajustado */
         height: 10vh; 
