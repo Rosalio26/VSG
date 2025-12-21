@@ -1,3 +1,7 @@
+<?php
+require_once __DIR__ . '/registration/bootstrap.php';
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -38,7 +42,12 @@
                     <div class="arb-th-cmp">
                         <p class="fin-txt-mn">Encotre, escolhe e venda em diversos cantos do mundo. <br> Onde estiveres, estaras sempre no verde.</p>
                         <section class="block-mn camp-btn-reg add-gap-1">
-                            <button id="btn-cadastrar" class="regi-btn sign-up-btn">cadastrar-se</button>
+                            <form method="post" action="registration/process/start.php">
+                                <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                                <button type="submit" id="btn-cadastrar" class="regi-btn sign-up-btn">
+                                    cadastrar-se
+                                </button>
+                            </form>
                             <span class="th-opt-txt">ou</span>
                             <button class="regi-btn login-btn">login</button>
                         </section>

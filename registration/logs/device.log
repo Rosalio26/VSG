@@ -708,3 +708,53 @@
     "ua": "mozilla\/5.0 (windows nt 10.0; win64; x64) applewebkit\/537.36 (khtml, like gecko) chrome\/143.0.0.0 safari\/537.36 edg\/143.0.0.0"
 }
 ----------------------------------------
+2025-12-21 17:23:08
+{
+    "isMobile": false,
+    "isTablet": false,
+    "isDesktop": true,
+    "browser": "chrome",
+    "os": "windows",
+    "ua": "mozilla\/5.0 (windows nt 10.0; win64; x64) applewebkit\/537.36 (khtml, like gecko) chrome\/143.0.0.0 safari\/537.36 edg\/143.0.0.0"
+}
+----------------------------------------
+2025-12-21 17:23:30
+{
+    "isMobile": false,
+    "isTablet": false,
+    "isDesktop": true,
+    "browser": "chrome",
+    "os": "windows",
+    "ua": "mozilla\/5.0 (windows nt 10.0; win64; x64) applewebkit\/537.36 (khtml, like gecko) chrome\/143.0.0.0 safari\/537.36 edg\/143.0.0.0"
+}
+----------------------------------------
+2025-12-21 17:24:11
+{
+    "isMobile": false,
+    "isTablet": false,
+    "isDesktop": true,
+    "browser": "chrome",
+    "os": "windows",
+    "ua": "mozilla\/5.0 (windows nt 10.0; win64; x64) applewebkit\/537.36 (khtml, like gecko) chrome\/143.0.0.0 safari\/537.36 edg\/143.0.0.0"
+}
+----------------------------------------
+2025-12-21 17:24:43
+{
+    "isMobile": false,
+    "isTablet": false,
+    "isDesktop": true,
+    "browser": "chrome",
+    "os": "windows",
+    "ua": "mozilla\/5.0 (windows nt 10.0; win64; x64) applewebkit\/537.36 (khtml, like gecko) chrome\/143.0.0.0 safari\/537.36 edg\/143.0.0.0"
+}
+----------------------------------------
+2025-12-21 17:25:20
+{
+    "isMobile": false,
+    "isTablet": false,
+    "isDesktop": true,
+    "browser": "chrome",
+    "os": "windows",
+    "ua": "mozilla\/5.0 (windows nt 10.0; win64; x64) applewebkit\/537.36 (khtml, like gecko) chrome\/143.0.0.0 safari\/537.36 edg\/143.0.0.0"
+}
+----------------------------------------

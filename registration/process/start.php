@@ -22,21 +22,15 @@ if (
     errorRedirect('csrf');
 }
 
-/* ================= REGRA DE NEGÓCIO ================= */
+/* ================= FLUXO VÁLIDO ================= */
 
-$tipo = $_POST['tipo'] ?? '';
+/**
+ * Marca que o usuário passou corretamente:
+ * index → start.php → painel_cadastro.php
+ */
+$_SESSION['cadastro_iniciado'] = true;
 
-if (!in_array($tipo, $_SESSION['tipos_permitidos'], true)) {
-    errorRedirect('device');
-}
+/* ================= REDIRECIONA ================= */
 
-/* ================= PERSISTÊNCIA ================= */
-
-$_SESSION['tipo_atual'] = $tipo;
-
-header('Content-Type: application/json');
-echo json_encode([
-    'status' => 'ok',
-    'tipo'   => $tipo
-]);
+header('Location: ../register/painel_cadastro.php');
 exit;

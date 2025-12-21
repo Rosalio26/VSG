@@ -1,7 +1,7 @@
 <?php
 require_once '../includes/device.php';
 
-$isMobile = isMobileDevice();
+$isMobile = detectDevice();
 $tipo = $_POST['tipo'] ?? 'pessoal';
 
 if ($tipo === 'business' && $isMobile) {

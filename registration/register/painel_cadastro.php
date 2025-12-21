@@ -4,6 +4,7 @@ require_once '../middleware/cadastro.middleware.php';
 $tiposPermitidos = $_SESSION['tipos_permitidos'];
 $tipoAtual = $_SESSION['tipo_atual'];
 $isMobile = count($tiposPermitidos) === 1;
+$csrf = $_SESSION['csrf_token'];
 ?>
 <!DOCTYPE html>
 <html lang="pt">
@@ -16,7 +17,7 @@ $isMobile = count($tiposPermitidos) === 1;
 <body
   data-is-mobile="<?= $isMobile ? '1' : '0' ?>"
   data-tipo-inicial="<?= htmlspecialchars($tipoAtual) ?>"
-  data-csrf="<?= htmlspecialchars($_SESSION['csrf_token']) ?>"
+  data-csrf="<?= htmlspecialchars($csrf) ?>"
 >
 
 <h1 id="titulo">
@@ -27,12 +28,14 @@ $isMobile = count($tiposPermitidos) === 1;
 </h1>
 
 <!-- ================== BUSINESS ================== -->
-<?php if (in_array('business', $tiposPermitidos)): ?>
+<?php if (in_array('business', $tiposPermitidos, true)): ?>
 <form
   id="formBusiness"
   method="post"
+  action="../process/cadastro.process.php"
   <?= $tipoAtual === 'business' ? '' : 'hidden' ?>
 >
+  <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
   <input type="hidden" name="tipo" value="business">
 
   <label>Nome do Negócio</label>
@@ -46,12 +49,14 @@ $isMobile = count($tiposPermitidos) === 1;
 <?php endif; ?>
 
 <!-- ================== PESSOA ================== -->
-<?php if (in_array('pessoal', $tiposPermitidos)): ?>
+<?php if (in_array('pessoal', $tiposPermitidos, true)): ?>
 <form
   id="formPessoa"
   method="post"
+  action="../process/cadastro.process.php"
   <?= $tipoAtual === 'pessoal' ? '' : 'hidden' ?>
 >
+  <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
   <input type="hidden" name="tipo" value="pessoal">
 
   <label>Nome</label>
