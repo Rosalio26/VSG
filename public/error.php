@@ -17,7 +17,7 @@ $map = [
     'device' => [
         'title' => 'Dispositivo não permitido',
         'msg'   => 'Este tipo de dispositivo não pode acessar esta funcionalidade.',
-        'img'   => '/assets/img/errors/device.svg',
+        'img'   => '../assets/img/errors/403.png',
         'http'  => 403,
     ],
     'rate' => [
@@ -58,7 +58,8 @@ http_response_code($error['http']);
     <title><?= htmlspecialchars($error['title']) ?></title>
 
     <!-- CSS da página de erro -->
-    <link rel="stylesheet" href="/assets/css/error.css">
+    <link rel="stylesheet" href="../assets/style/error.css">
+    <link rel="stylesheet" href="../assets/style/geral.css">
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
@@ -69,17 +70,21 @@ http_response_code($error['http']);
 
     <h1><?= htmlspecialchars($error['title']) ?></h1>
 
-    <img
-        src="<?= htmlspecialchars($error['img']) ?>"
-        alt="<?= htmlspecialchars($error['title']) ?>"
-        class="error-image"
-    >
+    <div class="cnt-act-img">
+        <div class="error-actions">
+            <a href="" class="btn">Fechar X</a>
+        </div>
+        <div class="content-img">
+            <img
+                src="<?= htmlspecialchars($error['img']) ?>"
+                alt="<?= htmlspecialchars($error['title']) ?>"
+                class="error-image"
+            >
+        </div>
+    </div>
 
     <p><?= htmlspecialchars($error['msg']) ?></p>
 
-    <div class="error-actions">
-        <a href="" class="btn">Voltar para o início</a>
-    </div>
 
 </main>
 
