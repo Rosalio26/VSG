@@ -2,17 +2,17 @@
 
 define('APP_ENV', 'dev');
 
-/* ===== COOKIES DE SESSÃO ===== */
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path' => '/',
-    'secure' => !empty($_SERVER['HTTPS']),
-    'httponly' => true,
-    'samesite' => 'Strict',
-]);
+/* ===== INICIAR SESSÃO (UMA ÚNICA VEZ) ===== */
+if (session_status() === PHP_SESSION_NONE) {
 
-/* ===== INICIA SESSÃO ===== */
-if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'secure' => !empty($_SERVER['HTTPS']),
+        'httponly' => true,
+        'samesite' => 'Lax', // 🔴 IMPORTANTE (explico abaixo)
+    ]);
+
     session_start();
 }
 

@@ -53,21 +53,34 @@ $csrf = $_SESSION['csrf_token'];
 <form
   id="formPessoa"
   method="post"
-  action="../process/cadastro.process.php"
+  action="../process/pessoa.store.php"
   <?= $tipoAtual === 'pessoal' ? '' : 'hidden' ?>
 >
   <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
   <input type="hidden" name="tipo" value="pessoal">
 
   <label>Nome</label>
-  <input type="text" name="nome" required>
+  <input type="text" name="nome" required minlength="2">
+
+  <label>Apelido</label>
+  <input type="text" name="apelido" required minlength="2">
 
   <label>Email</label>
   <input type="email" name="email" required>
 
-  <button type="submit">Cadastrar Pessoa</button>
+  <label>Telefone</label>
+  <input type="tel" name="telefone" required>
+
+  <label>Palavra-passe</label>
+  <input type="password" name="password" required minlength="8">
+
+  <label>Confirmar palavra-passe</label>
+  <input type="password" name="password_confirm" required minlength="8">
+
+  <button type="submit">Continuar</button>
 </form>
 <?php endif; ?>
+
 
 <!-- ================== SWITCH (SÓ DESKTOP) ================== -->
 <?php if (count($tiposPermitidos) > 1): ?>

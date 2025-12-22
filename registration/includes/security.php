@@ -1,23 +1,37 @@
 <?php
 
-/* ===== HEADERS DE SEGURANÇA ===== */
+/* ================= GARANTE SESSÃO ================= */
+
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+
+/* ================= HEADERS DE SEGURANÇA ================= */
+
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
 
-header(
-    "Content-Security-Policy: default-src 'self'; " .
-    "script-src 'self'; " .
-    "style-src 'self';"
-);
+if (defined('APP_ENV') && APP_ENV === 'prod') {
+    header(
+        "Content-Security-Policy: " .
+        "default-src 'self'; " .
+        "script-src 'self'; " .
+        "style-src 'self';"
+    );
+}
 
-/* ===== CSRF HELPERS ===== */
+/* ================= CSRF HELPERS ================= */
 
 /**
  * Retorna input hidden CSRF
  */
 function csrf_field(): string
 {
+    if (empty($_SESSION['csrf_token'])) {
+        return '';
+    }
+
     return '<input type="hidden" name="csrf" value="' .
            htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') .
            '">';
