@@ -1,25 +1,26 @@
 <?php
 
 require_once __DIR__ . '/../bootstrap.php';
+require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../includes/errors.php';
 require_once __DIR__ . '/../middleware/cadastro.middleware.php';
 
 /* ================= MÉTODO ================= */
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    errorRedirect('method', 405);
+    http_response_code(405);
+    echo json_encode(['error' => 'method']);
+    exit;
 }
 
 /* ================= CSRF ================= */
 
 $csrf = $_POST['csrf'] ?? '';
 
-if (
-    empty($_SESSION['csrf_token']) ||
-    empty($csrf) ||
-    !hash_equals($_SESSION['csrf_token'], $csrf)
-) {
-    errorRedirect('csrf');
+if (!csrf_validate($csrf)) {
+    http_response_code(403);
+    echo json_encode(['error' => 'csrf']);
+    exit;
 }
 
 /* ================= REGRA DE NEGÓCIO ================= */
@@ -27,12 +28,16 @@ if (
 $tipo = $_POST['tipo'] ?? '';
 
 if (!in_array($tipo, $_SESSION['tipos_permitidos'], true)) {
-    errorRedirect('device');
+    http_response_code(403);
+    echo json_encode(['error' => 'device']);
+    exit;
 }
 
 /* ================= PERSISTÊNCIA ================= */
 
 $_SESSION['tipo_atual'] = $tipo;
+
+/* ================= RESPOSTA ================= */
 
 header('Content-Type: application/json');
 echo json_encode([

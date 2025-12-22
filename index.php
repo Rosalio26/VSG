@@ -1,5 +1,12 @@
 <?php
-require_once __DIR__ . '/registration/bootstrap.php';
+    require_once __DIR__ . '/registration/bootstrap.php';
+    require_once __DIR__ . '/registration/includes/security.php';
+
+    /* GERA CSRF SE NÃO EXISTIR */
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+
 ?>
 
 <!DOCTYPE html>

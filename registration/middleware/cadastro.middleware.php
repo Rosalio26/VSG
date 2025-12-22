@@ -48,16 +48,6 @@ if ($isMobileReal) {
     errorRedirect('device');
 }
 
-/**
- * ⚠️ IMPORTANTE
- * Este middleware:
- * - NÃO valida CSRF
- * - NÃO valida tipo POST
- * - NÃO valida fluxo
- *
- * Essas validações acontecem APENAS nos processadores
- */
-
 /* ================= DEBUG (DEV ONLY) ================= */
 
 if (($_ENV['APP_ENV'] ?? 'prod') === 'dev') {
