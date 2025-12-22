@@ -1,42 +1,53 @@
 <?php
+require_once '../includes/db.php';
+session_start();
 
-require_once __DIR__ . '/../bootstrap.php';
-require_once __DIR__ . '/../includes/errors.php';
-require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/uid.php';
-
-/* ===== FLUXO ===== */
-if (empty($_SESSION['cadastro_pessoa'])) {
-    errorRedirect('method');
+if (empty($_SESSION['user_id'])) {
+    die('Fluxo inválido');
 }
 
-/* ===== NÃO GERAR DUAS VEZES ===== */
-if (empty($_SESSION['cadastro_pessoa']['uid'])) {
-    $_SESSION['cadastro_pessoa']['uid'] = gerarUID($pdo, 'P');
-}
+$userId = $_SESSION['user_id'];
 
-$uid = $_SESSION['cadastro_pessoa']['uid'];
+/* === VER SE JÁ TEM UID === */
+$stmt = $mysqli->prepare("
+    SELECT public_id 
+    FROM users 
+    WHERE id = ?
+");
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$user = $stmt->get_result()->fetch_assoc();
+
+if (!$user['public_id']) {
+
+    do {
+        $uid = random_int(10000000, 99999999) . 'P';
+
+        $check = $mysqli->prepare(
+            "SELECT id FROM users WHERE public_id = ?"
+        );
+        $check->bind_param('s', $uid);
+        $check->execute();
+        $exists = $check->get_result()->fetch_assoc();
+
+    } while ($exists);
+
+    $update = $mysqli->prepare("
+        UPDATE users
+        SET public_id = ?, registration_step = 'uid_generated'
+        WHERE id = ?
+    ");
+    $update->bind_param('si', $uid, $userId);
+    $update->execute();
+
+
+} else {
+    $uid = $user['public_id'];
+}
 ?>
-<!DOCTYPE html>
-<html lang="pt">
-<head>
-    <meta charset="UTF-8">
-    <title>Identificador de Conta</title>
-</head>
-<body>
-
-<h1>Seu identificador foi gerado</h1>
-
+<h1>Seu identificador</h1>
 <p><strong><?= htmlspecialchars($uid) ?></strong></p>
 
-<p>
-    Guarde este identificador. Ele será usado para login e outros casos importantes
-    .
-</p>
-
 <form method="post" action="../process/pessoa.finalize.php">
-    <button type="submit">Finalizar Cadastro</button>
+  <button type="submit">Finalizar Cadastro</button>
 </form>
-
-</body>
-</html>

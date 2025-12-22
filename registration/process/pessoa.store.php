@@ -1,56 +1,54 @@
 <?php
+require_once '../includes/db.php';
 
-require_once __DIR__ . '/../bootstrap.php';
-require_once __DIR__ . '/../includes/security.php';
-require_once __DIR__ . '/../includes/errors.php';
-require_once __DIR__ . '/../middleware/cadastro.middleware.php';
+$nome     = trim($_POST['nome'] ?? '');
+$apelido = trim($_POST['apelido'] ?? '');
+$email    = strtolower(trim($_POST['email'] ?? ''));
+$telefone = trim($_POST['telefone'] ?? '');
+$password = $_POST['password'] ?? '';
+$confirm  = $_POST['password_confirm'] ?? '';
 
-/* ========= MÉTODO ========= */
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    errorRedirect('method', 405);
+if ($password !== $confirm) {
+    die('Senhas não coincidem');
 }
 
-/* ========= CSRF ========= */
-if (!csrf_validate($_POST['csrf'] ?? null)) {
-    errorRedirect('csrf');
+$passwordHash = password_hash($password, PASSWORD_DEFAULT);
+
+/* === VERIFICA SE JÁ EXISTE === */
+$stmt = $mysqli->prepare("
+    SELECT id, registration_step 
+    FROM users 
+    WHERE email = ?
+");
+$stmt->bind_param('s', $email);
+$stmt->execute();
+$user = $stmt->get_result()->fetch_assoc();
+
+if ($user) {
+    $userId = $user['id'];
+} else {
+    /* === CRIA USUÁRIO (UMA ÚNICA VEZ) === */
+    $stmt = $mysqli->prepare("
+        INSERT INTO users
+        (type, nome, apelido, email, telefone, password_hash)
+        VALUES ('person', ?, ?, ?, ?, ?)
+    ");
+    $stmt->bind_param(
+        'sssss',
+        $nome,
+        $apelido,
+        $email,
+        $telefone,
+        $passwordHash
+    );
+    $stmt->execute();
+
+    $userId = $stmt->insert_id;
 }
 
-/* ========= TIPO ========= */
-if (($_POST['tipo'] ?? '') !== 'pessoal') {
-    errorRedirect('device');
-}
+/* === SESSÃO = APENAS UX === */
+session_start();
+$_SESSION['user_id'] = $userId;
 
-/* ========= DADOS ========= */
-$nome      = trim($_POST['nome'] ?? '');
-$apelido   = trim($_POST['apelido'] ?? '');
-$email     = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
-$telefone  = trim($_POST['telefone'] ?? '');
-$pass      = $_POST['password'] ?? '';
-$confirm   = $_POST['password_confirm'] ?? '';
-
-/* ========= VALIDAÇÕES ========= */
-if (
-    strlen($nome) < 2 ||
-    strlen($apelido) < 2 ||
-    !$email ||
-    strlen($telefone) < 6 ||
-    strlen($pass) < 8 ||
-    $pass !== $confirm
-) {
-    errorRedirect('form');
-}
-
-/* ========= GUARDA EM SESSÃO ========= */
-$_SESSION['cadastro_pessoa'] = [
-    'nome'     => $nome,
-    'apelido'  => $apelido,
-    'email'    => $email,
-    'telefone' => $telefone,
-    'password' => password_hash($pass, PASSWORD_DEFAULT),
-];
-
-$_SESSION['registration_step'] = 'form_completed';
-
-/* ========= AVANÇA ========= */
 header('Location: ../register/gerar_uid.php');
 exit;

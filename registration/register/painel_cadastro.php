@@ -56,7 +56,6 @@ $csrf = $_SESSION['csrf_token'];
   action="../process/pessoa.store.php"
   <?= $tipoAtual === 'pessoal' ? '' : 'hidden' ?>
 >
-  <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
   <input type="hidden" name="tipo" value="pessoal">
 
   <label>Nome</label>
@@ -79,6 +78,7 @@ $csrf = $_SESSION['csrf_token'];
 
   <button type="submit">Continuar</button>
 </form>
+
 <?php endif; ?>
 
 
