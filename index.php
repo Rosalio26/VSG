@@ -1,12 +1,6 @@
 <?php
     require_once __DIR__ . '/registration/bootstrap.php';
     require_once __DIR__ . '/registration/includes/security.php';
-
-    /* GERA CSRF SE NÃO EXISTIR */
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-
 ?>
 
 <!DOCTYPE html>
@@ -193,107 +187,5 @@
             </section>
         </section>
     </main>
-    <script>
-        document.getElementById("btn-cadastrar").addEventListener("click", () => {
-
-        const largura = window.innerWidth;
-        const ua = navigator.userAgent.toLowerCase();
-
-        const isMobileUA = /android|iphone|ipod|windows phone/.test(ua);
-        const isSmallScreen = largura <= 768;
-
-        let deviceType = "desktop";
-
-        if (isMobileUA && isSmallScreen) {
-            deviceType = "mobile";
-        }
-
-        // Redireciona SEMPRE para o painel
-        window.location.href = `registration/register/painel_cadastro.php?device=${deviceType}`;
-        });
-
-    /*    // Obter o ano atual
-        const anoAtual = new Date().getFullYear();
-        // Selecionar todos os spans com a classe "ano"
-        const spansAno = document.querySelectorAll('.ano');
-        // Atribuir o ano a todos os spans
-        spansAno.forEach(span => {
-            span.textContent = anoAtual;
-        });
-
-        let currentSlide = 0;
-        const slidesContainer = document.querySelector(".fr-mn");
-        const totalSlides = document.querySelectorAll(".col-sld-cmp").length;
-        let isScrolling = false;
-
-
-        const headerLinks = document.querySelectorAll(".link-header");
-        const headerLinksActi = document.querySelectorAll(".link-header");
-        const headerBloc = document.getElementById("headerBloc");
-        const textColor = document.querySelectorAll(".link-lg");
-        
-        // Adicionar o evento de rolagem
-        window.addEventListener("wheel", (event) => {
-            // Verifica se a largura da janela é menor ou igual a 700px
-            if (window.innerWidth <= 768) {
-                headerBloc.classList.add("actiH");
-                return; // Desabilita o slide
-            }
-
-            if (isScrolling) return;
-
-            if (event.deltaY > 0) {
-                if (currentSlide < totalSlides - 1) currentSlide++;
-            } else {
-                if (currentSlide > 0) currentSlide--;
-            }
-
-            updateSlide();
-        });
-
-        // ATUALIZA O HEADER CONFORME O SLIDE
-        function updateHeader() {
-            headerLinks.forEach(link => link.classList.remove("active"));
-            headerLinksActi.forEach(link => link.classList.remove("acti"));
-            headerBloc.style.background = "var(--color-bg-101)";
-            textColor.forEach(el => el.classList.remove("act"));
-
-            if (currentSlide === 1) {
-                headerLinks[0].classList.add("active"); // Sobre
-                // headerLinksActi[0].classList.remove("acti");
-                headerBloc.style.background = "var(--color-bg-001)";
-                textColor.forEach(el => el.classList.add("act"));
-            }
-
-            if (currentSlide === 2) {
-                headerLinks[1].classList.add("active"); // Contato
-                // headerLinksActi[1].classList.remove("acti");
-                headerBloc.style.background = "var(--color-bg-001)";
-                textColor.forEach(el => el.classList.add("act"));
-            }
-
-            if (currentSlide === 3) {
-                headerLinks[2].classList.add("active"); // Info
-                headerLinksActi[2].classList.add("acti");
-                headerBloc.style.background = "var(--color-bg-104)";
-            }
-        }
-
-        function updateSlide() {
-            isScrolling = true;
-
-            const slideHeight = document.querySelector(".col-sld-cmp").offsetHeight;
-            const offset = currentSlide * slideHeight;
-
-            slidesContainer.style.transform = `translateY(-${offset}px)`;
-
-            updateHeader();
-
-            setTimeout(() => {
-                isScrolling = false;
-            }, 900);
-        }
-*/
-    </script>
 </body>
 </html>

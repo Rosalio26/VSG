@@ -1,13 +1,17 @@
 <?php
 require_once '../includes/db.php';
-session_start();
+require_once '../includes/security.php';
+require_once '../includes/errors.php';
+require_once '../includes/bootstrap.php';
 
-if (empty($_SESSION['user_id'])) {
-    die('Sessão inválida');
+/* ================= BLOQUEIO DE ACESSO DIRETO ================= */
+if (empty($_SESSION['user_id']) || empty($_SESSION['cadastro']['started'])) {
+    errorRedirect('flow'); // evita acesso direto via URL
 }
 
 $userId = $_SESSION['user_id'];
 
+/* ================= ATUALIZA STATUS E FLUXO DE CADASTRO ================= */
 $stmt = $mysqli->prepare("
     UPDATE users
     SET status = 'pending',
@@ -15,10 +19,21 @@ $stmt = $mysqli->prepare("
     WHERE id = ?
 ");
 $stmt->bind_param('i', $userId);
-$stmt->execute();
+if (!$stmt->execute()) {
+    errorRedirect('db'); // Erro ao atualizar no banco
+}
 
-/* encerra sessão UX */
+/* ================= LIMPA SESSÃO ================= */
+$_SESSION = [];
+if (ini_get("session.use_cookies")) {
+    $params = session_get_cookie_params();
+    setcookie(session_name(), '', time() - 42000,
+        $params["path"], $params["domain"],
+        $params["secure"], $params["httponly"]
+    );
+}
 session_destroy();
 
-header('Location: ../../dashboard');
+/* ================= REDIRECIONA PARA DASHBOARD ================= */
+header('Location: ../../pages/person/dashboard_person.php');
 exit;
