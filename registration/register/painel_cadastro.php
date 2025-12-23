@@ -116,5 +116,6 @@ $csrf = $_SESSION['csrf_token'];
 </div>
 
 <script src="../../assets/scripts/painel_cadastro.js"></script>
+<script src="../../assets/scripts/painel_cadastro_erros.js"></script>
 </body>
 </html>
