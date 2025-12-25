@@ -2,38 +2,48 @@
 require_once '../includes/db.php';
 require_once '../includes/security.php';
 require_once '../includes/errors.php';
-require_once '../includes/bootstrap.php';
+session_start();
 
 /* ================= BLOQUEIO DE ACESSO DIRETO ================= */
-if (empty($_SESSION['user_id']) || empty($_SESSION['cadastro']['started'])) {
-    errorRedirect('flow'); // evita acesso direto via URL
+if (empty($_SESSION['user_id'])) {
+    die('Sessão inválida');
 }
 
 $userId = $_SESSION['user_id'];
 
-/* ================= ATUALIZA STATUS E FLUXO DE CADASTRO ================= */
+/* ================= VERIFICA EMAIL E UID ================= */
+$stmt = $mysqli->prepare("
+    SELECT public_id, email_verified_at
+    FROM users
+    WHERE id = ?
+");
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$user = $stmt->get_result()->fetch_assoc();
+
+if (!$user['public_id']) {
+    die('UID ainda não gerado.');
+}
+
+if (!$user['email_verified_at']) {
+    die('Email ainda não confirmado.');
+}
+
+/* ================= ATUALIZA STATUS ================= */
 $stmt = $mysqli->prepare("
     UPDATE users
-    SET status = 'pending',
-        registration_step = 'completed'
+    SET status = 'active', registration_step = 'completed'
     WHERE id = ?
 ");
 $stmt->bind_param('i', $userId);
 if (!$stmt->execute()) {
-    errorRedirect('db'); // Erro ao atualizar no banco
+    die('Erro ao finalizar cadastro. Tente novamente.');
 }
 
 /* ================= LIMPA SESSÃO ================= */
 $_SESSION = [];
-if (ini_get("session.use_cookies")) {
-    $params = session_get_cookie_params();
-    setcookie(session_name(), '', time() - 42000,
-        $params["path"], $params["domain"],
-        $params["secure"], $params["httponly"]
-    );
-}
 session_destroy();
 
-/* ================= REDIRECIONA PARA DASHBOARD ================= */
+/* ================= REDIRECIONA ================= */
 header('Location: ../../pages/person/dashboard_person.php');
 exit;

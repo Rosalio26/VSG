@@ -1,34 +1,38 @@
 <?php
+session_start();
 require_once '../includes/db.php';
 require_once '../includes/security.php';
 require_once '../includes/errors.php';
 require_once '../includes/rate_limit.php';
+require '../vendor/autoload.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 header('Content-Type: application/json');
 
-/* ================= BLOQUEIO DE ACESSO DIRETO ================= */
+/* ================= BLOQUEIO ================= */
 if (!isset($_SESSION['cadastro']['started'])) {
     echo json_encode(['errors' => ['flow' => 'Acesso direto não permitido.']]);
     exit;
 }
 
 /* ================= RATE LIMIT ================= */
-rateLimit('pessoa_store', 5, 60); // máximo 5 tentativas por minuto
+rateLimit('pessoa_store', 5, 60);
 
-/* ================= MÉTODO POST ================= */
+/* ================= MÉTODO ================= */
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['errors' => ['method' => 'Método inválido.']]);
     exit;
 }
 
 /* ================= CSRF ================= */
-$csrf = $_POST['csrf'] ?? '';
-if (!csrf_validate($csrf)) {
+if (!csrf_validate($_POST['csrf'] ?? '')) {
     echo json_encode(['errors' => ['csrf' => 'Token CSRF inválido.']]);
     exit;
 }
 
-/* ================= VARIÁVEIS ================= */
+/* ================= INPUT ================= */
 $nome     = trim($_POST['nome'] ?? '');
 $apelido  = trim($_POST['apelido'] ?? '');
 $email    = strtolower(trim($_POST['email'] ?? ''));
@@ -39,67 +43,101 @@ $confirm  = $_POST['password_confirm'] ?? '';
 $errors = [];
 
 /* ================= VALIDAÇÕES ================= */
-if (!$nome || strlen($nome) < 2) $errors['nome'] = 'Nome deve ter ao menos 2 caracteres.';
-if (!$apelido || strlen($apelido) < 2) $errors['apelido'] = 'Apelido deve ter ao menos 2 caracteres.';
-if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Email inválido.';
-if (!$telefone || !preg_match('/^\+?\d{8,15}$/', $telefone)) $errors['telefone'] = 'Telefone inválido.';
-if (!$password || strlen($password) < 8) $errors['password'] = 'Senha deve ter ao menos 8 caracteres.';
+if (mb_strlen($nome) < 2) $errors['nome'] = 'Nome inválido.';
+if (mb_strlen($apelido) < 2) $errors['apelido'] = 'Apelido inválido.';
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Email inválido.';
+if (!preg_match('/^\+?\d{8,15}$/', $telefone)) $errors['telefone'] = 'Telefone inválido.';
+if (strlen($password) < 8) $errors['password'] = 'Senha fraca.';
 if ($password !== $confirm) $errors['password_confirm'] = 'Senhas não coincidem.';
 
-/* ================= VERIFICAR EMAIL E TELEFONE DUPLICADOS ================= */
-if (!isset($errors['email'])) {
-    $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ?");
-    if (!$stmt) {
-        echo json_encode(['errors' => ['db' => 'Erro no banco de dados']]);
-        exit;
+/* ================= DUPLICIDADE ================= */
+$stmt = $mysqli->prepare("
+    SELECT email, telefone
+    FROM users
+    WHERE email = ? OR telefone = ?
+");
+$stmt->bind_param('ss', $email, $telefone);
+$stmt->execute();
+$result = $stmt->get_result();
+
+while ($row = $result->fetch_assoc()) {
+    if ($row['email'] === $email) {
+        $errors['email'] = 'Este email já está cadastrado.';
     }
-    $stmt->bind_param('s', $email);
-    $stmt->execute();
-    if ($stmt->get_result()->num_rows > 0) $errors['email'] = 'Email já cadastrado.';
+    if ($row['telefone'] === $telefone) {
+        $errors['telefone'] = 'Este telefone já está cadastrado.';
+    }
 }
 
-if (!isset($errors['telefone'])) {
-    $stmt = $mysqli->prepare("SELECT id FROM users WHERE telefone = ?");
-    if (!$stmt) {
-        echo json_encode(['errors' => ['db' => 'Erro no banco de dados']]);
-        exit;
-    }
-    $stmt->bind_param('s', $telefone);
-    $stmt->execute();
-    if ($stmt->get_result()->num_rows > 0) $errors['telefone'] = 'Telefone já cadastrado.';
-}
+$stmt->close();
 
-/* ================= RETORNO DE ERROS ================= */
-if (!empty($errors)) {
+if ($errors) {
     echo json_encode(['errors' => $errors]);
     exit;
 }
 
-/* ================= HASH DA SENHA ================= */
+/* ================= CRIA USUÁRIO ================= */
 $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+$verification_code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+$expires = date('Y-m-d H:i:s', time() + 3600);
 
-/* ================= CRIAR NOVO USUÁRIO ================= */
 $stmt = $mysqli->prepare("
-    INSERT INTO users
-    (type, nome, apelido, email, telefone, password_hash, registration_step)
-    VALUES ('person', ?, ?, ?, ?, ?, 'form_completed')
+    INSERT INTO users (
+        type, nome, apelido, email, telefone, password_hash,
+        status, registration_step, email_token, email_token_expires
+    ) VALUES (
+        'person', ?, ?, ?, ?, ?,
+        'pending', 'email_pending', ?, ?
+    )
 ");
-if (!$stmt) {
-    echo json_encode(['errors' => ['db' => 'Erro ao preparar inserção no banco']]);
-    exit;
-}
-$stmt->bind_param('sssss', $nome, $apelido, $email, $telefone, $passwordHash);
-if (!$stmt->execute()) {
-    echo json_encode(['errors' => ['db' => 'Erro ao inserir usuário no banco']]);
-    exit;
-}
 
-/* ================= SESSÃO PARA FLUXO ================= */
-$_SESSION['user_id'] = $stmt->insert_id;
+$stmt->bind_param(
+    'sssssss',
+    $nome, $apelido, $email, $telefone,
+    $passwordHash, $verification_code, $expires
+);
 
-/* ================= SUCESSO ================= */
+$stmt->execute();
+$userId = $stmt->insert_id;
+$stmt->close();
+
+$_SESSION['user_id'] = $userId;
+
+/* ================= RESPONDE IMEDIATAMENTE ================= */
 echo json_encode([
     'success' => true,
-    'redirect' => '../register/gerar_uid.php'
+    'redirect' => '../process/verify_email.php'
 ]);
-exit;
+
+/* ================= FINALIZA RESPOSTA HTTP ================= */
+if (function_exists('fastcgi_finish_request')) {
+    fastcgi_finish_request();
+}
+
+/* ================= ENVIO DE EMAIL (ASSÍNCRONO) ================= */
+try {
+    $mail = new PHPMailer(true);
+    $mail->isSMTP();
+    $mail->Host = 'smtp.gmail.com';
+    $mail->SMTPAuth = true;
+    $mail->Username = 'eanixr@gmail.com'; // NÃO ALTERADO
+    $mail->Password = 'zwirfytkoskulbfx'; // NÃO ALTERADO
+    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+    $mail->Port = 587;
+
+    $mail->setFrom('eanixr@gmail.com', 'VisionGreen');
+    $mail->addAddress($email, $nome);
+
+    $mail->isHTML(true);
+    $mail->Subject = 'Código de verificação';
+    $mail->Body = "
+        <p>Olá <b>$nome</b>,</p>
+        <p>Seu código de verificação é:</p>
+        <h2 style='letter-spacing:3px;'>$verification_code</h2>
+        <p>Este código expira em 1 hora.</p>
+    ";
+
+    $mail->send();
+} catch (Exception $e) {
+    // Erro silencioso (não afeta UX)
+}
