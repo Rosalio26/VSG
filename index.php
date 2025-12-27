@@ -187,5 +187,22 @@
             </section>
         </section>
     </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Seleciona o botão de login
+            const loginBtn = document.querySelector('.login-btn');
+
+            if (loginBtn) {
+                // 2. Escuta o clique
+                loginBtn.addEventListener('click', function() {
+                    // 3. Define o destino (Caminho para o seu arquivo login.php)
+                    const destino = 'registration/login/login.php';
+
+                    // 4. Transforma a ação em um link de redirecionamento
+                    window.location.href = destino;
+                });
+            }
+        });
+    </script>
 </body>
 </html>

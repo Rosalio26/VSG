@@ -1,45 +1,60 @@
 <?php
 
+// O bootstrap e o security já devem gerenciar a sessão e cabeçalhos básicos
 require_once __DIR__ . '/../bootstrap.php';
 require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../includes/errors.php';
 require_once __DIR__ . '/../includes/rate_limit.php';
 
 /* ================= RATE LIMIT ================= */
-rateLimit('start_form', 5, 60); // max 5 tentativas por minuto
+// Protege contra bots que tentam iniciar milhares de sessões
+rateLimit('start_form', 5, 60); 
 
 /* ================= MÉTODO ================= */
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     errorRedirect('method');
 }
 
-/* ================= ORIGEM ================= */
+/* ================= ORIGEM (Anti-Spam) ================= */
 $referer = $_SERVER['HTTP_REFERER'] ?? '';
 $expectedHost = $_SERVER['HTTP_HOST'] ?? '';
-if (strpos($referer, $expectedHost) === false) {
+// Verifica se o formulário veio realmente do seu próprio domínio
+if (empty($referer) || strpos($referer, $expectedHost) === false) {
     errorRedirect('flow');
 }
 
 /* ================= CSRF ================= */
-$csrf = $_POST['csrf'] ?? null;
-if (!csrf_validate($csrf)) {
+// Valida o token gerado na página inicial ou botão de cadastro
+if (!csrf_validate($_POST['csrf'] ?? '')) {
     errorRedirect('csrf');
 }
 
-/* ================= BLOQUEIO DE ACESSO DIRETO ================= */
+/* ================= ESTADO DA SESSÃO ================= */
+// Se o usuário já iniciou e não terminou, apenas redireciona para onde parou
 if (isset($_SESSION['cadastro']['started'])) {
-    // Já iniciou cadastro, redireciona para painel
     header('Location: ../register/painel_cadastro.php');
     exit;
 }
 
-/* ================= INÍCIO DO FLUXO ================= */
+/* ================= INICIALIZAÇÃO DO FLUXO ================= */
+// Limpa qualquer resquício de sessões anteriores para evitar conflitos
+unset($_SESSION['auth']);
+unset($_SESSION['user_id']);
+
 $_SESSION['cadastro'] = [
     'started' => true,
-    'at' => time(),
+    'at'      => time(),
+    'step'    => 'initial'
 ];
 
-/* ================= LIMPA OUTPUT E REDIRECIONA ================= */
-if (ob_get_length()) ob_clean();
+// Opcional: Aqui você já pode injetar o Fingerprint inicial se desejar
+// para que o middleware de dispositivo tenha uma base de comparação sólida.
+
+/* ================= REDIRECIONAMENTO ================= */
+// Garante que nenhum caractere extra quebre o redirecionamento
+if (ob_get_length()) {
+    ob_clean();
+}
+
 header('Location: ../register/painel_cadastro.php');
 exit;
