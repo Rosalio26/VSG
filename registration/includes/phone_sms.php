@@ -8,9 +8,9 @@ use Twilio\Rest\Client;
 
 function enviarSMSVerificacao($numero_destino, $codigo_verificacao) {
     // --- CONFIGURAÇÕES DO TWILIO (Mova para um .env ou config.php depois) ---
-    $sid    = "AC6321862f89f660781cfa7594b9ae2071"; // Seu Account SID
-    $token  = "3521349093491906d45633aeae0cc277";               // Seu Auth Token
-    $from   = "+258852776220";                       // Seu número Twilio (com +)
+    $sid    = ""; // Seu Account SID
+    $token  = "";               // Seu Auth Token
+    $from   = "";                       // Seu número Twilio (com +)
 
     try {
         $client = new Client($sid, $token);
