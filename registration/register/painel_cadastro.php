@@ -30,12 +30,11 @@ $csrf = csrf_generate();
     <link rel="stylesheet" href="../../assets/style/business_style.css">
 
     <style>
-        /* Estilos simples de erro */
         .input-error { border-color: red !important; background-color: #fff0f0; }
         .error-message { color: red; font-size: 12px; display: none; margin-top: 5px; }
-        
-        /* Ajuste simples para o input de telefone ficar igual aos outros */
         input[type="tel"] { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ddd; }
+        /* Estilo para campo desabilitado/automático */
+        input:disabled { background-color: #f9f9f9; cursor: not-allowed; color: #666; }
     </style>
 </head>
 
@@ -72,9 +71,9 @@ $csrf = csrf_generate();
         <?php endif; ?>
 
         <?php if (in_array('business', $tiposPermitidos, true)): ?>
-        <form id="formBusiness" method="post" action="../process/cadastro.process.php" enctype="multipart/form-data" novalidate <?= $tipoAtual === 'business' ? '' : 'hidden' ?> >
+        <form id="formBusiness" method="post" action="../process/business.store.php" enctype="multipart/form-data" novalidate <?= $tipoAtual === 'business' ? '' : 'hidden' ?> >
             <?= csrf_field(); ?>
-            <input type="hidden" name="tipo" value="business">
+            <input type="hidden" name="tipo" value="company">
 
             <div class="step-content active" data-step="1">
                 <div class="section-title">Etapa 1: Identidade do Negócio</div>
@@ -115,7 +114,7 @@ $csrf = csrf_generate();
                 </div>
                 <div class="person-field-input">
                     <label>Região (Estado/Província)</label>
-                    <input type="text" name="regiao" id="regiao" required placeholder="Digite  a sua provincia / Região">
+                    <input type="text" name="regiao" id="regiao" required placeholder="Digite a sua provincia / Região">
                 </div>
                 <div class="person-field-input">
                     <label>Cidade (Localidade/Município)</label>
@@ -147,6 +146,26 @@ $csrf = csrf_generate();
                 </div>
                 <div class="btn-navigation">
                     <button type="button" class="btn-prev" onclick="changeStep(3, 2)">Voltar</button>
+                    <button type="button" class="btn-next" onclick="changeStep(3, 4)">Próxima Etapa</button>
+                </div>
+            </div>
+
+            <div class="step-content" data-step="4">
+                <div class="section-title">Etapa 4: Acesso e Segurança</div>
+                <div class="person-field-input">
+                    <label>Confirme seu E-mail (Automático)</label>
+                    <input type="email" id="email_confirm_display" disabled>
+                </div>
+                <div class="person-field-input">
+                    <label>Senha de Acesso</label>
+                    <input type="password" name="password" id="pass_bus" required minlength="8" placeholder="Mínimo 8 caracteres">
+                </div>
+                <div class="person-field-input">
+                    <label>Confirmar Senha</label>
+                    <input type="password" name="password_confirm" id="pass_bus_conf" required minlength="8" placeholder="Repita a senha">
+                </div>
+                <div class="btn-navigation">
+                    <button type="button" class="btn-prev" onclick="changeStep(4, 3)">Voltar</button>
                     <button type="submit" class="btn-next">Finalizar Cadastro</button>
                 </div>
             </div>
@@ -189,6 +208,17 @@ $csrf = csrf_generate();
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // --- LÓGICA DO EMAIL AUTOMÁTICO (Sincroniza Etapa 3 com Etapa 4) ---
+        const emailInput = document.getElementById('email_business');
+        const displayInput = document.getElementById('email_confirm_display');
+
+        if(emailInput && displayInput) {
+            emailInput.addEventListener('input', function() {
+                displayInput.value = this.value;
+            });
+        }
+
+        // --- LÓGICA DE SLIDERS ---
         let slideInterval = null;
         let currentIndex = 0;
         const slidesPessoal = document.querySelectorAll('.slide-pessoal');

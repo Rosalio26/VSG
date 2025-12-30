@@ -4,7 +4,7 @@ session_start();
 /**
  * Arquivo: business.store.php
  * Sincronizado com o modelo de Chave Estrangeira (users -> businesses)
- * Retorna erros específicos por campo para validação no front-end.
+ * Agora inclui validação de senha real e suporte ao Step 4.
  */
 
 ini_set('display_errors', 0);
@@ -35,12 +35,14 @@ try {
     /* ================= 2. COLETA E VALIDAÇÃO DE DADOS ================= */
     $errors = [];
 
-    // Dados para 'users'
+    // Dados para 'users' (Etapas 1, 3 e 4)
     $nome_empresa   = trim($_POST['nome_empresa'] ?? '');
     $email_business = strtolower(trim($_POST['email_business'] ?? ''));
     $telefone       = trim($_POST['telefone'] ?? '');
+    $password       = $_POST['password'] ?? '';
+    $password_conf  = $_POST['password_confirm'] ?? '';
     
-    // Dados para 'businesses'
+    // Dados para 'businesses' (Etapas 1, 2 e 3)
     $tax_id         = trim($_POST['tax_id'] ?? '');
     $tipo_empresa   = trim($_POST['tipo_empresa'] ?? '');
     $descricao      = trim($_POST['descricao'] ?? '');
@@ -49,11 +51,22 @@ try {
     $localidade     = trim($_POST['localidade'] ?? '');
 
     // Validações de campos obrigatórios
-    if (empty($nome_empresa)) $errors['nome_empresa'] = 'A razão social é obrigatória.';
+    if (empty($nome_empresa))   $errors['nome_empresa'] = 'A razão social é obrigatória.';
     if (empty($email_business)) $errors['email_business'] = 'O e-mail é obrigatório.';
-    if (empty($telefone)) $errors['telefone'] = 'O telefone é obrigatório.';
-    if (empty($tax_id)) $errors['tax_id'] = 'O documento fiscal é obrigatório.';
-    if (empty($pais)) $errors['pais'] = 'Selecione o país.';
+    if (empty($telefone))       $errors['telefone'] = 'O telefone é obrigatório.';
+    if (empty($tax_id))         $errors['tax_id'] = 'O documento fiscal é obrigatório.';
+    if (empty($pais))           $errors['pais'] = 'Selecione o país.';
+
+    // Validação de Senha (Etapa 4)
+    if (empty($password)) {
+        $errors['password'] = 'A senha de acesso é obrigatória.';
+    } elseif (strlen($password) < 8) {
+        $errors['password'] = 'A senha deve ter no mínimo 8 caracteres.';
+    }
+
+    if ($password !== $password_conf) {
+        $errors['password_confirm'] = 'As senhas digitadas não coincidem.';
+    }
 
     /* ================= 3. VERIFICAÇÃO DE DUPLICIDADE ================= */
     
@@ -75,7 +88,7 @@ try {
         $stmt->close();
     }
 
-    // Verifica Tax ID (Documento Fiscal) na tabela de negócios
+    // Verifica Tax ID na tabela de negócios
     if (!isset($errors['tax_id'])) {
         $stmt = $mysqli->prepare("SELECT id FROM businesses WHERE tax_id = ? LIMIT 1");
         $stmt->bind_param('s', $tax_id);
@@ -84,7 +97,7 @@ try {
         $stmt->close();
     }
 
-    // Se houver erros de validação ou duplicidade, retorna agora
+    // Se houver erros, retorna o JSON (o JS levará o usuário ao Step correto)
     if (!empty($errors)) {
         echo json_encode(['errors' => $errors]);
         exit;
@@ -95,7 +108,6 @@ try {
         if (!isset($_FILES[$fileKey]) || $_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) return null;
         $ext = strtolower(pathinfo($_FILES[$fileKey]['name'], PATHINFO_EXTENSION));
         
-        // Validação simples de extensão
         $allowed = ['jpg', 'jpeg', 'png', 'pdf'];
         if (!in_array($ext, $allowed)) return null;
 
@@ -113,18 +125,20 @@ try {
     /* ================= 5. TRANSAÇÃO (TWO-STEP INSERT) ================= */
     $mysqli->begin_transaction();
 
-    // 5.1 Inserir em 'users'
-    $token   = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-    $expires = date('Y-m-d H:i:s', time() + 3600);
-    $type    = 'company';
-    $step    = 'email_pending';
-    $tempPass = password_hash(bin2hex(random_bytes(12)), PASSWORD_DEFAULT);
+    // 5.1 Inserir em 'users' (Utilizando a senha real com Hash)
+    $token    = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    $expires  = date('Y-m-d H:i:s', time() + 3600);
+    
+    // CORREÇÃO: Usamos 'company' explicitamente para garantir a lógica do UID final com 'C'
+    $type     = 'company'; 
+    $step     = 'email_pending';
+    $realPassHash = password_hash($password, PASSWORD_DEFAULT);
 
     $sqlUser = "INSERT INTO users (type, nome, email, telefone, password_hash, registration_step, email_token, email_token_expires) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $mysqli->prepare($sqlUser);
-    $stmt->bind_param("ssssssss", $type, $nome_empresa, $email_business, $telefone, $tempPass, $step, $token, $expires);
+    $stmt->bind_param("ssssssss", $type, $nome_empresa, $email_business, $telefone, $realPassHash, $step, $token, $expires);
     $stmt->execute();
     
     $newUserId = $mysqli->insert_id; 
@@ -139,12 +153,13 @@ try {
     );
     $stmtBus->execute();
 
-    // Comita as duas operações
+    // Finaliza transação
     $mysqli->commit();
 
     /* ================= 6. FINALIZAÇÃO ================= */
     $_SESSION['user_id'] = $newUserId;
-    unset($_SESSION['cadastro']);
+    // Removido o unset imediato da sessão de cadastro para permitir que o verify_email acesse o contexto se necessário
+    // unset($_SESSION['cadastro']); 
 
     enviarEmailVisionGreen($email_business, $nome_empresa, $token);
 

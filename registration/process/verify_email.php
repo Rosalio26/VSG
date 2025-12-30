@@ -11,14 +11,30 @@ use PHPMailer\PHPMailer\Exception as MailException;
 $erro = '';
 $info = '';
 
-// ================= BLOQUEIO DE ACESSO =================
+// ================= 1. BLOQUEIO DE ACESSO E BUSCA DE DADOS =================
 if (empty($_SESSION['user_id'])) {
     header("Location: ../login.php");
     exit;
 }
 $userId = (int) $_SESSION['user_id'];
 
-// ================= MENSAGEM DE INFORMAÇÃO =================
+// Buscamos o tipo do usuário e o e-mail para personalizar a interface
+$stmtData = $mysqli->prepare("SELECT type, email, email_verified_at FROM users WHERE id = ? LIMIT 1");
+$stmtData->bind_param('i', $userId);
+$stmtData->execute();
+$userData = $stmtData->get_result()->fetch_assoc();
+$stmtData->close();
+
+if (!$userData) {
+    session_destroy();
+    header("Location: ../login.php?error=user_not_found");
+    exit;
+}
+
+$isCompany = ($userData['type'] === 'company');
+$userEmail = $userData['email'];
+
+// ================= 2. MENSAGEM DE INFORMAÇÃO (GET) =================
 if (!empty($_GET['info'])) {
     $info_key = $_GET['info'];
     $messages = [
@@ -29,7 +45,7 @@ if (!empty($_GET['info'])) {
     $info = $messages[$info_key] ?? 'Aguardando confirmação do código.';
 }
 
-// ================= PROCESSAMENTO DO FORMULÁRIO (MANTIDO PARA FALLBACK) =================
+// ================= 3. PROCESSAMENTO POST (FALLBACK) =================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['codigo'])) {
     
     if (!csrf_validate($_POST['csrf'] ?? '')) {
@@ -104,6 +120,7 @@ $csrf_token = csrf_generate();
             --color-bg-105: #4a5565;
             --color-bg-109: #4ade80;
             --color-dg-001: #ff3232;
+            --color-bus-blue: #2563eb;
         }
 
         body {
@@ -127,8 +144,24 @@ $csrf_token = csrf_generate();
             border: 1px solid var(--color-bg-109);
         }
 
+        /* Badge de Tipo de Conta */
+        .type-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+        .badge-company { background: #dbeafe; color: var(--color-bus-blue); border: 1px solid #bfdbfe; }
+        .badge-person { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+
         h1 { color: var(--color-bg-104); font-size: 1.5rem; margin-bottom: 10px; }
-        p { color: var(--color-bg-105); font-size: 0.9rem; }
+        .company-title { color: var(--color-bus-blue); }
+        
+        p { color: var(--color-bg-105); font-size: 0.9rem; line-height: 1.5; }
+        .email-display { font-weight: bold; color: var(--color-bg-101); display: block; margin-top: 5px; }
 
         .msg { padding: 12px; margin-bottom: 20px; border-radius: 8px; font-size: 0.85rem; }
         .msg-error { background: #fee2e2; color: var(--color-dg-001); border: 1px solid #fecaca; }
@@ -147,7 +180,6 @@ $csrf_token = csrf_generate();
             transition: 0.3s;
         }
 
-        /* Estilo para erro automático */
         input.input-error {
             border-color: var(--color-dg-001);
             background-color: #fff5f5;
@@ -163,7 +195,8 @@ $csrf_token = csrf_generate();
         }
 
         .btn-confirm { background-color: var(--color-bg-104); color: white; }
-        .btn-confirm:hover { background-color: #008f35; }
+        .btn-confirm-bus { background-color: var(--color-bus-blue); }
+        .btn-confirm:hover { opacity: 0.9; }
 
         .btn-resend { 
             background-color: var(--color-bg-105); 
@@ -180,7 +213,6 @@ $csrf_token = csrf_generate();
         hr { border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0; }
         .resend-box { font-size: 0.85rem; color: var(--color-bg-105); }
 
-        /* Loader simples */
         .loader {
             display: none;
             width: 20px;
@@ -197,8 +229,21 @@ $csrf_token = csrf_generate();
 <body>
 
 <div class="container">
-    <h1>Confirmação de E-mail</h1>
-    <p>Insira o código de 6 dígitos enviado para seu e-mail.</p>
+    <div class="type-badge <?= $isCompany ? 'badge-company' : 'badge-person' ?>">
+        Conta <?= $isCompany ? 'Business / Empresa' : 'Pessoal / Cliente' ?>
+    </div>
+
+    <?php if ($isCompany): ?>
+        <h1 class="company-title">Verificação Corporativa</h1>
+        <p>Insira o código enviado para o e-mail da sua empresa:
+            <span class="email-display"><?= htmlspecialchars($userEmail) ?></span>
+        </p>
+    <?php else: ?>
+        <h1>Confirmação de Acesso</h1>
+        <p>Insira o código enviado para o seu e-mail pessoal:
+            <span class="email-display"><?= htmlspecialchars($userEmail) ?></span>
+        </p>
+    <?php endif; ?>
 
     <div id="ajaxLoader" class="loader"></div>
 
@@ -225,7 +270,9 @@ $csrf_token = csrf_generate();
             required
             autofocus
         >
-        <button type="submit" class="btn-confirm">Confirmar Código</button>
+        <button type="submit" class="btn-confirm <?= $isCompany ? 'btn-confirm-bus' : '' ?>">
+            Confirmar Identidade
+        </button>
     </form>
 
     <hr>
@@ -241,17 +288,13 @@ $csrf_token = csrf_generate();
     </div>
 </div>
 
-
-
 <script>
     const inputCodigo = document.getElementById('inputCodigo');
     const feedbackMsg = document.getElementById('feedbackMsg');
     const ajaxLoader = document.getElementById('ajaxLoader');
 
-    // Lógica de Verificação Automática
     inputCodigo.addEventListener('input', function() {
         this.classList.remove('input-error');
-        
         if (this.value.length === 6) {
             verificarAutomatico(this.value);
         }
@@ -274,12 +317,14 @@ $csrf_token = csrf_generate();
             const data = await response.json();
 
             if (data.success) {
-                feedbackMsg.innerHTML = '<div class="msg msg-info">Código correto! Redirecionando...</div>';
-                window.location.href = '../register/gerar_uid.php';
+                feedbackMsg.innerHTML = '<div class="msg msg-info">Sucesso! Gerando sua identidade corporativa...</div>';
+                setTimeout(() => {
+                    window.location.href = '../register/gerar_uid.php';
+                }, 1000);
             } else {
                 ajaxLoader.style.display = "none";
                 inputCodigo.classList.add('input-error');
-                inputCodigo.value = ""; // Limpa para nova tentativa
+                inputCodigo.value = ""; 
                 feedbackMsg.innerHTML = `<div class="msg msg-error">${data.error}</div>`;
                 inputCodigo.focus();
             }
@@ -289,7 +334,6 @@ $csrf_token = csrf_generate();
         }
     }
 
-    // Lógica do botão de reenvio com atraso de 5 segundos
     let timeLeft = 5;
     const btnResend = document.getElementById('btnResend');
     const timerDisplay = document.getElementById('timer');

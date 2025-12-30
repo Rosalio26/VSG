@@ -10,11 +10,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-/* ================= INPUT & SANITIZAÇÃO (Utilizando cleanInput) ================= */
-$email    = strtolower(cleanInput($_POST['email'] ?? ''));
-$password = $_POST['password'] ?? '';
-$csrf     = $_POST['csrf'] ?? '';
-$remember = isset($_POST['remember']); // Captura o checkbox "Lembrar-me"
+/* ================= INPUT & SANITIZAÇÃO ================= */
+// Alterado de 'email' para 'identifier' para aceitar UID ou Email Corporativo
+$identifier = strtolower(cleanInput($_POST['identifier'] ?? ''));
+$password   = $_POST['password'] ?? '';
+$csrf       = $_POST['csrf'] ?? '';
+$remember   = isset($_POST['remember']); 
 
 /* ================= CSRF ================= */
 if (!csrf_validate($csrf)) {
@@ -23,31 +24,34 @@ if (!csrf_validate($csrf)) {
     exit;
 }
 
-/* ================= RATE LIMIT (IP/EMAIL) ================= */
-if (!checkLoginRateLimit($mysqli, $email)) {
+/* ================= RATE LIMIT ================= */
+if (!checkLoginRateLimit($mysqli, $identifier)) {
     $_SESSION['login_error'] = 'Muitas tentativas. Por segurança, aguarde alguns minutos.';
     header("Location: login.php");
     exit;
 }
 
-if (!$email || !$password) {
+if (!$identifier || !$password) {
     $_SESSION['login_error'] = 'Preencha todos os campos.';
     header("Location: login.php");
     exit;
 }
 
 try {
-    /* ================= BUSCAR USUÁRIO ================= */
+    /* ================= BUSCAR USUÁRIO (LÓGICA TRÍPLICE) ================= */
+    // Agora busca por Email Real OU Email Corporativo OU UID (public_id)
     $stmt = $mysqli->prepare("
-        SELECT id, nome, email, password_hash, email_verified_at, public_id, status, login_attempts, lock_until 
-        FROM users WHERE email = ? LIMIT 1
+        SELECT id, type, nome, email, password_hash, email_verified_at, public_id, status, login_attempts, lock_until 
+        FROM users 
+        WHERE email = ? OR email_corporativo = ? OR public_id = ? 
+        LIMIT 1
     ");
-    $stmt->bind_param('s', $email);
+    $stmt->bind_param('sss', $identifier, $identifier, $identifier);
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    /* ================= AÇÃO: CONTA NÃO ENCONTRADA (10s) ================= */
+    /* ================= AÇÃO: CONTA NÃO ENCONTRADA ================= */
     if (!$user) {
         ?>
         <!DOCTYPE html>
@@ -66,9 +70,9 @@ try {
         </head>
         <body>
             <div class="card">
-                <h2>Usuário não encontrado</h2>
-                <p>O e-mail <strong><?= htmlspecialchars($email) ?></strong> não possui cadastro.</p>
-                <p>Redirecionando para o início em <span id="counter" class="timer">10</span>s...</p>
+                <h2>Acesso não encontrado</h2>
+                <p>O identificador <strong><?= htmlspecialchars($identifier) ?></strong> não está vinculado a nenhuma conta ativa.</p>
+                <p>Redirecionando em <span id="counter" class="timer">10</span>s...</p>
                 <div class="actions">
                     <button onclick="cancelar()" class="btn btn-secondary">Tentar Novamente</button>
                     <a href="../../index.php" class="btn btn-primary">Criar Conta</a>
@@ -79,7 +83,7 @@ try {
                 const timer = setInterval(() => {
                     count--;
                     document.getElementById('counter').textContent = count;
-                    if (count <= 0) window.location.href = '../../index.php';
+                    if (count <= 0) window.location.href = 'login.php';
                 }, 1000);
                 function cancelar() { clearInterval(timer); window.location.href = 'login.php'; }
             </script>
@@ -89,9 +93,9 @@ try {
         exit;
     }
 
-    /* ================= VERIFICAÇÃO DE BLOQUEIO ATIVO (DATABASE) ================= */
+    /* ================= VERIFICAÇÃO DE BLOQUEIO ================= */
     if ($user['lock_until'] && strtotime($user['lock_until']) > time()) {
-        $_SESSION['login_error'] = 'Conta bloqueada temporariamente. Recupere sua senha para liberar o acesso.';
+        $_SESSION['login_error'] = 'Conta bloqueada temporariamente.';
         header("Location: forgot_password.php?info=locked");
         exit;
     }
@@ -99,22 +103,17 @@ try {
     /* ================= VALIDAÇÃO DE SENHA ================= */
     if (!password_verify($password, $user['password_hash'])) {
         $attempts = $user['login_attempts'] + 1;
-        
         if ($attempts >= 5) {
             $lockUntil = date('Y-m-d H:i:s', time() + 1800);
             $upd = $mysqli->prepare("UPDATE users SET login_attempts = 0, lock_until = ? WHERE id = ?");
             $upd->bind_param('si', $lockUntil, $user['id']);
             $upd->execute();
-            $upd->close();
-            
-            $_SESSION['login_error'] = 'Limite de tentativas atingido. Conta bloqueada.';
+            $_SESSION['login_error'] = 'Limite de tentativas atingido. Conta suspensa por 30 min.';
             header("Location: forgot_password.php?reason=bruteforce");
         } else {
             $upd = $mysqli->prepare("UPDATE users SET login_attempts = ? WHERE id = ?");
             $upd->bind_param('ii', $attempts, $user['id']);
             $upd->execute();
-            $upd->close();
-            
             $_SESSION['login_error'] = "Senha incorreta. Tentativa $attempts de 5.";
             header("Location: login.php");
         }
@@ -122,43 +121,32 @@ try {
     }
 
     /* ================= LOGIN BEM-SUCEDIDO ================= */
-    
-    // 1. Auditoria: Registrar o login na nova tabela login_logs
     $ip_address = $_SERVER['REMOTE_ADDR'];
     $user_agent = $_SERVER['HTTP_USER_AGENT'];
     $log_stmt = $mysqli->prepare("INSERT INTO login_logs (user_id, ip_address, user_agent) VALUES (?, ?, ?)");
     $log_stmt->bind_param('iss', $user['id'], $ip_address, $user_agent);
     $log_stmt->execute();
-    $log_stmt->close();
 
-    // 2. Lógica "Lembrar-me": Gerar token persistente
     if ($remember) {
         $token = bin2hex(random_bytes(32));
         $token_hash = hash('sha256', $token);
         $expires_at = date('Y-m-d H:i:s', strtotime('+30 days'));
-
         $rem_stmt = $mysqli->prepare("INSERT INTO remember_me (user_id, token_hash, expires_at) VALUES (?, ?, ?)");
         $rem_stmt->bind_param('iss', $user['id'], $token_hash, $expires_at);
         $rem_stmt->execute();
-        $rem_stmt->close();
 
-        // Define o cookie seguro (30 dias)
         setcookie('remember_token', $token, [
             'expires' => time() + (86400 * 30),
-            'path' => '/',
-            'httponly' => true,
-            'samesite' => 'Lax',
+            'path' => '/', 'httponly' => true, 'samesite' => 'Lax',
             'secure' => (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on')
         ]);
     }
 
-    // 3. Limpeza de tentativas no Banco e no Rate Limit
+    // Reset de tentativas
     $reset = $mysqli->prepare("UPDATE users SET login_attempts = 0, lock_until = NULL WHERE id = ?");
     $reset->bind_param('i', $user['id']);
     $reset->execute();
-    $reset->close();
-
-    clearLoginAttempts($mysqli, $email);
+    clearLoginAttempts($mysqli, $identifier);
 
     /* ================= VERIFICAÇÃO DE E-MAIL PENDENTE ================= */
     if (!$user['email_verified_at']) {
@@ -166,30 +154,34 @@ try {
         $upd_mail = $mysqli->prepare("UPDATE users SET email_token = ?, email_token_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE id = ?");
         $upd_mail->bind_param('si', $token_mail, $user['id']);
         $upd_mail->execute();
-        $upd_mail->close();
 
         enviarEmailVisionGreen($user['email'], $user['nome'], $token_mail);
-        
         $_SESSION['user_id'] = $user['id'];
         header("Location: ../process/verify_email.php?info=expirado");
         exit;
     }
 
-    /* ================= FINALIZAÇÃO DO LOGIN ================= */
+    /* ================= FINALIZAÇÃO E REDIRECIONAMENTO POR TIPO ================= */
     session_regenerate_id(true);
     $_SESSION['auth'] = [
         'user_id'   => $user['id'], 
         'email'     => $user['email'], 
         'public_id' => $user['public_id'], 
-        'nome'      => $user['nome']
+        'nome'      => $user['nome'],
+        'type'      => $user['type']
     ];
     
-    header("Location: ../../pages/person/dashboard_person.php");
+    // REDIRECIONAMENTO INTELIGENTE
+    if ($user['type'] === 'company') {
+        header("Location: ../../pages/business/dashboard_business.php");
+    } else {
+        header("Location: ../../pages/person/dashboard_person.php");
+    }
     exit;
 
 } catch (Exception $e) {
     error_log("Erro Crítico no Login: " . $e->getMessage());
-    $_SESSION['login_error'] = 'Ocorreu um erro interno. Tente novamente mais tarde.';
+    $_SESSION['login_error'] = 'Ocorreu um erro interno. Tente novamente.';
     header("Location: login.php");
     exit;
 }

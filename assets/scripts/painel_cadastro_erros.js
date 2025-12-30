@@ -1,58 +1,73 @@
 /**
- * VISION GREEN - SISTEMA DE CADASTRO REFORÇADO
- * Foco: Zero Layout Shift (Refresh Invisível) e UX de Erros Dinâmica.
+ * VISION GREEN - SISTEMA DE CADASTRO REFORÇADO V2
+ * Foco: Redirecionamento automático de Steps baseado em erros do Servidor.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
   
-  // ============================================================
-  // 1. VARIÁVEIS E CONTROLE DE VISIBILIDADE INICIAL
-  // ============================================================
   const formPessoa = document.getElementById("formPessoa");
   const formBusiness = document.getElementById("formBusiness");
   const mainContainer = document.querySelector(".main-container");
 
-  // Esconde o container para evitar que o usuário veja a troca de campos/steps no refresh
   if (mainContainer) mainContainer.style.opacity = "0";
 
   // ============================================================
-  // 2. FUNÇÕES DE ERRO (VISUAL & DINÂMICO)
+  // 1. GESTÃO DE ERROS COM NAVEGAÇÃO AUTOMÁTICA
   // ============================================================
   
   function clearErrors(form) {
     form.querySelectorAll(".error-msg, .error-msg-js").forEach(el => el.remove());
-    form.querySelectorAll(".field-error").forEach(el => el.classList.remove("field-error"));
-    form.querySelectorAll("input, select, textarea").forEach(input => {
-      input.classList.remove("input-error");
-      input.style.borderColor = ""; 
+    form.querySelectorAll(".input-error").forEach(el => {
+      el.classList.remove("input-error");
+      el.style.borderColor = ""; 
     });
   }
 
   function showErrors(form, errors) {
     clearErrors(form);
+    let primeiroInputComErro = null;
+    let stepDoErro = null;
+
     for (const field in errors) {
       let input = form.querySelector(`[name="${field}"]`);
       if (!input) continue;
+
+      if (!primeiroInputComErro) primeiroInputComErro = input;
 
       input.classList.add("input-error");
       input.style.borderColor = "red";
       
       const parent = input.closest('.person-field-input');
       if (parent) {
-          parent.classList.add('field-error');
           const span = document.createElement("span");
           span.className = "error-msg";
           span.textContent = errors[field];
           span.style.cssText = "color:red; font-size:12px; display:block; margin-top:5px;";
           parent.appendChild(span);
       }
+
+      // Identifica o Step onde este erro está (Apenas para Business)
+      if (form.id === 'formBusiness') {
+          const stepContainer = input.closest('.step-content');
+          if (stepContainer && !stepDoErro) {
+              stepDoErro = parseInt(stepContainer.dataset.step);
+          }
+      }
     }
-    const firstError = form.querySelector(".input-error");
-    if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // --- LÓGICA DE REDIRECIONAMENTO DE STEP ---
+    if (stepDoErro) {
+        window.changeStep(parseInt(localStorage.getItem('vg_step')), stepDoErro, true);
+    }
+
+    if (primeiroInputComErro) {
+      primeiroInputComErro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      primeiroInputComErro.focus();
+    }
   }
 
   // ============================================================
-  // 3. VALIDAÇÃO DE CONTAINER (STEPS OU FORMS)
+  // 2. VALIDAÇÃO E NAVEGAÇÃO
   // ============================================================
 
   function validarContainer(container) {
@@ -69,6 +84,17 @@ document.addEventListener("DOMContentLoaded", () => {
         if (valor === "" || valor === "selet") {
             erroDetectado = true;
             if (input.tagName === "SELECT") mensagem = 'Selecione uma opção válida';
+        } 
+        else if (input.type === "password" && valor.length < 8) {
+            erroDetectado = true;
+            mensagem = 'A senha deve ter no mínimo 8 caracteres';
+        }
+        else if (input.name === "password_confirm") {
+            const senhaOriginal = container.querySelector('input[name="password"]')?.value;
+            if (valor !== senhaOriginal) {
+                erroDetectado = true;
+                mensagem = 'As senhas não coincidem';
+            }
         }
 
         if (erroDetectado) {
@@ -86,16 +112,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     });
-
-    if(!valido) {
-        const erro = container.querySelector('.input-error');
-        if(erro) erro.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
     return valido;
   }
 
-  window.changeStep = function(atual, proximo) {
-    if (proximo > atual && !validarStepAtual(atual)) return;
+  // Função estendida para suportar saltos forçados por erro (forceJump)
+  window.changeStep = function(atual, proximo, forceJump = false) {
+    if (!forceJump && proximo > atual && !validarStepAtual(atual)) return;
 
     document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
     const proximoEl = document.querySelector(`.step-content[data-step="${proximo}"]`);
@@ -113,7 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // 4. PERSISTÊNCIA (RESTAURAÇÃO SEM FLICKER)
+  // 3. PERSISTÊNCIA E RESTAURAÇÃO
   // ============================================================
   
   function salvarSessao() {
@@ -124,7 +146,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
     localStorage.setItem('vg_data', JSON.stringify(dados));
-    // Salva também qual formulário estava aberto
     localStorage.setItem('vg_type', formBusiness.hidden ? 'pessoal' : 'business');
   }
 
@@ -133,7 +154,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const tipoSalvo = localStorage.getItem('vg_type');
     const stepSalvo = parseInt(localStorage.getItem('vg_step'));
 
-    // 1. Restaura o tipo de aba primeiro para evitar o flicker de troca
     if (tipoSalvo) {
         const isBus = tipoSalvo === 'business';
         formBusiness.hidden = !isBus;
@@ -143,7 +163,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // 2. Preenche os valores
     if (dados) {
         Object.keys(dados).forEach(key => {
             const el = document.getElementsByName(key)[0] || document.getElementById(key);
@@ -151,45 +170,27 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // 3. Restaura o Step se for Business
     if (stepSalvo && !formBusiness.hidden) {
-        window.changeStep(1, stepSalvo);
+        window.changeStep(1, stepSalvo, true);
     }
 
-    // 4. FINALMENTE: Revela o conteúdo suavemente
     if (mainContainer) {
         mainContainer.style.transition = "opacity 0.3s ease";
         mainContainer.style.opacity = "1";
     }
   }
 
-  // Monitora digitação para limpar erros IMEDIATAMENTE
-  document.querySelectorAll('input, select, textarea').forEach(el => {
-      const evento = el.tagName === 'SELECT' ? 'change' : 'input';
-      el.addEventListener(evento, () => {
-          salvarSessao();
-          
-          if (el.value.trim() !== "" && el.value.trim() !== "selet") {
-              el.classList.remove('input-error');
-              el.style.borderColor = "";
-              const parent = el.closest('.person-field-input');
-              if(parent) {
-                  parent.querySelectorAll('.error-msg, .error-msg-js').forEach(m => m.remove());
-              }
-          }
-      });
-  });
-
   // ============================================================
-  // 5. SUBMISSÃO AJAX
+  // 4. SUBMISSÃO AJAX
   // ============================================================
 
   function handleAjaxSubmit(form, url) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      if (form.id === 'formBusiness' && !validarStepAtual(3)) return;
-      if (form.id === 'formPessoa' && !validarContainer(form)) return;
+      const isBusiness = form.id === 'formBusiness';
+      if (isBusiness && !validarStepAtual(4)) return;
+      if (!isBusiness && !validarContainer(form)) return;
 
       const submitBtn = form.querySelector('button[type="submit"]');
       const originalBtnText = submitBtn.innerHTML;
@@ -213,12 +214,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data.success) {
           submitBtn.innerHTML = "Sucesso! Redirecionando...";
           localStorage.clear();
-          window.location.href = data.redirect || window.location.reload();
+          window.location.href = data.redirect;
           return;
         }
 
-        if (data.errors) showErrors(form, data.errors);
-        else if (data.error) alert(data.error);
+        if (data.errors) {
+            showErrors(form, data.errors);
+        } else if (data.error) {
+            alert(data.error);
+        }
 
       } catch (err) {
         alert("Falha de conexão com o servidor.");
@@ -232,8 +236,19 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // 6. INICIALIZAÇÃO
+  // 5. LISTENERS E INICIALIZAÇÃO
   // ============================================================
+
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+      const eventType = el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(eventType, () => {
+          salvarSessao();
+          el.classList.remove('input-error');
+          el.style.borderColor = "";
+          const parent = el.closest('.person-field-input');
+          if(parent) parent.querySelectorAll('.error-msg, .error-msg-js').forEach(m => m.remove());
+      });
+  });
 
   document.querySelectorAll('.btn-toggle').forEach(btn => {
       btn.addEventListener('click', function() {
@@ -246,7 +261,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   });
 
-  // Carrega países e inicia restauração só no final para evitar saltos no Select
   fetch('https://restcountries.com/v3.1/all?fields=name,cca2,translations')
     .then(r => r.json())
     .then(data => {
