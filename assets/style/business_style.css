@@ -1,0 +1,127 @@
+/* ================= ESTILOS PARA MULTI-STEP ================= */
+.step-content { 
+    display: none; 
+    animation: fadeIn 0.4s ease-in-out; 
+}
+
+.step-content.active { 
+    display: block; 
+}
+
+@keyframes fadeIn { 
+    from { opacity: 0; transform: translateY(5px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+
+/* ================= PADRONIZAÇÃO DOS BOTÕES DE NAVEGAÇÃO ================= */
+.btn-navigation { 
+    display: flex; 
+    gap: 10px; 
+    margin-top: 20px; 
+    width: 100%;
+}
+
+.btn-next, .btn-prev { 
+    flex: 1; 
+    padding: 12px 20px; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-next { background: #28a745; color: white; }
+.btn-next:hover { background: #218838; }
+
+.btn-prev { background: #6c757d; color: white; }
+.btn-prev:hover { background: #5a6268; }
+
+/* ================= ESTILOS DE ERRO (GERAL) ================= */
+.error-message {
+    color: #d9534f;
+    font-size: 0.75em;
+    margin-top: 4px;
+    display: none;
+    font-weight: bold;
+}
+
+/* Aplica borda e fundo rosa aos inputs normais em caso de erro */
+.field-error input, 
+.field-error select, 
+.field-error textarea,
+.input-error {
+    border: 2px solid #d9534f !important;
+    background-color: #fff8f8 !important;
+    color: #b94a48 !important;
+}
+
+.field-error .error-message {
+    display: block;
+    animation: shake 0.4s ease-in-out;
+}
+
+/* ================= FIX DEFINITIVO PARA TELEFONE (INTL-TEL-INPUT) ================= */
+
+/* Quando o JS aplica erro no container do plugin */
+.iti.input-error {
+    border: 2px solid #d9534f !important;
+    background-color: #fff8f8 !important;
+    border-radius: 6px;
+    display: block; /* Garante que a borda contorne todo o campo */
+    overflow: hidden;
+}
+
+/* Forçamos o input interno a ficar transparente para revelar o fundo rosa do container */
+.iti.input-error input#tel_business_input,
+.iti.input-error input#telefone_input {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    height: 45px; /* Mantém o alinhamento */
+}
+
+/* Garante que a área das bandeiras não cubra o estilo de erro */
+.iti.input-error .iti__flag-container {
+    background-color: transparent !important;
+}
+
+/* ================= CUSTOMIZAÇÃO DE CAMPOS ESPECÍFICOS ================= */
+textarea[name="descricao"] {
+    resize: none; 
+    min-height: 120px; 
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    font-family: inherit;
+    font-size: 0.95em;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+
+textarea[name="descricao"]:focus {
+    border-color: #28a745;
+    outline: none;
+}
+
+.person-field-input select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    cursor: pointer;
+    appearance: none; /* Remove seta padrão em alguns navegadores */
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23666%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 18px;
+}
+
+/* Animação de vibração para erros */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}

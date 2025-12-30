@@ -30,8 +30,7 @@ try {
         echo json_encode(['error' => 'Token inválido.']);
         exit;
     }
-
-    /* ================= 2. COLETA E VALIDAÇÃO ================= */
+/* ================= 2. COLETA E VALIDAÇÃO ================= */
     $nome     = trim($_POST['nome'] ?? '');
     $apelido  = trim($_POST['apelido'] ?? '');
     $email    = strtolower(trim($_POST['email'] ?? ''));
@@ -40,27 +39,75 @@ try {
     $confirm  = $_POST['password_confirm'] ?? '';
 
     $errors = [];
-    if (mb_strlen($nome) < 3) $errors['nome'] = 'Nome muito curto.';
-    if (mb_strlen($apelido) < 2) $errors['apelido'] = 'Apelido muito curto.';
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors['email'] = 'E-mail inválido.';
-    if (strlen($password) < 8) $errors['password'] = 'A senha deve ter 8+ caracteres.';
-    if ($password !== $confirm) $errors['password_confirm'] = 'As senhas não coincidem.';
 
+    // 1. VALIDAÇÃO DE CAMPOS VAZIOS (Obrigatórios)
+    if (empty($nome)) $errors['nome'] = 'O nome é obrigatório.';
+    if (empty($apelido)) $errors['apelido'] = 'O apelido é obrigatório.';
+    if (empty($email)) $errors['email'] = 'O e-mail é obrigatório.';
+    if (empty($telefone)) $errors['telefone'] = 'O telefone é obrigatório.';
+    if (empty($password)) $errors['password'] = 'A senha é obrigatória.';
+
+    // 2. VALIDAÇÕES ESPECÍFICAS (Só executa se o campo não estiver vazio)
+    if (!isset($errors['nome']) && mb_strlen($nome) < 3) {
+        $errors['nome'] = 'Nome muito curto (mínimo 3 letras).';
+    }
+    
+    if (!isset($errors['apelido']) && mb_strlen($apelido) < 2) {
+        $errors['apelido'] = 'Apelido muito curto.';
+    }
+
+    if (!isset($errors['email']) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors['email'] = 'Formato de e-mail inválido.';
+    }
+
+    // Validação de Telefone (verifica se tem o código do país e número mínimo)
+    if (!isset($errors['telefone'])) {
+        if (strlen($telefone) < 8) {
+            $errors['telefone'] = 'Número de telefone incompleto.';
+        } elseif (!preg_match('/^\+/', $telefone)) {
+            $errors['telefone'] = 'Código do país ausente.';
+        }
+    }
+
+    if (!isset($errors['password']) && strlen($password) < 8) {
+        $errors['password'] = 'A senha deve ter no mínimo 8 caracteres.';
+    }
+
+    if (empty($errors['password_confirm']) && $password !== $confirm) {
+        $errors['password_confirm'] = 'As senhas não coincidem.';
+    }
+
+    /* ================= ENVIO DA RESPOSTA ================= */
     if ($errors) {
+        header('Content-Type: application/json');
         echo json_encode(['errors' => $errors]);
         exit;
     }
-
-    /* ================= 3. VERIFICAÇÃO DE DUPLICIDADE ================= */
-    $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ? OR telefone = ? LIMIT 1");
-    $stmt->bind_param('ss', $email, $telefone);
+    /* ================= 3. VERIFICAÇÃO DE DUPLICIDADE (SEPARADA) ================= */
+    
+    // 3.1 Verificar E-mail
+    $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
+    $stmt->bind_param('s', $email);
     $stmt->execute();
     if ($stmt->get_result()->num_rows > 0) {
-        echo json_encode(['errors' => ['email' => 'E-mail ou telefone já cadastrados.']]);
-        exit;
+        $errors['email'] = 'Este e-mail já está em uso.';
     }
     $stmt->close();
 
+    // 3.2 Verificar Telefone
+    $stmt = $mysqli->prepare("SELECT id FROM users WHERE telefone = ? LIMIT 1");
+    $stmt->bind_param('s', $telefone);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        $errors['telefone'] = 'Este telefone já está cadastrado.';
+    }
+    $stmt->close();
+
+    // Se houver qualquer erro de duplicidade, interrompe e envia para os campos certos
+    if (!empty($errors)) {
+        echo json_encode(['errors' => $errors]);
+        exit;
+    }
     /* ================= 4. DADOS PARA O BANCO (NOMES EXATOS) ================= */
     $passHash = password_hash($password, PASSWORD_DEFAULT);
     $token    = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
