@@ -3,8 +3,7 @@ session_start();
 
 /**
  * Arquivo: business.store.php
- * Sincronizado com o modelo de Chave Estrangeira (users -> businesses)
- * Agora inclui validação de senha real e suporte ao Step 4.
+ * Finalizado com criação automática de diretórios e validação rigorosa de arquivos (5MB, formatos específicos).
  */
 
 ini_set('display_errors', 0);
@@ -35,132 +34,147 @@ try {
     /* ================= 2. COLETA E VALIDAÇÃO DE DADOS ================= */
     $errors = [];
 
-    // Dados para 'users' (Etapas 1, 3 e 4)
     $nome_empresa   = trim($_POST['nome_empresa'] ?? '');
     $email_business = strtolower(trim($_POST['email_business'] ?? ''));
     $telefone       = trim($_POST['telefone'] ?? '');
     $password       = $_POST['password'] ?? '';
     $password_conf  = $_POST['password_confirm'] ?? '';
     
-    // Dados para 'businesses' (Etapas 1, 2 e 3)
+    $fiscal_mode    = $_POST['fiscal_mode'] ?? 'text';
     $tax_id         = trim($_POST['tax_id'] ?? '');
     $tipo_empresa   = trim($_POST['tipo_empresa'] ?? '');
     $descricao      = trim($_POST['descricao'] ?? '');
     $pais           = trim($_POST['pais'] ?? '');
     $regiao         = trim($_POST['regiao'] ?? '');
     $localidade     = trim($_POST['localidade'] ?? '');
+    $no_logo        = isset($_POST['no_logo']);
 
-    // Validações de campos obrigatórios
     if (empty($nome_empresa))   $errors['nome_empresa'] = 'A razão social é obrigatória.';
     if (empty($email_business)) $errors['email_business'] = 'O e-mail é obrigatório.';
     if (empty($telefone))       $errors['telefone'] = 'O telefone é obrigatório.';
-    if (empty($tax_id))         $errors['tax_id'] = 'O documento fiscal é obrigatório.';
     if (empty($pais))           $errors['pais'] = 'Selecione o país.';
 
-    // Validação de Senha (Etapa 4)
+    if ($fiscal_mode === 'text' && empty($tax_id)) {
+        $errors['tax_id'] = 'O código fiscal é obrigatório.';
+    } elseif ($fiscal_mode === 'file' && (!isset($_FILES['tax_id_file']) || $_FILES['tax_id_file']['error'] !== UPLOAD_ERR_OK)) {
+        $errors['tax_id'] = 'O upload do documento fiscal é obrigatório.';
+    }
+
     if (empty($password)) {
-        $errors['password'] = 'A senha de acesso é obrigatória.';
+        $errors['password'] = 'A senha é obrigatória.';
     } elseif (strlen($password) < 8) {
         $errors['password'] = 'A senha deve ter no mínimo 8 caracteres.';
     }
-
     if ($password !== $password_conf) {
-        $errors['password_confirm'] = 'As senhas digitadas não coincidem.';
+        $errors['password_confirm'] = 'As senhas não coincidem.';
     }
 
     /* ================= 3. VERIFICAÇÃO DE DUPLICIDADE ================= */
-    
-    // Verifica E-mail
-    if (!isset($errors['email_business'])) {
-        $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
-        $stmt->bind_param('s', $email_business);
-        $stmt->execute();
-        if ($stmt->get_result()->num_rows > 0) $errors['email_business'] = 'Este e-mail já está em uso.';
-        $stmt->close();
+    $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ? OR telefone = ? LIMIT 2");
+    $stmt->bind_param('ss', $email_business, $telefone);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        // Lógica simples para identificar qual dado está duplicado
+        // (Em produção, ideal fazer consultas separadas para mensagens precisas)
+        $errors['email_business'] = 'E-mail ou telefone já cadastrados.';
     }
 
-    // Verifica Telefone
-    if (!isset($errors['telefone'])) {
-        $stmt = $mysqli->prepare("SELECT id FROM users WHERE telefone = ? LIMIT 1");
-        $stmt->bind_param('s', $telefone);
-        $stmt->execute();
-        if ($stmt->get_result()->num_rows > 0) $errors['telefone'] = 'Este telefone já está cadastrado.';
-        $stmt->close();
-    }
-
-    // Verifica Tax ID na tabela de negócios
-    if (!isset($errors['tax_id'])) {
+    if ($fiscal_mode === 'text' && !empty($tax_id)) {
         $stmt = $mysqli->prepare("SELECT id FROM businesses WHERE tax_id = ? LIMIT 1");
         $stmt->bind_param('s', $tax_id);
         $stmt->execute();
-        if ($stmt->get_result()->num_rows > 0) $errors['tax_id'] = 'Este documento fiscal já está cadastrado.';
-        $stmt->close();
+        if ($stmt->get_result()->num_rows > 0) $errors['tax_id'] = 'Documento fiscal já cadastrado.';
     }
 
-    // Se houver erros, retorna o JSON (o JS levará o usuário ao Step correto)
     if (!empty($errors)) {
         echo json_encode(['errors' => $errors]);
         exit;
     }
 
-    /* ================= 4. UPLOAD DE ARQUIVOS ================= */
-    function uploadDoc($fileKey, $prefix) {
+    /* ================= 4. FUNÇÃO DE UPLOAD REFORÇADA ================= */
+    function uploadBusinessDoc($fileKey, $prefix) {
         if (!isset($_FILES[$fileKey]) || $_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) return null;
-        $ext = strtolower(pathinfo($_FILES[$fileKey]['name'], PATHINFO_EXTENSION));
-        
-        $allowed = ['jpg', 'jpeg', 'png', 'pdf'];
-        if (!in_array($ext, $allowed)) return null;
 
-        $newName = $prefix . "_" . bin2hex(random_bytes(8)) . "." . $ext;
-        $dest = "../uploads/business/" . $newName;
+        $file = $_FILES[$fileKey];
+        $maxSize = 5 * 1024 * 1024; // 5MB
+        $allowedExts = ['png', 'jpg', 'jpeg', 'pdf'];
         
-        if (!is_dir("../uploads/business/")) mkdir("../uploads/business/", 0755, true);
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+        // Validação de Extensão
+        if (!in_array($ext, $allowedExts)) {
+            throw new Exception("Formato do arquivo '{$fileKey}' inválido. Apenas PNG, JPEG e PDF são aceitos.");
+        }
+
+        // Validação de Tamanho
+        if ($file['size'] > $maxSize) {
+            throw new Exception("O arquivo '{$fileKey}' excede o limite de 5MB.");
+        }
+
+        // Criação automática do diretório
+        $uploadDir = "../uploads/business/";
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $newName = $prefix . "_" . bin2hex(random_bytes(10)) . "." . $ext;
+        $dest = $uploadDir . $newName;
         
-        return move_uploaded_file($_FILES[$fileKey]['tmp_name'], $dest) ? $newName : null;
+        if (move_uploaded_file($file['tmp_name'], $dest)) {
+            return $newName;
+        }
+        return null;
     }
 
-    $pathLicenca = uploadDoc('licenca', 'lic');
-    $pathLogo    = uploadDoc('logo', 'log');
+    // Processar uploads
+    try {
+        $pathLicenca = uploadBusinessDoc('licenca', 'lic');
+        if (!$pathLicenca) throw new Exception("Falha ao processar o arquivo do Alvará.");
 
-    /* ================= 5. TRANSAÇÃO (TWO-STEP INSERT) ================= */
+        $pathLogo = null;
+        if (!$no_logo) {
+            $pathLogo = uploadBusinessDoc('logo', 'log');
+            if (!$pathLogo) throw new Exception("Falha ao processar o arquivo da Logo.");
+        }
+
+        $pathFiscal = ($fiscal_mode === 'file') ? uploadBusinessDoc('tax_id_file', 'tax') : null;
+    } catch (Exception $fileEx) {
+        echo json_encode(['error' => $fileEx->getMessage()]);
+        exit;
+    }
+
+    /* ================= 5. TRANSAÇÃO (BANCO DE DADOS) ================= */
     $mysqli->begin_transaction();
 
-    // 5.1 Inserir em 'users' (Utilizando a senha real com Hash)
     $token    = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $expires  = date('Y-m-d H:i:s', time() + 3600);
-    
-    // CORREÇÃO: Usamos 'company' explicitamente para garantir a lógica do UID final com 'C'
-    $type     = 'company'; 
-    $step     = 'email_pending';
     $realPassHash = password_hash($password, PASSWORD_DEFAULT);
 
+    // Inserir User
     $sqlUser = "INSERT INTO users (type, nome, email, telefone, password_hash, registration_step, email_token, email_token_expires) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-    
+                VALUES ('company', ?, ?, ?, ?, 'email_pending', ?, ?)";
     $stmt = $mysqli->prepare($sqlUser);
-    $stmt->bind_param("ssssssss", $type, $nome_empresa, $email_business, $telefone, $realPassHash, $step, $token, $expires);
+    $stmt->bind_param("ssssss", $nome_empresa, $email_business, $telefone, $realPassHash, $token, $expires);
     $stmt->execute();
-    
     $newUserId = $mysqli->insert_id; 
 
-    // 5.2 Inserir em 'businesses'
+    // Valor final do Tax ID (Texto ou referência ao Arquivo)
+    $finalTaxValue = ($fiscal_mode === 'file') ? "FILE:" . $pathFiscal : $tax_id;
+
+    // Inserir Business
     $sqlBus = "INSERT INTO businesses (user_id, tax_id, business_type, description, country, region, city, license_path, logo_path) 
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    
     $stmtBus = $mysqli->prepare($sqlBus);
     $stmtBus->bind_param("issssssss", 
-        $newUserId, $tax_id, $tipo_empresa, $descricao, $pais, $regiao, $localidade, $pathLicenca, $pathLogo
+        $newUserId, $finalTaxValue, $tipo_empresa, $descricao, $pais, $regiao, $localidade, $pathLicenca, $pathLogo
     );
     $stmtBus->execute();
 
-    // Finaliza transação
     $mysqli->commit();
 
     /* ================= 6. FINALIZAÇÃO ================= */
     $_SESSION['user_id'] = $newUserId;
-    // Removido o unset imediato da sessão de cadastro para permitir que o verify_email acesse o contexto se necessário
-    // unset($_SESSION['cadastro']); 
-
     enviarEmailVisionGreen($email_business, $nome_empresa, $token);
 
     echo json_encode([
@@ -170,5 +184,6 @@ try {
 
 } catch (Exception $e) {
     if (isset($mysqli)) $mysqli->rollback();
-    echo json_encode(['error' => 'Falha Crítica: ' . $e->getMessage()]);
+    error_log("Erro no registro de negócio: " . $e->getMessage());
+    echo json_encode(['error' => 'Ocorreu um erro ao salvar os dados. Tente novamente.']);
 }

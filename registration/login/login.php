@@ -41,7 +41,7 @@ unset($_SESSION['user_id']);
             --color-business: #2563eb;
             --color-bg: #f0f2f5;
         }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--color-bg); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--color-bg); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; padding: 0px 10px; }
         .box { width: 100%; max-width: 360px; background:#fff; padding: 30px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); border-top: 5px solid var(--color-primary); }
         
         /* Se o usuário digitar algo com 'C' no final, podemos mudar a cor dinamicamente via JS se desejar */

@@ -32,7 +32,7 @@ if (!empty($_SESSION['auth']['user_id'])) {
             --color-primary: #28a745;
             --color-bg: #f0f2f5;
         }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--color-bg); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--color-bg); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; padding: 0px 10px; }
         .box { width: 100%; max-width: 400px; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); text-align: center; }
         h2 { color: #333; margin-top: 0; }
         p { color: #666; font-size: 0.9em; margin-bottom: 20px; line-height: 1.5; }
@@ -42,7 +42,6 @@ if (!empty($_SESSION['auth']['user_id'])) {
         .alert-info { background: #d1ecf1; color: #0c5460; border-color: #bee5eb; }
         .alert-success { background: #d4edda; color: #155724; border-color: #c3e6cb; }
 
-        /* MUDANÇA: type="text" para suportar identificadores */
         input[type="text"] { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; background: var(--color-primary); border: none; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.3s; }
         button:hover { background: #218838; }
@@ -62,11 +61,26 @@ if (!empty($_SESSION['auth']['user_id'])) {
             <div class="alert alert-error">
                 <?php 
                     switch($_GET['error']) {
-                        case 'rate_limit': echo "Muitas solicitações. Aguarde 5 minutos para tentar de novo."; break;
-                        case 'csrf': echo "Sessão expirada. Por favor, tente novamente."; break;
-                        case 'invalid_id': echo "O identificador digitado não foi reconhecido."; break;
-                        case 'mail_fail': echo "Falha ao enviar e-mail. Tente em alguns minutos."; break;
-                        default: echo "Ocorreu um erro ao processar o pedido.";
+                        case 'email_not_found': 
+                            echo "E-mail não está cadastrad."; 
+                            break;
+                        case 'uid_not_found':   
+                            echo "Identificador (UID) não existe ou está incorreto."; 
+                            break;
+                        case 'rate_limit':     
+                            echo "Muitas solicitações. Aguarde 5 minutos para tentar de novo."; 
+                            break;
+                        case 'csrf':           
+                            echo "Sessão expirada. Por favor, tente novamente."; 
+                            break;
+                        case 'invalid_id':     
+                            echo "O identificador digitado não foi reconhecido."; 
+                            break;
+                        case 'mail_fail':      
+                            echo "Falha ao enviar e-mail. Tente em alguns minutos."; 
+                            break;
+                        default:               
+                            echo "Ocorreu um erro ao processar o pedido.";
                     }
                 ?>
             </div>
@@ -78,7 +92,7 @@ if (!empty($_SESSION['auth']['user_id'])) {
         <?php 
         elseif (isset($_GET['status']) && $_GET['status'] === 'sent'): ?>
             <div class="alert alert-success">
-                Se os dados informados estiverem em nossa base, você receberá o código de recuperação no seu e-mail principal em instantes.
+                Código enviado com sucesso! Verifique seu e-mail principal.
             </div>
         <?php endif; ?>
 

@@ -1,10 +1,9 @@
 /**
- * VISION GREEN - SISTEMA DE CADASTRO REFORÇADO V2
- * Foco: Redirecionamento automático de Steps baseado em erros do Servidor.
+ * VISION GREEN - SISTEMA DE CADASTRO CENTRALIZADO V2
+ * Centraliza validações, navegação de steps, uploads e efeitos visuais.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-  
   const formPessoa = document.getElementById("formPessoa");
   const formBusiness = document.getElementById("formBusiness");
   const mainContainer = document.querySelector(".main-container");
@@ -12,12 +11,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (mainContainer) mainContainer.style.opacity = "0";
 
   // ============================================================
-  // 1. GESTÃO DE ERROS COM NAVEGAÇÃO AUTOMÁTICA
+  // 1. GESTÃO DE ERROS E LIMPEZA
   // ============================================================
   
   function clearErrors(form) {
     form.querySelectorAll(".error-msg, .error-msg-js").forEach(el => el.remove());
-    form.querySelectorAll(".input-error").forEach(el => {
+    form.querySelectorAll(".input-error, .custom-file-upload").forEach(el => {
       el.classList.remove("input-error");
       el.style.borderColor = ""; 
     });
@@ -34,8 +33,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!primeiroInputComErro) primeiroInputComErro = input;
 
-      input.classList.add("input-error");
-      input.style.borderColor = "red";
+      // Estiliza erro conforme tipo do campo
+      if (input.type === 'file') {
+        const customArea = input.closest('.custom-file-upload');
+        if (customArea) customArea.classList.add("input-error");
+      } else {
+        input.classList.add("input-error");
+        input.style.borderColor = "red";
+      }
       
       const parent = input.closest('.person-field-input');
       if (parent) {
@@ -46,7 +51,6 @@ document.addEventListener("DOMContentLoaded", () => {
           parent.appendChild(span);
       }
 
-      // Identifica o Step onde este erro está (Apenas para Business)
       if (form.id === 'formBusiness') {
           const stepContainer = input.closest('.step-content');
           if (stepContainer && !stepDoErro) {
@@ -55,7 +59,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // --- LÓGICA DE REDIRECIONAMENTO DE STEP ---
     if (stepDoErro) {
         window.changeStep(parseInt(localStorage.getItem('vg_step')), stepDoErro, true);
     }
@@ -67,7 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // 2. VALIDAÇÃO E NAVEGAÇÃO
+  // 2. VALIDAÇÃO DE CAMPOS E STEPS
   // ============================================================
 
   function validarContainer(container) {
@@ -75,7 +78,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const obrigatorios = container.querySelectorAll('input[required], select[required], textarea[required]');
 
     obrigatorios.forEach(input => {
-        if (input.offsetParent === null) return;
+        if (input.offsetParent === null) return; // Ignora se estiver oculto (ex: modo fiscal alternativo)
+
+        // Lógica para Logo opcional via Checkbox
+        if (input.name === 'logo' && document.getElementsByName('no_logo')[0]?.checked) return;
 
         let valor = input.value.trim();
         let erroDetectado = false;
@@ -87,7 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } 
         else if (input.type === "password" && valor.length < 8) {
             erroDetectado = true;
-            mensagem = 'A senha deve ter no mínimo 8 caracteres';
+            mensagem = 'Mínimo 8 caracteres';
         }
         else if (input.name === "password_confirm") {
             const senhaOriginal = container.querySelector('input[name="password"]')?.value;
@@ -99,14 +105,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (erroDetectado) {
             valido = false;
-            input.classList.add('input-error');
-            input.style.borderColor = 'red';
+            const target = input.type === 'file' ? input.closest('.custom-file-upload') : input;
+            if (target) target.classList.add('input-error');
             
             const parent = input.closest('.person-field-input');
             if(parent && !parent.querySelector('.error-msg-js')) {
                 const msg = document.createElement('span');
                 msg.className = 'error-msg-js';
-                msg.style.cssText = "color:red; font-size:12px;";
+                msg.style.cssText = "color:red; font-size:11px;";
                 msg.innerText = mensagem;
                 parent.appendChild(msg);
             }
@@ -115,7 +121,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return valido;
   }
 
-  // Função estendida para suportar saltos forçados por erro (forceJump)
   window.changeStep = function(atual, proximo, forceJump = false) {
     if (!forceJump && proximo > atual && !validarStepAtual(atual)) return;
 
@@ -135,14 +140,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // 3. PERSISTÊNCIA E RESTAURAÇÃO
+  // 3. PERSISTÊNCIA (LOCALSTORAGE)
   // ============================================================
   
   function salvarSessao() {
     const dados = {};
     document.querySelectorAll('input, select, textarea').forEach(el => {
-        if ((el.name || el.id) && el.type !== 'password' && el.type !== 'file') {
-            dados[el.name || el.id] = el.value;
+        if (!el.name || el.type === 'password' || el.type === 'file') return;
+        
+        if (el.type === 'radio' || el.type === 'checkbox') {
+            if (el.checked) dados[el.name] = el.value;
+        } else {
+            dados[el.name] = el.value;
         }
     });
     localStorage.setItem('vg_data', JSON.stringify(dados));
@@ -161,18 +170,27 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll('.btn-toggle').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tipo === tipoSalvo);
         });
+        document.getElementById('titulo').innerText = isBus ? 'Cadastro de Negócio' : 'Cadastro Pessoal';
     }
 
     if (dados) {
         Object.keys(dados).forEach(key => {
             const el = document.getElementsByName(key)[0] || document.getElementById(key);
-            if (el && el.type !== 'file') el.value = dados[key];
+            if (!el) return;
+
+            if (el.type === 'radio') {
+                const radio = document.querySelector(`input[name="${key}"][value="${dados[key]}"]`);
+                if (radio) { radio.checked = true; radio.click(); }
+            } else if (el.type === 'checkbox') {
+                el.checked = true;
+                el.dispatchEvent(new Event('change'));
+            } else {
+                el.value = dados[key];
+            }
         });
     }
 
-    if (stepSalvo && !formBusiness.hidden) {
-        window.changeStep(1, stepSalvo, true);
-    }
+    if (stepSalvo && !formBusiness.hidden) window.changeStep(1, stepSalvo, true);
 
     if (mainContainer) {
         mainContainer.style.transition = "opacity 0.3s ease";
@@ -181,99 +199,150 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // 4. SUBMISSÃO AJAX
+  // 4. LÓGICAS DE UI (UPLOAD, FISCAL, SENHA, SLIDERS)
+  // ============================================================
+
+  window.updateFileName = (input) => {
+    const fileNameDisplay = input.parentElement.querySelector('.file-selected-name');
+    if (input.files.length > 0) {
+        fileNameDisplay.textContent = "Selecionado: " + input.files[0].name;
+    } else {
+        fileNameDisplay.textContent = "";
+    }
+  };
+
+  window.toggleFiscalMode = (mode) => {
+    const input = document.getElementById('tax_id');
+    const fileArea = document.getElementById('area_tax_file');
+    const fileInput = document.getElementById('tax_id_file');
+    if (mode === 'text') {
+        input.style.display = 'block'; input.required = true;
+        fileArea.style.display = 'none'; fileInput.required = false;
+    } else {
+        input.style.display = 'none'; input.required = false;
+        fileArea.style.display = 'block'; fileInput.required = true;
+    }
+  };
+
+  window.toggleLogoRequired = (checkbox) => {
+    const logoInput = document.getElementById('input_logo');
+    const container = document.getElementById('logo_container');
+    logoInput.required = !checkbox.checked;
+    logoInput.disabled = checkbox.checked;
+    container.style.opacity = checkbox.checked ? "0.5" : "1";
+    container.style.pointerEvents = checkbox.checked ? "none" : "auto";
+  };
+
+  window.checkStrengthBus = (pass) => {
+    const bar = document.getElementById('strengthBarBus');
+    const txt = document.getElementById('strengthTextBus');
+    let s = 0;
+    if (pass.length >= 8) s++;
+    if (pass.match(/[A-Z]/) && pass.match(/[a-z]/)) s++;
+    if (pass.match(/[0-9]/)) s++;
+    if (pass.match(/[^a-zA-Z0-9]/)) s++;
+    const colors = ['#eee', '#ff4d4d', '#ffd633', '#2ecc71', '#27ae60'];
+    const labels = ['Força da senha', 'Muito fraca ❌', 'Razoável ⚠️', 'Forte ✅', 'Muito forte 💪'];
+    bar.style.width = (s * 25) + '%';
+    bar.style.backgroundColor = colors[s];
+    txt.innerHTML = labels[s];
+  };
+
+  // Sliders
+  let slideInterval = null; 
+  let currentIndex = 0;
+  const slidesPessoal = document.querySelectorAll('.slide-pessoal');
+  const imgBusiness = document.getElementById('img-business-fixa');
+
+  function startSlide() {
+    if(!slidesPessoal.length) return;
+    stopSlide();
+    if(imgBusiness) imgBusiness.classList.remove('active');
+    slidesPessoal[currentIndex].classList.add('active');
+    slideInterval = setInterval(() => {
+        slidesPessoal[currentIndex].classList.remove('active');
+        currentIndex = (currentIndex + 1) % slidesPessoal.length;
+        slidesPessoal[currentIndex].classList.add('active');
+    }, 5000); 
+  }
+
+  function stopSlide() {
+    if(slideInterval) clearInterval(slideInterval);
+    slideInterval = null;
+    slidesPessoal.forEach(s => s.classList.remove('active'));
+    if(imgBusiness) imgBusiness.classList.add('active');
+  }
+
+  // ============================================================
+  // 5. SUBMISSÃO E INICIALIZAÇÃO
   // ============================================================
 
   function handleAjaxSubmit(form, url) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      const isBus = form.id === 'formBusiness';
+      if (isBus && !validarStepAtual(4)) return;
+      if (!isBus && !validarContainer(form)) return;
 
-      const isBusiness = form.id === 'formBusiness';
-      if (isBusiness && !validarStepAtual(4)) return;
-      if (!isBusiness && !validarContainer(form)) return;
-
-      const submitBtn = form.querySelector('button[type="submit"]');
-      const originalBtnText = submitBtn.innerHTML;
-      
+      const btn = form.querySelector('button[type="submit"]');
+      const oldTxt = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = "Processando...";
       clearErrors(form);
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = "Validando..."; 
-
-      const formData = new FormData(form);
-      formData.append("csrf", document.body.dataset.csrf || "");
 
       try {
-        const res = await fetch(url, { 
-          method: "POST", 
-          body: formData,
-          headers: { 'Accept': 'application/json' }
-        });
-
+        const res = await fetch(url, { method: "POST", body: new FormData(form) });
         const data = await res.json();
-
         if (data.success) {
-          submitBtn.innerHTML = "Sucesso! Redirecionando...";
-          localStorage.clear();
-          window.location.href = data.redirect;
-          return;
-        }
-
-        if (data.errors) {
+            localStorage.clear();
+            window.location.href = data.redirect;
+        } else if (data.errors) {
             showErrors(form, data.errors);
-        } else if (data.error) {
-            alert(data.error);
+        } else {
+            alert(data.error || "Erro desconhecido");
         }
-
-      } catch (err) {
-        alert("Falha de conexão com o servidor.");
-      } finally {
-        if (!submitBtn.innerHTML.includes("Redirecionando")) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnText;
-        }
-      }
+      } catch (err) { alert("Falha na conexão."); }
+      finally { if(!window.location.href.includes("verify")) { btn.disabled = false; btn.innerHTML = oldTxt; } }
     });
   }
 
-  // ============================================================
-  // 5. LISTENERS E INICIALIZAÇÃO
-  // ============================================================
-
-  document.querySelectorAll('input, select, textarea').forEach(el => {
-      const eventType = el.tagName === 'SELECT' ? 'change' : 'input';
-      el.addEventListener(eventType, () => {
-          salvarSessao();
-          el.classList.remove('input-error');
-          el.style.borderColor = "";
-          const parent = el.closest('.person-field-input');
-          if(parent) parent.querySelectorAll('.error-msg, .error-msg-js').forEach(m => m.remove());
-      });
-  });
-
   document.querySelectorAll('.btn-toggle').forEach(btn => {
       btn.addEventListener('click', function() {
-          const tipo = this.dataset.tipo;
-          formBusiness.hidden = (tipo !== 'business');
-          formPessoa.hidden = (tipo === 'business');
+          const t = this.dataset.tipo;
+          formBusiness.hidden = (t !== 'business');
+          formPessoa.hidden = (t === 'business');
           document.querySelectorAll('.btn-toggle').forEach(b => b.classList.remove('active'));
           this.classList.add('active');
+          document.getElementById('titulo').innerText = (t === 'business') ? 'Cadastro de Negócio' : 'Cadastro Pessoal';
+          if (t === 'pessoal') startSlide(); else stopSlide();
           salvarSessao();
       });
   });
 
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+      el.addEventListener('input', () => {
+          salvarSessao();
+          el.classList.remove('input-error');
+          const p = el.closest('.person-field-input');
+          if(p) p.querySelectorAll('.error-msg, .error-msg-js').forEach(m => m.remove());
+      });
+  });
+
+  // Países
   fetch('https://restcountries.com/v3.1/all?fields=name,cca2,translations')
-    .then(r => r.json())
-    .then(data => {
-        const selectPais = document.getElementById('select_pais');
-        if (selectPais) {
-            data.sort((a, b) => (a.translations.por?.common || a.name.common).localeCompare(b.translations.por?.common || b.name.common));
-            let opts = '<option value="">Selecione...</option>';
-            data.forEach(p => opts += `<option value="${p.cca2}">${p.translations.por?.common || p.name.common}</option>`);
-            selectPais.innerHTML = opts;
+    .then(r => r.json()).then(data => {
+        const s = document.getElementById('select_pais');
+        if (s) {
+            data.sort((a,b) => (a.translations.por?.common || a.name.common).localeCompare(b.translations.por?.common || b.name.common));
+            let h = '<option value="">Selecione...</option>';
+            data.forEach(p => h += `<option value="${p.cca2}">${p.translations.por?.common || p.name.common}</option>`);
+            s.innerHTML = h;
         }
         restaurarSessao();
     }).catch(() => restaurarSessao());
 
-  if (formPessoa) handleAjaxSubmit(formPessoa, "../process/pessoa.store.php");
-  if (formBusiness) handleAjaxSubmit(formBusiness, "../process/business.store.php");
+  handleAjaxSubmit(formPessoa, "../process/pessoa.store.php");
+  handleAjaxSubmit(formBusiness, "../process/business.store.php");
+  
+  const tipoIni = document.body.dataset.tipoInicial;
+  if(tipoIni === 'pessoal') startSlide(); else stopSlide();
 });

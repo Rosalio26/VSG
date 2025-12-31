@@ -90,6 +90,11 @@ h2 { color: #050386c9; text-align: center; font-size: 14pt; margin-top: 10px; }
 .person-field-input > input::placeholder { color: #013301; opacity: 0.6; }
 .person-field-input > input:focus { background-color: #ffffff; border-color: #0f0be1; }
 
+#tipo_empresa:focus { background-color: #ffffff; border-color: #0f0be1; }
+#tipo_empresa {
+    background-color: #4af35ec9;
+}
+
 /* ================= TELEFONE (INTL-TEL-INPUT) ESTILOS NORMAIS ================= */
 /* O plugin cria este container .iti ao redor do input */
 .iti { width: 100%; margin-top: 0px; display: block; }
@@ -162,8 +167,103 @@ button[type="submit"]:disabled { background-color: #555; cursor: not-allowed; }
     z-index: 1;
 }
 .cnt-img-item.active { opacity: 1; z-index: 2; }
-.cnt-img-item img { width: 80%; object-fit: cover; margin: auto;}
+.cnt-img-item img { width: 60%; object-fit: cover; margin: auto;}
 .step-content { display: none; animation: fadeIn 0.4s; }
 .step-content.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+
+/*=========================================*/
+/* Container de Alternância (Radio Buttons) */
+.fiscal-mode-selector {
+    display: flex;
+    background: #f1f5f9;
+    padding: 5px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    gap: 5px;
+}
+
+.fiscal-mode-selector label {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: 0.3s;
+    margin: 0 !important;
+    color: #64748b;
+}
+
+.fiscal-mode-selector input[type="radio"] {
+    display: none; /* Esconde o rádio padrão */
+}
+
+/* Estilo quando selecionado */
+.fiscal-mode-selector input[type="radio"]:checked + span {
+    background: white;
+    color: var(--color-bus-blue, #2563eb);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    border-radius: 6px;
+}
+
+/* Estilização do Input de Arquivo (Custom File Upload) */
+.custom-file-upload {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 20px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.3s;
+    background: #f8fafc;
+}
+
+.custom-file-upload:hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
+
+.custom-file-upload i {
+    font-size: 24px;
+    color: #64748b;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.custom-file-upload span {
+    font-size: 14px;
+    color: #475569;
+}
+
+.custom-file-upload input[type="file"] {
+    position: absolute;
+    top: 0; left: 0; opacity: 0;
+    width: 100%; height: 100%;
+    cursor: pointer;
+}
+
+/* Preview de arquivo selecionado */
+.file-selected-name {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #2563eb;
+    font-weight: bold;
+}
+
+.input-error { border-color: red !important; background-color: #fff0f0; }
+.error-message { color: red; font-size: 12px; display: none; margin-top: 5px; }
+input[type="tel"] { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ddd; }
+input:disabled { background-color: #f9f9f9; cursor: not-allowed; color: #666; }
+
+/* Estilos do Medidor de Senha */
+.strength-meter { height: 8px; width: 100%; background: #eee; margin-top: 5px; border-radius: 4px; overflow: hidden; }
+.strength-bar { height: 100%; width: 0%; transition: 0.4s ease; }

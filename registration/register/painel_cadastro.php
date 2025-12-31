@@ -30,11 +30,7 @@ $csrf = csrf_generate();
     <link rel="stylesheet" href="../../assets/style/business_style.css">
 
     <style>
-        .input-error { border-color: red !important; background-color: #fff0f0; }
-        .error-message { color: red; font-size: 12px; display: none; margin-top: 5px; }
-        input[type="tel"] { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ddd; }
-        /* Estilo para campo desabilitado/automático */
-        input:disabled { background-color: #f9f9f9; cursor: not-allowed; color: #666; }
+        
     </style>
 </head>
 
@@ -76,7 +72,7 @@ $csrf = csrf_generate();
             <input type="hidden" name="tipo" value="company">
 
             <div class="step-content active" data-step="1">
-                <div class="section-title">Etapa 1: Identidade do Negócio</div>
+                <div class="section-title">Etapa 1 - 4: Identidade do Negócio</div>
                 <div class="person-field-input">
                     <label>Nome da Empresa (Razão Social)</label>
                     <input type="text" name="nome_empresa" id="nome_empresa" required>
@@ -85,10 +81,10 @@ $csrf = csrf_generate();
                 <div class="person-field-input">
                     <label>Tipo de Empresa</label>
                     <select name="tipo_empresa" id="tipo_empresa" required style="width:100%; padding:12px; border-radius:6px; border:1px solid #ddd;">
-                        <option value="selet">Selecione o tipo da sua empresa...</option>
-                        <option value="ltda">LTDA / Limitada</option>
-                        <option value="mei">MEI / Individual</option>
-                        <option value="sa">S.A / Corporação</option>
+                        <option class="option-inp" value="selet">Selecione o tipo da sua empresa...</option>
+                        <option class="option-inp" value="ltda">LTDA / Limitada</option>
+                        <option class="option-inp" value="mei">MEI / Individual</option>
+                        <option class="option-inp" value="sa">S.A / Corporação</option>
                     </select>
                 </div>
                 <div class="person-field-input">
@@ -101,17 +97,40 @@ $csrf = csrf_generate();
             </div>
 
             <div class="step-content" data-step="2">
-                <div class="section-title">Etapa 2: Localização & Fiscal</div>
+                <div class="section-title">Etapa 2 - 4: Localização & Fiscal</div>
                 <div class="person-field-input">
                     <label>País</label>
                     <select name="pais" id="select_pais" required style="width:100%; padding:12px; border-radius:6px; border:1px solid #ddd;">
                         <option value="">Carregando lista de países...</option>
                     </select>
                 </div>
+                
                 <div class="person-field-input">
-                    <label id="label_fiscal">Documento Fiscal</label>
-                    <input type="text" name="tax_id" id="tax_id" placeholder="Digite o seu CNPJ / NUIT / NIF / etc" required>
+                    <label id="label_fiscal">Documento Fiscal (Único)</label>
+                    
+                    <div class="fiscal-mode-selector">
+                        <label>
+                            <input type="radio" name="fiscal_mode" value="text" checked onclick="toggleFiscalMode('text')">
+                            <span>Digitar Código</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="fiscal_mode" value="file" onclick="toggleFiscalMode('file')">
+                            <span>Fazer Upload</span>
+                        </label>
+                    </div>
+
+                    <input type="text" name="tax_id" id="tax_id" placeholder="Digite o seu CNPJ / NUIT / NIF" required>
+
+                    <label class="custom-file-upload" id="area_tax_file" style="display:none;">
+                        <i>📁</i>
+                        <span>Clique para anexar o Documento Fiscal</span>
+                        <input type="file" name="tax_id_file" id="tax_id_file" accept=".pdf,image/*" onchange="updateFileName(this)">
+                        <div class="file-selected-name"></div>
+                    </label>
+
+                    <small style="color: #070129ff; display: block; margin-top: 5px;">Este documento sera verificado agora - futuramente.</small>
                 </div>
+
                 <div class="person-field-input">
                     <label>Região (Estado/Província)</label>
                     <input type="text" name="regiao" id="regiao" required placeholder="Digite a sua provincia / Região">
@@ -127,7 +146,7 @@ $csrf = csrf_generate();
             </div>
 
             <div class="step-content" data-step="3">
-                <div class="section-title">Etapa 3: Contatos & Documentação</div>
+                <div class="section-title">Etapa 3 - 4: Contatos & Documentação</div>
                 <div class="person-field-input">
                     <label>E-mail Corporativo</label>
                     <input type="email" name="email_business" id="email_business" placeholder="exemplo@email.com" required>
@@ -136,14 +155,32 @@ $csrf = csrf_generate();
                     <label>Telefone</label>
                     <input type="tel" name="telefone" id="tel_business" placeholder="Ex: +00 0000 00000" required>
                 </div>
+                
                 <div class="person-field-input">
                     <label>Alvará / Licença (PDF/JPG)</label>
-                    <input type="file" name="licenca" accept=".pdf,image/*">
+                    <label class="custom-file-upload">
+                        <i>📄</i>
+                        <span>Selecionar Alvará ou Licença</span>
+                        <input type="file" name="licenca" accept=".pdf,image/*" required onchange="updateFileName(this)">
+                        <div class="file-selected-name"></div>
+                    </label>
+                    <small style="color: #070129ff; display: block; margin-top: 5px;">Este documento sera verificado agora - futuramente.</small>
                 </div>
+
                 <div class="person-field-input">
                     <label>Logo da Empresa</label>
-                    <input type="file" name="logo" accept="image/*">
+                    <label class="custom-file-upload" id="logo_container">
+                        <i>🖼️</i>
+                        <span>Selecionar Logo da Empresa</span>
+                        <input type="file" name="logo" id="input_logo" accept="image/*" required onchange="updateFileName(this)">
+                        <div class="file-selected-name"></div>
+                    </label>
+                    <label style="font-size: 12px; margin-top:10px; display:flex; align-items:center; gap:5px; cursor: pointer;">
+                        <input type="checkbox" name="no_logo" onchange="toggleLogoRequired(this)"> 
+                        <span>Não tenho logo no momento</span>
+                    </label>
                 </div>
+
                 <div class="btn-navigation">
                     <button type="button" class="btn-prev" onclick="changeStep(3, 2)">Voltar</button>
                     <button type="button" class="btn-next" onclick="changeStep(3, 4)">Próxima Etapa</button>
@@ -151,14 +188,18 @@ $csrf = csrf_generate();
             </div>
 
             <div class="step-content" data-step="4">
-                <div class="section-title">Etapa 4: Acesso e Segurança</div>
+                <div class="section-title">Etapa 4 - 4: Acesso e Segurança</div>
                 <div class="person-field-input">
                     <label>Confirme seu E-mail (Automático)</label>
                     <input type="email" id="email_confirm_display" disabled>
                 </div>
                 <div class="person-field-input">
                     <label>Senha de Acesso</label>
-                    <input type="password" name="password" id="pass_bus" required minlength="8" placeholder="Mínimo 8 caracteres">
+                    <input type="password" name="password" id="pass_bus" required minlength="8" placeholder="Mínimo 8 caracteres" oninput="checkStrengthBus(this.value)">
+                    <div class="strength-meter">
+                        <div id="strengthBarBus" class="strength-bar"></div>
+                    </div>
+                    <small id="strengthTextBus" style="font-size: 11px; color: #666;">Força da senha</small>
                 </div>
                 <div class="person-field-input">
                     <label>Confirmar Senha</label>
@@ -166,7 +207,7 @@ $csrf = csrf_generate();
                 </div>
                 <div class="btn-navigation">
                     <button type="button" class="btn-prev" onclick="changeStep(4, 3)">Voltar</button>
-                    <button type="submit" class="btn-next">Finalizar Cadastro</button>
+                    <button type="submit" id="btnFinalizarBus" class="btn-next">Finalizar Cadastro</button>
                 </div>
             </div>
         </form>
@@ -205,57 +246,6 @@ $csrf = csrf_generate();
         <?php endif; ?>
     </div>
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // --- LÓGICA DO EMAIL AUTOMÁTICO (Sincroniza Etapa 3 com Etapa 4) ---
-        const emailInput = document.getElementById('email_business');
-        const displayInput = document.getElementById('email_confirm_display');
-
-        if(emailInput && displayInput) {
-            emailInput.addEventListener('input', function() {
-                displayInput.value = this.value;
-            });
-        }
-
-        // --- LÓGICA DE SLIDERS ---
-        let slideInterval = null;
-        let currentIndex = 0;
-        const slidesPessoal = document.querySelectorAll('.slide-pessoal');
-        const imgBusiness = document.getElementById('img-business-fixa');
-        const buttons = document.querySelectorAll('.btn-toggle');
-
-        function startSlide() {
-            if(!slidesPessoal.length) return;
-            stopSlide();
-            if(imgBusiness) imgBusiness.classList.remove('active');
-            slidesPessoal[currentIndex].classList.add('active');
-            slideInterval = setInterval(() => {
-                slidesPessoal[currentIndex].classList.remove('active');
-                currentIndex = (currentIndex + 1) % slidesPessoal.length;
-                slidesPessoal[currentIndex].classList.add('active');
-            }, 5000); 
-        }
-
-        function stopSlide() {
-            clearInterval(slideInterval);
-            slideInterval = null;
-            slidesPessoal.forEach(s => s.classList.remove('active'));
-            if(imgBusiness) imgBusiness.classList.add('active');
-        }
-
-        const tipoInicial = document.body.getAttribute('data-tipo-inicial');
-        if (tipoInicial === 'pessoal') startSlide(); else stopSlide();
-
-        buttons.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const tipo = this.getAttribute('data-tipo');
-                document.getElementById('titulo').innerText = tipo === 'business' ? 'Cadastro de Negócio' : 'Cadastro Pessoal';
-                if (tipo === 'pessoal') startSlide(); else stopSlide();
-            });
-        });
-    });
-</script>
 
 <script src="../../assets/scripts/painel_cadastro.js"></script>
 <script src="../../assets/scripts/painel_cadastro_erros.js"></script>

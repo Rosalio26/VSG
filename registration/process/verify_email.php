@@ -4,12 +4,10 @@ session_start();
 require_once '../includes/db.php';
 require_once '../includes/security.php';
 require_once '../includes/errors.php';
-require_once '../vendor/autoload.php';
-
-use PHPMailer\PHPMailer\Exception as MailException;
 
 $erro = '';
 $info = '';
+$codigo_digitado = ''; // Variável para persistência
 
 // ================= 1. BLOQUEIO DE ACESSO E BUSCA DE DADOS =================
 if (empty($_SESSION['user_id'])) {
@@ -48,12 +46,12 @@ if (!empty($_GET['info'])) {
 // ================= 3. PROCESSAMENTO POST (FALLBACK) =================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['codigo'])) {
     
+    $codigo_digitado = trim($_POST['codigo'] ?? ''); // Captura o que foi digitado
+
     if (!csrf_validate($_POST['csrf'] ?? '')) {
         $erro = "Token de segurança inválido. Recarregue a página.";
     } else {
-        $codigo = trim($_POST['codigo'] ?? '');
-
-        if (!preg_match('/^\d{6}$/', $codigo)) {
+        if (!preg_match('/^\d{6}$/', $codigo_digitado)) {
             $erro = "Informe um código válido de 6 dígitos.";
         } else {
             try {
@@ -72,8 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['codigo'])) {
                 } elseif ($user['email_verified_at']) {
                     header("Location: ../register/gerar_uid.php");
                     exit;
-                } elseif ($user['email_token'] !== $codigo) {
+                } elseif ($user['email_token'] !== $codigo_digitado) {
                     $erro = "Código incorreto. Verifique o número digitado.";
+                    // Aqui o código permanece no input porque não limpamos $codigo_digitado
                 } elseif (strtotime($user['email_token_expires']) < time()) {
                     $erro = "Código expirado. Clique em 'Reenviar' abaixo.";
                 } else {
@@ -131,6 +130,7 @@ $csrf_token = csrf_generate();
             justify-content: center;
             height: 100vh;
             margin: 0;
+            padding: 0px 10px;
         }
 
         .container {
@@ -144,7 +144,6 @@ $csrf_token = csrf_generate();
             border: 1px solid var(--color-bg-109);
         }
 
-        /* Badge de Tipo de Conta */
         .type-badge {
             display: inline-block;
             padding: 5px 15px;
@@ -269,6 +268,7 @@ $csrf_token = csrf_generate();
             placeholder="000000"
             required
             autofocus
+            value="<?= htmlspecialchars($codigo_digitado) ?>" 
         >
         <button type="submit" class="btn-confirm <?= $isCompany ? 'btn-confirm-bus' : '' ?>">
             Confirmar Identidade
@@ -324,7 +324,8 @@ $csrf_token = csrf_generate();
             } else {
                 ajaxLoader.style.display = "none";
                 inputCodigo.classList.add('input-error');
-                inputCodigo.value = ""; 
+                // IMPORTANTE: Aqui no AJAX, se você quiser manter o dado, NÃO limpe o value.
+                // Removi a linha: inputCodigo.value = ""; 
                 feedbackMsg.innerHTML = `<div class="msg msg-error">${data.error}</div>`;
                 inputCodigo.focus();
             }

@@ -21,7 +21,7 @@ $userId = (int) $_SESSION['user_id'];
 
 /* ================= 2. BUSCA DADOS DO USUÁRIO ================= */
 $stmt = $mysqli->prepare("
-    SELECT type, public_id, email, email_corporativo, email_verified_at, status, registration_step 
+    SELECT type, nome, public_id, email, email_corporativo, email_verified_at, status, registration_step 
     FROM users 
     WHERE id = ? LIMIT 1
 ");
@@ -41,7 +41,7 @@ $isBusiness = ($user['type'] === 'company');
 
 /* ================= 3. BLOQUEIO DE FLUXO (RETROCESSO) ================= */
 if ($user['status'] === 'active' || $user['registration_step'] === 'completed') {
-    $destino = ($isBusiness) ? '../../pages/business/dashboard.php' : '../../pages/person/dashboard_person.php';
+    $destino = ($isBusiness) ? '../../pages/business/dashboard_business.php' : '../../pages/person/dashboard_person.php';
     header("Location: " . $destino);
     exit;
 }
@@ -51,19 +51,33 @@ if ($user['email_verified_at'] === null) {
     exit;
 }
 
-/* ================= 4. GERAÇÃO DE IDENTIDADE (UID E E-MAIL CORP) ================= */
+/* ================= 4. GERAÇÃO DE IDENTIDADE CORRIGIDA ================= */
 if (empty($user['public_id'])) {
     $mysqli->begin_transaction();
     try {
-        // CORREÇÃO: Se o tipo for 'company', categoria deve ser 'C'
         $categoria = ($isBusiness) ? 'C' : 'P';
-        
         $uid = gerarUID($mysqli, $categoria);
         
         $emailCorp = null;
         if ($isBusiness) {
-            $prefixo = explode('@', $user['email'])[0];
-            $emailCorp = $prefixo . '@visiongreen.com';
+            /**
+             * LÓGICA CORRIGIDA: Gerar e-mail a partir do NOME da empresa
+             * 1. Transforma em minúsculo
+             * 2. Remove acentos e caracteres especiais
+             * 3. Substitui espaços por pontos
+             */
+            $nomeBase = $user['nome'];
+            
+            // Remove acentos
+            $nomeLimpo = iconv('UTF-8', 'ASCII//TRANSLIT', $nomeBase);
+            // Remove qualquer caractere que não seja letra, número ou espaço
+            $nomeLimpo = preg_replace('/[^a-zA-Z0-9\s]/', '', $nomeLimpo);
+            // Substitui espaços por pontos e remove espaços extras nas pontas
+            $nomeLimpo = strtolower(str_replace(' ', '.', trim($nomeLimpo)));
+            // Remove pontos duplos se existirem
+            $nomeLimpo = preg_replace('/\.+/', '.', $nomeLimpo);
+            
+            $emailCorp = $nomeLimpo . '@visiongreen.com';
         }
 
         $now = date('Y-m-d H:i:s');
@@ -113,7 +127,6 @@ if ($user['email_verified_at'] !== null) {
     unset($_SESSION['cadastro']); 
 }
 
-// Configurações visuais dinâmicas baseadas na correção 'company'
 $colorMain  = $isBusiness ? '#2563eb' : '#00a63e'; 
 $bgContainer = $isBusiness ? '#eff6ff' : '#dcfce7';
 ?>
@@ -143,6 +156,7 @@ $bgContainer = $isBusiness ? '#eff6ff' : '#dcfce7';
             height: 100vh;
             margin: 0;
             color: var(--color-dark);
+            padding: 0px 10px;
         }
 
         .container {
@@ -194,7 +208,7 @@ $bgContainer = $isBusiness ? '#eff6ff' : '#dcfce7';
         }
 
         .email-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: block; }
-        .email-value { font-weight: bold; color: var(--color-dark); font-size: 1.1rem; }
+        .email-value { font-weight: bold; color: var(--color-dark); font-size: 1.1rem; word-break: break-all; }
 
         .timer-text {
             color: #6b7280;

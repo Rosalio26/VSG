@@ -6,14 +6,14 @@ require_once '../includes/mailer.php';
 require_once 'login_rate_limit.php'; // Proteção contra abuso de envio
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 1. Validar CSRF
+    // 1. Validar CSRF para evitar disparos automáticos
     $csrf = $_POST['csrf'] ?? '';
     if (!csrf_validate($csrf)) {
         header("Location: forgot_password.php?error=csrf");
         exit;
     }
 
-    // MUDANÇA: Agora recebemos 'identifier' (E-mail ou UID) em vez de apenas 'email'
+    // Recebemos 'identifier' (E-mail Real, Corporativo ou UID)
     $identifier = strtolower(trim($_POST['identifier'] ?? ''));
 
     if (empty($identifier)) {
@@ -21,8 +21,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    /* ================= DETECÇÃO DE TIPO PARA ERRO ESPECÍFICO ================= */
+    // Se contiver '@', assumimos que o usuário tentou um e-mail. Caso contrário, um UID.
+    $isEmailFormat = (strpos($identifier, '@') !== false);
+    $errorType = $isEmailFormat ? 'email_not_found' : 'uid_not_found';
+
     // 2. APLICAR RATE LIMIT
-    // Usamos o identificador para controlar tentativas de spam de e-mail
+    // Usamos o identificador para controlar tentativas de spam
     if (!checkLoginRateLimit($mysqli, $identifier . '_recovery', 3, 300)) {
         header("Location: forgot_password.php?error=rate_limit");
         exit;
@@ -41,8 +46,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    // 4. Se o usuário existe e não está banido
-    if ($user && $user['status'] !== 'banned') {
+    /* ================= 4. VALIDAÇÃO DE EXISTÊNCIA ================= */
+    // Se o usuário não for encontrado, redireciona com o erro específico detectado
+    if (!$user) {
+        header("Location: forgot_password.php?error=" . $errorType);
+        exit;
+    }
+
+    // 5. Se o usuário existe e não está banido
+    if ($user['status'] !== 'banned') {
         $token = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $expires = date('Y-m-d H:i:s', time() + 1800); // 30 minutos
 
@@ -59,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'email'   => $user['email']
         ];
         
-        // Envia o e-mail para o e-mail REAL do cadastro
+        // Envia o e-mail para o e-mail REAL vinculado à conta
         try {
             enviarEmailVisionGreen($user['email'], $user['nome'], $token);
             header("Location: verify_recovery.php");
@@ -71,8 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
     } else {
-        // SEGURANÇA: Sucesso aparente para evitar enumeração de contas
-        header("Location: forgot_password.php?status=sent");
+        // Caso o usuário esteja banido ou status inválido
+        header("Location: forgot_password.php?error=invalid_id");
         exit;
     }
 } else {
