@@ -12,13 +12,17 @@ if (empty($_SESSION['auth']['user_id'])) {
 $userId = (int) $_SESSION['auth']['user_id'];
 
 /* ================= 2. BUSCAR DADOS COMPLETOS (JOIN) ================= */
-// Adicionado b.license_path para visualizar o alvará
+/**
+ * Removida a coluna b.no_logo da consulta para evitar o mysqli_sql_exception.
+ * A lógica agora verifica se logo_path está vazio para determinar a exibição.
+ */
 $stmt = $mysqli->prepare("
     SELECT 
         u.nome, u.apelido, u.email, u.email_corporativo, u.telefone, 
         u.public_id, u.status, u.registration_step, 
         u.email_verified_at, u.created_at, u.type,
-        b.tax_id, b.business_type, b.country, b.region, b.city, b.logo_path, b.license_path
+        b.tax_id, b.business_type, b.country, b.region, b.city, b.logo_path, b.license_path,
+        b.status_documentos, b.motivo_rejeicao
     FROM users u
     LEFT JOIN businesses b ON u.id = b.user_id
     WHERE u.id = ?
@@ -34,7 +38,7 @@ if (!$user || $user['type'] !== 'company') {
     exit;
 }
 
-/* ================= 3. BLOQUEIOS DE SEGURANÇA ================= */
+/* ================= 3. BLOQUEIOS DE SEGURANÇA E DOCUMENTOS ================= */
 if (!$user['email_verified_at']) {
     header("Location: ../../registration/process/verify_email.php");
     exit;
@@ -49,6 +53,21 @@ if ($user['status'] === 'blocked') {
     die('Sua conta empresarial está suspensa. Contacte o suporte da VisionGreen.');
 }
 
+// Lógica de Status de Documentos Legais (Alvará e Tax File)
+$statusDoc = $user['status_documentos'] ?? 'pendente';
+
+/* REGRA: DOCUMENTO REJEITADO - Bloqueio imediato com redirecionamento */
+if ($statusDoc === 'rejeitado') {
+    header("Location: process/reenviar_documentos.php?motivo=" . urlencode($user['motivo_rejeicao']));
+    exit;
+}
+
+/* REGRA: SEM DOCUMENTO - Caso o registro exista mas o arquivo essencial falte */
+if (empty($user['license_path'])) {
+    header("Location: process/completar_documentacao.php");
+    exit;
+}
+
 // Configuração de Caminhos de Upload
 $uploadBase = "../../registration/uploads/business/";
 
@@ -57,7 +76,14 @@ $statusTraduzido = [
     'pending' => 'Pendente ⏳',
     'blocked' => 'Bloqueada ❌'
 ];
+
+$coresDoc = [
+    'pendente' => ['bg' => '#fef9c3', 'text' => '#854d0e', 'label' => 'Em Análise ⏳'],
+    'aprovado' => ['bg' => '#dcfce7', 'text' => '#166534', 'label' => 'Verificado ✅'],
+    'rejeitado' => ['bg' => '#fee2e2', 'text' => '#991b1b', 'label' => 'Rejeitado ❌']
+];
 ?>
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -81,19 +107,21 @@ $statusTraduzido = [
             box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
         }
 
+        .alert-doc-pending {
+            background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 10px;
+            margin-bottom: 20px; border-left: 5px solid #ffc107; font-size: 0.9rem;
+        }
+
         .grid-info { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-        
         .card { background: #fff; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #e5e7eb; }
         .card h2 { font-size: 1.1rem; color: var(--color-main); margin-top: 0; border-bottom: 2px solid #f0f4f8; padding-bottom: 10px; }
-        
         .uid-badge { background: #101828; color: #93c5fd; padding: 10px 15px; border-radius: 8px; font-family: monospace; font-size: 1.2rem; font-weight: bold; }
         
         .info-list { list-style: none; padding: 0; margin: 0; }
         .info-list li { margin-bottom: 12px; font-size: 0.95rem; border-bottom: 1px solid #f9fafb; padding-bottom: 8px; }
         .info-list li strong { color: #64748b; font-size: 0.8rem; text-transform: uppercase; display: block; }
         
-        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; background: #dcfce7; color: #166534; }
-        
+        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
         .company-logo { width: 80px; height: 80px; border-radius: 10px; object-fit: cover; border: 2px solid #f0f4f8; margin-bottom: 15px; }
         
         .btn-doc { 
@@ -103,9 +131,7 @@ $statusTraduzido = [
             text-decoration: none; font-size: 0.85rem; font-weight: 500; transition: 0.2s;
         }
         .btn-doc:hover { background: #f1f5f9; border-color: var(--color-main); color: var(--color-main); }
-
         .logout-btn { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.3s; font-weight: bold; }
-        .logout-btn:hover { background: #f87171; color: white; }
     </style>
 </head>
 <body>
@@ -122,14 +148,24 @@ $statusTraduzido = [
 </aside>
 
 <div class="content">
+
+    <?php if ($statusDoc === 'pendente'): ?>
+        <div class="alert-doc-pending">
+            <strong>📋 Documentação em Análise:</strong> 
+            Seu Alvará e Comprovante Fiscal estão sendo verificados. O acesso total ao painel será liberado após a aprovação técnica.
+        </div>
+    <?php endif; ?>
+
     <header class="header-business">
         <div style="display: flex; align-items: center; gap: 20px;">
             <?php if (!empty($user['logo_path'])): ?>
                 <img src="<?= $uploadBase . $user['logo_path'] ?>" class="company-logo" alt="Logo">
+            <?php else: ?>
+                <div class="company-logo" style="background:#f1f5f9; display:flex; align-items:center; justify-content:center; color:#64748b; font-size:10px; font-weight:bold; border: 2px dashed #cbd5e1;">SEM LOGO</div>
             <?php endif; ?>
             <div>
                 <h1 style="margin: 0; font-size: 1.5rem;">Olá, <?= htmlspecialchars($user['nome']) ?></h1>
-                <p style="margin: 5px 0 0; color: #64748b; font-size: 0.9rem;">Gerencie os dados da sua organização abaixo.</p>
+                <p style="margin: 5px 0 0; color: #64748b; font-size: 0.9rem;">Gerencie os dados da sua organização.</p>
             </div>
         </div>
         <div class="uid-badge">
@@ -142,8 +178,12 @@ $statusTraduzido = [
             <h2>🏢 Detalhes da Organização</h2>
             <ul class="info-list">
                 <li><strong>Razão Social:</strong> <?= htmlspecialchars($user['nome']) ?></li>
-                <li><strong>Tipo de Negócio:</strong> <?= strtoupper(htmlspecialchars($user['business_type'])) ?></li>
-                <li><strong>Localização:</strong> <?= htmlspecialchars($user['city']) ?>, <?= htmlspecialchars($user['region']) ?> - <?= htmlspecialchars($user['country']) ?></li>
+                <li><strong>Status de Verificação:</strong> 
+                    <span class="status-badge" style="background: <?= $coresDoc[$statusDoc]['bg'] ?>; color: <?= $coresDoc[$statusDoc]['text'] ?>;">
+                        <?= $coresDoc[$statusDoc]['label'] ?>
+                    </span>
+                </li>
+                <li><strong>Localização:</strong> <?= htmlspecialchars($user['city'] . ', ' . $user['region'] . ' - ' . $user['country']) ?></li>
                 
                 <li>
                     <strong>Documento Fiscal (Tax ID):</strong>
@@ -152,7 +192,7 @@ $statusTraduzido = [
                         if (strpos($tax, 'FILE:') === 0): 
                             $taxFile = str_replace('FILE:', '', $tax);
                     ?>
-                        <a href="<?= $uploadBase . $taxFile ?>" target="_blank" class="btn-doc">👁️ Ver Comprovante Fiscal</a>
+                        <a href="<?= $uploadBase . $taxFile ?>" target="_blank" class="btn-doc">👁️ Ver Comprovante</a>
                     <?php else: ?>
                         <?= htmlspecialchars($tax ?: 'Não informado') ?>
                     <?php endif; ?>
@@ -162,8 +202,6 @@ $statusTraduzido = [
                     <strong>Alvará / Licença:</strong><br>
                     <?php if (!empty($user['license_path'])): ?>
                         <a href="<?= $uploadBase . $user['license_path'] ?>" target="_blank" class="btn-doc">📄 Abrir Alvará de Funcionamento</a>
-                    <?php else: ?>
-                        <span style="color: #94a3b8;">Não anexado</span>
                     <?php endif; ?>
                 </li>
             </ul>
@@ -172,9 +210,9 @@ $statusTraduzido = [
         <div class="card">
             <h2>🔐 Identidade VisionGreen</h2>
             <ul class="info-list">
-                <li><strong>E-mail Corporativo Interno:</strong> <span style="color: var(--color-main); font-weight: bold;"><?= htmlspecialchars($user['email_corporativo']) ?></span></li>
+                <li><strong>E-mail Corporativo:</strong> <span style="color: var(--color-main); font-weight: bold;"><?= htmlspecialchars($user['email_corporativo']) ?></span></li>
                 <li><strong>E-mail de Recuperação:</strong> <?= htmlspecialchars($user['email']) ?></li>
-                <li><strong>Status da Conta:</strong> <span class="status-badge"><?= $statusTraduzido[$user['status']] ?></span></li>
+                <li><strong>Status da Conta:</strong> <span class="status-badge" style="background: #dcfce7; color: #166534;"><?= $statusTraduzido[$user['status']] ?></span></li>
                 <li><strong>Data de Registo:</strong> <?= date('d/m/Y', strtotime($user['created_at'])) ?></li>
             </ul>
         </div>
@@ -182,7 +220,6 @@ $statusTraduzido = [
 
     <div style="margin-top: 30px; text-align: right;">
         <form method="post" action="../../registration/login/logout.php">
-            <?= csrf_field(); ?>
             <button type="submit" class="logout-btn">Sair do Sistema</button>
         </form>
     </div>

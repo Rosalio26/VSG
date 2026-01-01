@@ -76,7 +76,7 @@ h2 { color: #050386c9; text-align: center; font-size: 14pt; margin-top: 10px; }
 #switchConta > button.active { opacity: 1; background-color: #050386; border-color: #1aff00; font-weight: bold; }
 
 /* ================= CAMPOS DE INPUT PADRÃO ================= */
-.person-field-input { background-color: #13b91b9e; border-radius: 5px; margin-top: 12px; padding-bottom: 2px; }
+.person-field-input { background-color: #13b91b9e; border-radius: 5px; margin-top: 12px; padding:0px 5px 2px 5px; }
 .person-field-input > label {
     border-radius: 5px 5px 0px 0px; color: #020151; font-size: 11pt; font-weight: 600;
     letter-spacing: .01px; display: block; padding: 6px 10px; width: 100%;
@@ -84,7 +84,7 @@ h2 { color: #050386c9; text-align: center; font-size: 14pt; margin-top: 10px; }
 .person-field-input > input, 
 .person-field-input > select, 
 .person-field-input > textarea {
-    background-color: #4af35ec9; border: 2px solid transparent; border-radius: 0 0 5px 5px;
+    background-color: #4af35ec9; border: 2px solid transparent; border-radius: 5px;
     width: 100%; padding: 8px 10px; font-size: 12pt; color: #000; outline: none; transition: border-color 0.3s;
 }
 .person-field-input > input::placeholder { color: #013301; opacity: 0.6; }
@@ -155,6 +155,7 @@ button[type="submit"] {
 button[type="submit"]:hover { background-color: #050386; }
 button[type="submit"]:disabled { background-color: #555; cursor: not-allowed; }
 
+#btnFinalizarBus {margin-top: 0px;}
 
 /* Estilos críticos mantidos no PHP para evitar CLS (Cumulative Layout Shift) */
 .cnt-image { position: relative; overflow: hidden; height: 100vh; }
@@ -172,12 +173,52 @@ button[type="submit"]:disabled { background-color: #555; cursor: not-allowed; }
 .step-content.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+/* ================= ESTILOS PARA MULTI-STEP ================= */
+.step-content { 
+    display: none; 
+    animation: fadeIn 0.4s ease-in-out; 
+}
+
+.step-content.active { 
+    display: block; 
+}
+
+@keyframes fadeIn { 
+    from { opacity: 0; transform: translateY(5px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+
+/* ================= PADRONIZAÇÃO DOS BOTÕES DE NAVEGAÇÃO ================= */
+.btn-navigation { 
+    display: flex; 
+    gap: 10px; 
+    margin-top: 20px; 
+    width: 100%;
+}
+
+.btn-next, .btn-prev { 
+    flex: 1; 
+    padding: 12px 20px; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    border: none;
+    transition: all 0.3s ease;
+    margin: 0; height: max-content;
+}
+
+.btn-next { background: #28a745; color: white; }
+.btn-next:hover { background: #218838; }
+
+.btn-prev { background: #63839e; color: white; }
+.btn-prev:hover { background: #183181; }
 
 /*=========================================*/
 /* Container de Alternância (Radio Buttons) */
 .fiscal-mode-selector {
     display: flex;
-    background: #f1f5f9;
+    align-items: center;
+    background: #4af35ec9;
     padding: 5px;
     border-radius: 8px;
     margin-bottom: 15px;
@@ -203,7 +244,7 @@ button[type="submit"]:disabled { background-color: #555; cursor: not-allowed; }
 
 /* Estilo quando selecionado */
 .fiscal-mode-selector input[type="radio"]:checked + span {
-    background: white;
+    background: rgba(255, 255, 255, 0.74);
     color: var(--color-bus-blue, #2563eb);
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     display: block;
@@ -224,7 +265,7 @@ button[type="submit"]:disabled { background-color: #555; cursor: not-allowed; }
     text-align: center;
     cursor: pointer;
     transition: 0.3s;
-    background: #f8fafc;
+    background: #4af35ec9;
 }
 
 .custom-file-upload:hover {
@@ -257,6 +298,10 @@ button[type="submit"]:disabled { background-color: #555; cursor: not-allowed; }
     font-size: 12px;
     color: #2563eb;
     font-weight: bold;
+}
+
+#email_confirm_display {
+    background-color: #4af35ec9;
 }
 
 .input-error { border-color: red !important; background-color: #fff0f0; }

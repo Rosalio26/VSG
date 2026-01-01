@@ -74,7 +74,7 @@ $csrf = csrf_generate();
             <div class="step-content active" data-step="1">
                 <div class="section-title">Etapa 1 - 4: Identidade do Negócio</div>
                 <div class="person-field-input">
-                    <label>Nome da Empresa (Razão Social)</label>
+                    <label>Nome da Empresa / Negócio</label>
                     <input type="text" name="nome_empresa" id="nome_empresa" required>
                     <span class="error-message">Este campo é obrigatório.</span>
                 </div>

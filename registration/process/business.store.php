@@ -91,56 +91,91 @@ try {
         echo json_encode(['errors' => $errors]);
         exit;
     }
+/* ================= 4. FUNÇÃO DE UPLOAD REFORÇADA ================= */
+    /**
+     * @param string $fileKey Nome do campo no $_FILES
+     * @param string $prefix Prefixo para o nome do arquivo salvo
+     * @param array &$errors Referência ao array de erros global
+     */
+    function uploadBusinessDoc($fileKey, $prefix, &$errors) {
+        // Se não houver arquivo e não houver erro de upload (campo vazio)
+        if (!isset($_FILES[$fileKey]) || $_FILES[$fileKey]['error'] === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
 
-    /* ================= 4. FUNÇÃO DE UPLOAD REFORÇADA ================= */
-    function uploadBusinessDoc($fileKey, $prefix) {
-        if (!isset($_FILES[$fileKey]) || $_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) return null;
+        // Se houver algum erro de upload do sistema PHP (ex: excede post_max_size)
+        if ($_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) {
+            $errors[$fileKey] = "Falha técnica no upload do arquivo.";
+            return null;
+        }
 
         $file = $_FILES[$fileKey];
         $maxSize = 5 * 1024 * 1024; // 5MB
         $allowedExts = ['png', 'jpg', 'jpeg', 'pdf'];
-        
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
         // Validação de Extensão
         if (!in_array($ext, $allowedExts)) {
-            throw new Exception("Formato do arquivo '{$fileKey}' inválido. Apenas PNG, JPEG e PDF são aceitos.");
+            $errors[$fileKey] = "Formato inválido. Use PNG, JPEG ou PDF.";
+            return null;
         }
 
         // Validação de Tamanho
         if ($file['size'] > $maxSize) {
-            throw new Exception("O arquivo '{$fileKey}' excede o limite de 5MB.");
+            $errors[$fileKey] = "Arquivo muito grande. O limite é 5MB.";
+            return null;
         }
 
         // Criação automática do diretório
         $uploadDir = "../uploads/business/";
         if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
+            if (!mkdir($uploadDir, 0755, true)) {
+                $errors[$fileKey] = "Erro interno: Falha ao criar pasta de destino.";
+                return null;
+            }
         }
 
+        // Gera nome único e seguro
         $newName = $prefix . "_" . bin2hex(random_bytes(10)) . "." . $ext;
         $dest = $uploadDir . $newName;
         
         if (move_uploaded_file($file['tmp_name'], $dest)) {
             return $newName;
         }
+
+        $errors[$fileKey] = "Não foi possível salvar o arquivo no servidor.";
         return null;
     }
 
-    // Processar uploads
-    try {
-        $pathLicenca = uploadBusinessDoc('licenca', 'lic');
-        if (!$pathLicenca) throw new Exception("Falha ao processar o arquivo do Alvará.");
+    // --- Processar uploads e alimentar o array de erros ---
 
-        $pathLogo = null;
-        if (!$no_logo) {
-            $pathLogo = uploadBusinessDoc('logo', 'log');
-            if (!$pathLogo) throw new Exception("Falha ao processar o arquivo da Logo.");
+    // 1. Alvará (Obrigatório)
+    $pathLicenca = uploadBusinessDoc('licenca', 'lic', $errors);
+    if (!$pathLicenca && !isset($errors['licenca'])) {
+        $errors['licenca'] = "O upload do Alvará / Licença é obrigatório.";
+    }
+
+    // 2. Logo (Obrigatório se no_logo não estiver marcado)
+    $pathLogo = null;
+    if (!$no_logo) {
+        $pathLogo = uploadBusinessDoc('logo', 'log', $errors);
+        if (!$pathLogo && !isset($errors['logo'])) {
+            $errors['logo'] = "A logo é obrigatória ou selecione 'Não tenho logo'.";
         }
+    }
 
-        $pathFiscal = ($fiscal_mode === 'file') ? uploadBusinessDoc('tax_id_file', 'tax') : null;
-    } catch (Exception $fileEx) {
-        echo json_encode(['error' => $fileEx->getMessage()]);
+    // 3. Documento Fiscal (Se modo arquivo)
+    $pathFiscal = null;
+    if ($fiscal_mode === 'file') {
+        $pathFiscal = uploadBusinessDoc('tax_id_file', 'tax', $errors);
+        if (!$pathFiscal && !isset($errors['tax_id_file'])) {
+            $errors['tax_id_file'] = "O upload do documento fiscal é obrigatório.";
+        }
+    }
+
+    // Se houver erros acumulados (seja de texto ou de arquivos), retorna o JSON e para o script
+    if (!empty($errors)) {
+        echo json_encode(['errors' => $errors]);
         exit;
     }
 

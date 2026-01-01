@@ -1,6 +1,6 @@
 /**
- * VISION GREEN - SISTEMA DE CADASTRO CENTRALIZADO V2
- * Centraliza validações, navegação de steps, uploads e efeitos visuais.
+ * VISION GREEN - SISTEMA DE CADASTRO CENTRALIZADO V2.2
+ * Foco: Persistência no Reload, Notificação de Processamento e Sincronização de Dados.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
   function clearErrors(form) {
     form.querySelectorAll(".error-msg, .error-msg-js").forEach(el => el.remove());
-    form.querySelectorAll(".input-error, .custom-file-upload").forEach(el => {
+    form.querySelectorAll(".input-error, .custom-file-upload, .iti").forEach(el => {
       el.classList.remove("input-error");
       el.style.borderColor = ""; 
     });
@@ -33,10 +33,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!primeiroInputComErro) primeiroInputComErro = input;
 
-      // Estiliza erro conforme tipo do campo
+      // Estiliza erro conforme o container (suporte a arquivos e telefone ITI)
       if (input.type === 'file') {
         const customArea = input.closest('.custom-file-upload');
         if (customArea) customArea.classList.add("input-error");
+      } else if (input.closest('.iti')) {
+        input.closest('.iti').classList.add("input-error");
       } else {
         input.classList.add("input-error");
         input.style.borderColor = "red";
@@ -70,7 +72,19 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // 2. VALIDAÇÃO DE CAMPOS E STEPS
+  // 2. SINCRONIZAÇÃO DE DADOS (EMAIL AUTOMÁTICO)
+  // ============================================================
+
+  function sincronizarEmailDisplay() {
+      const emailInput = document.getElementById('email_business');
+      const displayInput = document.getElementById('email_confirm_display');
+      if (emailInput && displayInput) {
+          displayInput.value = emailInput.value;
+      }
+  }
+
+  // ============================================================
+  // 3. VALIDAÇÃO DE CAMPOS E STEPS
   // ============================================================
 
   function validarContainer(container) {
@@ -78,23 +92,47 @@ document.addEventListener("DOMContentLoaded", () => {
     const obrigatorios = container.querySelectorAll('input[required], select[required], textarea[required]');
 
     obrigatorios.forEach(input => {
-        if (input.offsetParent === null) return; // Ignora se estiver oculto (ex: modo fiscal alternativo)
+        // Ignora campos que não estão visíveis na etapa atual
+        if (input.offsetParent === null) return;
 
-        // Lógica para Logo opcional via Checkbox
+        // Regra específica para ignorar Logo se o checkbox "no_logo" estiver marcado
         if (input.name === 'logo' && document.getElementsByName('no_logo')[0]?.checked) return;
 
         let valor = input.value.trim();
         let erroDetectado = false;
         let mensagem = 'Campo obrigatório';
 
-        if (valor === "" || valor === "selet") {
+        // 1. VALIDAÇÃO DE ARQUIVOS (Alvará, Logo, etc)
+        if (input.type === 'file') {
+            if (input.files.length === 0) {
+                erroDetectado = true;
+                mensagem = 'Por favor, selecione um arquivo.';
+            } else {
+                const arquivo = input.files[0];
+                const extensao = arquivo.name.split('.').pop().toLowerCase();
+                const extensoesPermitidas = ['png', 'jpg', 'jpeg', 'pdf'];
+                const tamanhoMaximo = 5 * 1024 * 1024; // 5MB
+
+                if (!extensoesPermitidas.includes(extensao)) {
+                    erroDetectado = true;
+                    mensagem = 'Formato inválido. Use PNG, JPEG ou PDF.';
+                } else if (arquivo.size > tamanhoMaximo) {
+                    erroDetectado = true;
+                    mensagem = 'O arquivo excede o limite de 5MB.';
+                }
+            }
+        }
+        // 2. VALIDAÇÃO DE TELEFONE (Exige o "+")
+        else if (input.type === "tel" && !valor.startsWith('+')) {
             erroDetectado = true;
-            if (input.tagName === "SELECT") mensagem = 'Selecione uma opção válida';
-        } 
+            mensagem = 'Insira o codigo do pais (ex: +258) e o número';
+        }
+        // 3. VALIDAÇÃO DE SENHA (Mínimo 8 caracteres)
         else if (input.type === "password" && valor.length < 8) {
             erroDetectado = true;
-            mensagem = 'Mínimo 8 caracteres';
+            mensagem = 'A senha deve ter no mínimo 8 caracteres';
         }
+        // 4. CONFIRMAÇÃO DE SENHA
         else if (input.name === "password_confirm") {
             const senhaOriginal = container.querySelector('input[name="password"]')?.value;
             if (valor !== senhaOriginal) {
@@ -102,22 +140,35 @@ document.addEventListener("DOMContentLoaded", () => {
                 mensagem = 'As senhas não coincidem';
             }
         }
+        // 5. CAMPOS VAZIOS OU SELECT NÃO SELECIONADO
+        else if (valor === "" || valor === "selet") {
+            erroDetectado = true;
+            if (input.tagName === "SELECT") mensagem = 'Selecione uma opção válida';
+        }
 
+        // --- APLICAÇÃO VISUAL DO ERRO ---
         if (erroDetectado) {
             valido = false;
-            const target = input.type === 'file' ? input.closest('.custom-file-upload') : input;
+            
+            // Define o alvo da borda vermelha (Container customizado para files ou ITI para telefone)
+            const target = input.type === 'file' ? input.closest('.custom-file-upload') : (input.closest('.iti') || input);
             if (target) target.classList.add('input-error');
             
             const parent = input.closest('.person-field-input');
-            if(parent && !parent.querySelector('.error-msg-js')) {
+            if (parent && !parent.querySelector('.error-msg-js')) {
                 const msg = document.createElement('span');
                 msg.className = 'error-msg-js';
-                msg.style.cssText = "color:red; font-size:11px;";
+                msg.style.color = "red";
+                msg.style.fontSize = "12pt";
+                msg.style.display = "block";
+                msg.style.marginTop = "5px";
+                msg.style.padding = "5px 0"; // Corrigido: Removido o ; de dentro e o padding superior
                 msg.innerText = mensagem;
                 parent.appendChild(msg);
             }
         }
     });
+
     return valido;
   }
 
@@ -131,6 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
         proximoEl.classList.add('active');
         localStorage.setItem('vg_step', proximo);
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        sincronizarEmailDisplay();
     }
   };
 
@@ -140,7 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // 3. PERSISTÊNCIA (LOCALSTORAGE)
+  // 4. PERSISTÊNCIA (RELOAD INTELIGENTE)
   // ============================================================
   
   function salvarSessao() {
@@ -175,22 +227,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (dados) {
         Object.keys(dados).forEach(key => {
-            const el = document.getElementsByName(key)[0] || document.getElementById(key);
-            if (!el) return;
-
-            if (el.type === 'radio') {
-                const radio = document.querySelector(`input[name="${key}"][value="${dados[key]}"]`);
-                if (radio) { radio.checked = true; radio.click(); }
-            } else if (el.type === 'checkbox') {
-                el.checked = true;
-                el.dispatchEvent(new Event('change'));
-            } else {
-                el.value = dados[key];
-            }
+            const inputs = document.querySelectorAll(`[name="${key}"], #${key}`);
+            inputs.forEach(el => {
+                if (el.type === 'radio') {
+                    if (el.value === dados[key]) { el.checked = true; el.click(); }
+                } else if (el.type === 'checkbox') {
+                    el.checked = true;
+                    el.dispatchEvent(new Event('change'));
+                } else {
+                    el.value = dados[key];
+                    // Dispara evento para que plugins (telefone) reconheçam o valor no reload
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
         });
     }
 
     if (stepSalvo && !formBusiness.hidden) window.changeStep(1, stepSalvo, true);
+    sincronizarEmailDisplay();
 
     if (mainContainer) {
         mainContainer.style.transition = "opacity 0.3s ease";
@@ -199,28 +253,23 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // 4. LÓGICAS DE UI (UPLOAD, FISCAL, SENHA, SLIDERS)
+  // 5. LÓGICAS DE UI (UPLOAD, FISCAL, SENHA, SLIDERS)
   // ============================================================
 
   window.updateFileName = (input) => {
     const fileNameDisplay = input.parentElement.querySelector('.file-selected-name');
-    if (input.files.length > 0) {
-        fileNameDisplay.textContent = "Selecionado: " + input.files[0].name;
-    } else {
-        fileNameDisplay.textContent = "";
-    }
+    fileNameDisplay.textContent = input.files.length > 0 ? "Selecionado: " + input.files[0].name : "";
   };
 
   window.toggleFiscalMode = (mode) => {
     const input = document.getElementById('tax_id');
     const fileArea = document.getElementById('area_tax_file');
-    const fileInput = document.getElementById('tax_id_file');
     if (mode === 'text') {
         input.style.display = 'block'; input.required = true;
-        fileArea.style.display = 'none'; fileInput.required = false;
+        fileArea.style.display = 'none';
     } else {
         input.style.display = 'none'; input.required = false;
-        fileArea.style.display = 'block'; fileInput.required = true;
+        fileArea.style.display = 'block';
     }
   };
 
@@ -242,7 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (pass.match(/[0-9]/)) s++;
     if (pass.match(/[^a-zA-Z0-9]/)) s++;
     const colors = ['#eee', '#ff4d4d', '#ffd633', '#2ecc71', '#27ae60'];
-    const labels = ['Força da senha', 'Muito fraca ❌', 'Razoável ⚠️', 'Forte ✅', 'Muito forte 💪'];
+    const labels = ['Senha', 'Muito fraca ❌', 'Razoável ⚠️', 'Forte ✅', 'Muito forte 💪'];
     bar.style.width = (s * 25) + '%';
     bar.style.backgroundColor = colors[s];
     txt.innerHTML = labels[s];
@@ -274,7 +323,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // 5. SUBMISSÃO E INICIALIZAÇÃO
+  // 6. SUBMISSÃO COM NOTIFICAÇÃO DE CÓDIGO
   // ============================================================
 
   function handleAjaxSubmit(form, url) {
@@ -286,22 +335,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const btn = form.querySelector('button[type="submit"]');
       const oldTxt = btn.innerHTML;
-      btn.disabled = true; btn.innerHTML = "Processando...";
+      
+      // Notificação visual de envio
+      btn.disabled = true; 
+      btn.innerHTML = "<span>Gerando código de acesso...</span>";
       clearErrors(form);
 
       try {
         const res = await fetch(url, { method: "POST", body: new FormData(form) });
         const data = await res.json();
+        
         if (data.success) {
+            btn.innerHTML = "Enviando e-mail...";
             localStorage.clear();
             window.location.href = data.redirect;
         } else if (data.errors) {
             showErrors(form, data.errors);
+            btn.disabled = false;
+            btn.innerHTML = oldTxt;
         } else {
             alert(data.error || "Erro desconhecido");
+            btn.disabled = false;
+            btn.innerHTML = oldTxt;
         }
-      } catch (err) { alert("Falha na conexão."); }
-      finally { if(!window.location.href.includes("verify")) { btn.disabled = false; btn.innerHTML = oldTxt; } }
+      } catch (err) { 
+          alert("Falha na conexão."); 
+          btn.disabled = false;
+          btn.innerHTML = oldTxt;
+      }
     });
   }
 
@@ -324,10 +385,11 @@ document.addEventListener("DOMContentLoaded", () => {
           el.classList.remove('input-error');
           const p = el.closest('.person-field-input');
           if(p) p.querySelectorAll('.error-msg, .error-msg-js').forEach(m => m.remove());
+          if (el.id === 'email_business') sincronizarEmailDisplay();
       });
   });
 
-  // Países
+  // Carregamento de Países
   fetch('https://restcountries.com/v3.1/all?fields=name,cca2,translations')
     .then(r => r.json()).then(data => {
         const s = document.getElementById('select_pais');

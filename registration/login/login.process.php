@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 /* ================= INPUT & SANITIZAÇÃO ================= */
-// Alterado de 'email' para 'identifier' para aceitar UID ou Email Corporativo
+// Aceita UID, Email ou Email Corporativo
 $identifier = strtolower(cleanInput($_POST['identifier'] ?? ''));
 $password   = $_POST['password'] ?? '';
 $csrf       = $_POST['csrf'] ?? '';
@@ -39,9 +39,9 @@ if (!$identifier || !$password) {
 
 try {
     /* ================= BUSCAR USUÁRIO (LÓGICA TRÍPLICE) ================= */
-    // Agora busca por Email Real OU Email Corporativo OU UID (public_id)
+    // Essencial: Selecionar o campo 'role' para carregar na sessão
     $stmt = $mysqli->prepare("
-        SELECT id, type, nome, email, password_hash, email_verified_at, public_id, status, login_attempts, lock_until 
+        SELECT id, type, role, nome, email, password_hash, email_verified_at, public_id, status, login_attempts, lock_until 
         FROM users 
         WHERE email = ? OR email_corporativo = ? OR public_id = ? 
         LIMIT 1
@@ -60,12 +60,12 @@ try {
             <meta charset="UTF-8">
             <title>Conta Inexistente - VisionGreen</title>
             <style>
-                body { background: #f4f7f6; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-                .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; max-width: 400px; border-top: 5px solid #28a745; }
-                .timer { font-weight: bold; color: #28a745; font-size: 1.5em; }
+                body { background: #f4f7f6; font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+                .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; max-width: 400px; border-top: 5px solid #00a63e; }
+                .timer { font-weight: bold; color: #00a63e; font-size: 1.5em; }
                 .btn { padding: 12px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; cursor: pointer; border: none; display: inline-block; margin: 5px; }
-                .btn-primary { background: #28a745; color: white; }
-                .btn-secondary { background: #6c757d; color: white; }
+                .btn-primary { background: #00a63e; color: white; }
+                .btn-secondary { background: #64748b; color: white; }
             </style>
         </head>
         <body>
@@ -161,22 +161,36 @@ try {
         exit;
     }
 
-    /* ================= FINALIZAÇÃO E REDIRECIONAMENTO POR TIPO ================= */
+    /* ================= FINALIZAÇÃO E REDIRECIONAMENTO POR TIPO E CARGO ================= */
+    
+    // Proteção contra fixação de sessão
     session_regenerate_id(true);
+
+    // Armazenamento de dados essenciais na sessão
     $_SESSION['auth'] = [
         'user_id'   => $user['id'], 
         'email'     => $user['email'], 
         'public_id' => $user['public_id'], 
         'nome'      => $user['nome'],
-        'type'      => $user['type']
+        'type'      => $user['type'],
+        'role'      => $user['role'] // Fix: Carrega a role do banco para a sessão
     ];
     
-    // REDIRECIONAMENTO INTELIGENTE
+    // REDIRECIONAMENTO INTELIGENTE (RBAC - Role Based Access Control)
+    
+    // 1. Prioridade para Nível Administrativo
+    if (in_array($user['role'], ['admin', 'superadmin'])) {
+        header("Location: ../../pages/admin/admin_verify.php");
+        exit;
+    }
+
+    // 2. Redirecionamento por Tipo de Conta (Usuários Comuns)
     if ($user['type'] === 'company') {
         header("Location: ../../pages/business/dashboard_business.php");
     } else {
         header("Location: ../../pages/person/dashboard_person.php");
     }
+    
     exit;
 
 } catch (Exception $e) {
