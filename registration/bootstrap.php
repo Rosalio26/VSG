@@ -56,5 +56,10 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-/* ===== TIMEZONE ===== */
-date_default_timezone_set('America/Sao_Paulo');
+/* ===== TIMEZONE GLOBAL (Sincronizado com DB e Security) ===== */
+/**
+ * IMPORTANTE: Mudado de 'America/Sao_Paulo' para 'UTC'.
+ * Isso garante que o cálculo de expiração de 1 hora funcione 
+ * para administradores em qualquer lugar do mundo.
+ */
+date_default_timezone_set('UTC');

@@ -3,15 +3,34 @@ session_start();
 require_once '../../registration/includes/db.php';
 require_once '../../registration/includes/security.php'; // Inclusão para usar CSRF no logout
 
-/* ================= BLOQUEIO DE LOGIN ================= */
+/* ================= 1. BLOQUEIO DE ACESSO (AUTENTICAÇÃO) ================= */
 if (empty($_SESSION['auth']['user_id'])) {
     header("Location: ../../registration/login/login.php");
     exit;
 }
 
+/* ================= 2. REFORÇO DE SEGURANÇA (AUTORIZAÇÃO POR TIPO E CARGO) ================= */
+/**
+ * Se o usuário logado for um Admin, ele deve ser mandado para o painel dele.
+ * Se for uma empresa (company), deve ser mandada para o dashboard_business.
+ */
+if (isset($_SESSION['auth']['role']) && in_array($_SESSION['auth']['role'], ['admin', 'superadmin'])) {
+    header("Location: ../../pages/admin/dashboard.php");
+    exit;
+}
+
+if ($_SESSION['auth']['type'] !== 'person') {
+    if ($_SESSION['auth']['type'] === 'company') {
+        header("Location: ../business/dashboard_business.php");
+    } else {
+        header("Location: ../../registration/login/login.php?error=acesso_proibido");
+    }
+    exit;
+}
+
 $userId = (int) $_SESSION['auth']['user_id'];
 
-/* ================= BUSCAR USUÁRIO ================= */
+/* ================= 3. BUSCAR USUÁRIO ================= */
 $stmt = $mysqli->prepare("
     SELECT 
         nome, apelido, email, telefone, 
@@ -32,9 +51,9 @@ if (!$user) {
     exit;
 }
 
-/* ================= BLOQUEIOS DE SEGURANÇA ================= */
+/* ================= 4. BLOQUEIOS DE SEGURANÇA ESPECÍFICOS ================= */
 
-// Email não confirmado - Caminho relativo ajustado para consistência
+// Email não confirmado
 if (!$user['email_verified_at']) {
     header("Location: ../../registration/process/verify_email.php");
     exit;
@@ -68,7 +87,9 @@ $statusTraduzido = [
     <style>
         .card { background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px; margin-top: 20px; }
         .status-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; background: #e8f5e9; color: #2e7d32; }
-        .logout-btn { background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        .logout-btn { background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; transition: 0.3s; }
+        .logout-btn:hover { background: #c82333; }
+        code { background: #f4f4f4; padding: 2px 5px; border-radius: 4px; font-family: monospace; }
     </style>
 </head>
 <body>

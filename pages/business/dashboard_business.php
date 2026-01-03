@@ -12,15 +12,11 @@ if (empty($_SESSION['auth']['user_id'])) {
 $userId = (int) $_SESSION['auth']['user_id'];
 
 /* ================= 2. BUSCAR DADOS COMPLETOS (JOIN) ================= */
-/**
- * Removida a coluna b.no_logo da consulta para evitar o mysqli_sql_exception.
- * A lógica agora verifica se logo_path está vazio para determinar a exibição.
- */
 $stmt = $mysqli->prepare("
     SELECT 
         u.nome, u.apelido, u.email, u.email_corporativo, u.telefone, 
         u.public_id, u.status, u.registration_step, 
-        u.email_verified_at, u.created_at, u.type,
+        u.email_verified_at, u.created_at, u.type, u.role,
         b.tax_id, b.business_type, b.country, b.region, b.city, b.logo_path, b.license_path,
         b.status_documentos, b.motivo_rejeicao
     FROM users u
@@ -33,12 +29,26 @@ $stmt->execute();
 $user = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-if (!$user || $user['type'] !== 'company') {
-    header("Location: ../person/dashboard_person.php");
+/* ================= 3. VALIDAÇÃO DE IDENTIDADE E CARGO ================= */
+
+// A. Se for ADMIN: Não deve carregar esta página (evita mostrar dados do admin no painel business)
+if (isset($user['role']) && in_array($user['role'], ['admin', 'superadmin'])) {
+    header("Location: ../../pages/admin/dashboard.php");
     exit;
 }
 
-/* ================= 3. BLOQUEIOS DE SEGURANÇA E DOCUMENTOS ================= */
+// B. Se não for empresa (company), redireciona para a área correta
+if (!$user || $user['type'] !== 'company') {
+    if (isset($user['type']) && $user['type'] === 'person') {
+        header("Location: ../person/dashboard_person.php");
+    } else {
+        header("Location: ../../registration/login/login.php?error=acesso_proibido");
+    }
+    exit;
+}
+
+/* ================= 4. BLOQUEIOS DE SEGURANÇA E DOCUMENTAÇÃO ================= */
+
 if (!$user['email_verified_at']) {
     header("Location: ../../registration/process/verify_email.php");
     exit;
@@ -53,22 +63,21 @@ if ($user['status'] === 'blocked') {
     die('Sua conta empresarial está suspensa. Contacte o suporte da VisionGreen.');
 }
 
-// Lógica de Status de Documentos Legais (Alvará e Tax File)
+// Lógica de Status de Documentos Legais
 $statusDoc = $user['status_documentos'] ?? 'pendente';
 
-/* REGRA: DOCUMENTO REJEITADO - Bloqueio imediato com redirecionamento */
+// Se rejeitado, força o reenvio
 if ($statusDoc === 'rejeitado') {
     header("Location: process/reenviar_documentos.php?motivo=" . urlencode($user['motivo_rejeicao']));
     exit;
 }
 
-/* REGRA: SEM DOCUMENTO - Caso o registro exista mas o arquivo essencial falte */
+// Se o arquivo essencial (license/alvará) estiver faltando no registro
 if (empty($user['license_path'])) {
     header("Location: process/completar_documentacao.php");
     exit;
 }
 
-// Configuração de Caminhos de Upload
 $uploadBase = "../../registration/uploads/business/";
 
 $statusTraduzido = [
@@ -132,6 +141,7 @@ $coresDoc = [
         }
         .btn-doc:hover { background: #f1f5f9; border-color: var(--color-main); color: var(--color-main); }
         .logout-btn { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.3s; font-weight: bold; }
+        .logout-btn:hover { background: #fecaca; }
     </style>
 </head>
 <body>
@@ -189,7 +199,7 @@ $coresDoc = [
                     <strong>Documento Fiscal (Tax ID):</strong>
                     <?php 
                         $tax = $user['tax_id'];
-                        if (strpos($tax, 'FILE:') === 0): 
+                        if ($tax && strpos($tax, 'FILE:') === 0): 
                             $taxFile = str_replace('FILE:', '', $tax);
                     ?>
                         <a href="<?= $uploadBase . $taxFile ?>" target="_blank" class="btn-doc">👁️ Ver Comprovante</a>
@@ -212,7 +222,7 @@ $coresDoc = [
             <ul class="info-list">
                 <li><strong>E-mail Corporativo:</strong> <span style="color: var(--color-main); font-weight: bold;"><?= htmlspecialchars($user['email_corporativo']) ?></span></li>
                 <li><strong>E-mail de Recuperação:</strong> <?= htmlspecialchars($user['email']) ?></li>
-                <li><strong>Status da Conta:</strong> <span class="status-badge" style="background: #dcfce7; color: #166534;"><?= $statusTraduzido[$user['status']] ?></span></li>
+                <li><strong>Status da Conta:</strong> <span class="status-badge" style="background: #dcfce7; color: #166534;"><?= $statusTraduzido[$user['status']] ?? 'Ativa' ?></span></li>
                 <li><strong>Data de Registo:</strong> <?= date('d/m/Y', strtotime($user['created_at'])) ?></li>
             </ul>
         </div>
@@ -220,6 +230,7 @@ $coresDoc = [
 
     <div style="margin-top: 30px; text-align: right;">
         <form method="post" action="../../registration/login/logout.php">
+            <?= csrf_field(); ?>
             <button type="submit" class="logout-btn">Sair do Sistema</button>
         </form>
     </div>

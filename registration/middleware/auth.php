@@ -8,7 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 // Detecta a página atual para evitar loops de redirecionamento
 $currentPage = basename($_SERVER['PHP_SELF']);
@@ -71,5 +71,27 @@ if (empty($authUser['public_id']) &&
     exit;
 }
 
-/* ================= 6. ACESSO AUTORIZADO ================= */
+/* ================= 6. VALIDAÇÃO DE TIPO DE CONTA (NOVO) ================= */
+/**
+ * Impede que Admin acesse área de Pessoa e vice-versa.
+ * A página deve definir: define('REQUIRED_TYPE', 'p'); ou 'admin';
+ */
+if (defined('REQUIRED_TYPE')) {
+    // Compara o 'type' vindo do banco de dados com o requerido pela página
+    if ($authUser['type'] !== REQUIRED_TYPE) {
+        
+        // Log de segurança para o admin
+        error_log("Acesso negado: Usuário ID {$userId} do tipo '{$authUser['type']}' tentou acessar área reservada para '" . REQUIRED_TYPE . "'");
+
+        // Redireciona conforme o tipo real do usuário para o dashboard correto dele
+        if ($authUser['type'] === 'admin') {
+            header("Location: ../../admin/dashboard/index.php?error=unauthorized_area");
+        } else {
+            header("Location: ../../user/dashboard/index.php?error=unauthorized_area");
+        }
+        exit;
+    }
+}
+
+/* ================= 7. ACESSO AUTORIZADO ================= */
 // Agora, qualquer página que incluir este middleware terá a variável $authUser disponível.

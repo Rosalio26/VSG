@@ -5,9 +5,9 @@ use PHPMailer\PHPMailer\Exception;
 require_once __DIR__ . '/../vendor/autoload.php';
 
 /**
- * Envia o e-mail de confirmação/recuperação com template profissional VisionGreen.
+ * Envia o e-mail de confirmação, recuperação ou nova senha com template profissional VisionGreen.
  */
-function enviarEmailVisionGreen($emailDestino, $nomeDestino, $codigo) {
+function enviarEmailVisionGreen($emailDestino, $nomeDestino, $conteudo) {
     $mail = new PHPMailer(true);
     try {
         // --- CONFIGURAÇÕES SMTP ---
@@ -24,15 +24,27 @@ function enviarEmailVisionGreen($emailDestino, $nomeDestino, $codigo) {
         $mail->setFrom('eanixr@gmail.com', 'VisionGreen');
         $mail->addAddress($emailDestino, $nomeDestino);
 
+        // --- LÓGICA DE ASSUNTO DINÂMICO ---
+        // Se o conteúdo tiver apenas números e for curto, é um código 2FA
+        if (is_numeric($conteudo) && strlen($conteudo) <= 6) {
+            $mail->Subject = $conteudo . ' é o seu código de confirmação';
+            $texto_informativo = "Recebemos uma solicitação de verificação para a sua conta. Use o código abaixo para prosseguir:";
+            $exibir_codigo = $conteudo;
+        } else {
+            // Se for texto, é uma nova senha ou aviso de segurança
+            $mail->Subject = 'Segurança VisionGreen - Nova Credencial';
+            $texto_informativo = "O sistema de segurança rotativa gerou uma nova credencial para o seu acesso:";
+            $exibir_codigo = $conteudo; // Aqui vai a senha de 10 dígitos
+        }
+
         // --- CONTEÚDO DO E-MAIL ---
         $mail->isHTML(true);
-        $mail->Subject = $codigo . ' é o seu código de confirmação';
 
         // Paleta de cores VisionGreen
-        $bg_page        = "#f3f4f6"; 
-        $verde_vision   = "#00a63e"; 
-        $preto_card     = "#111827"; 
-        $texto_principal= "#1f2937";
+        $bg_page         = "#f3f4f6"; 
+        $verde_vision    = "#00a63e"; 
+        $preto_card      = "#111827"; 
+        $texto_principal = "#1f2937";
         $texto_secundario= "#4b5563"; 
 
         $mail->Body = "
@@ -50,16 +62,16 @@ function enviarEmailVisionGreen($emailDestino, $nomeDestino, $codigo) {
                                 <td style='padding: 40px 30px; text-align: center;'>
                                     <h2 style='color: {$texto_principal}; margin: 0 0 20px 0;'>Olá, {$nomeDestino}!</h2>
                                     <p style='color: {$texto_secundario}; font-size: 16px; line-height: 1.5; margin: 0 0 30px 0;'>
-                                        Recebemos uma solicitação de verificação para a sua conta. Use o código abaixo para prosseguir:
+                                        {$texto_informativo}
                                     </p>
                                     
-                                    <div style='background-color: {$preto_card}; color: #4ade80; padding: 25px; font-size: 36px; font-weight: bold; border-radius: 8px; display: inline-block; letter-spacing: 10px;'>
-                                        {$codigo}
+                                    <div style='background-color: {$preto_card}; color: #4ade80; padding: 25px; font-size: 32px; font-weight: bold; border-radius: 8px; display: inline-block; letter-spacing: 5px; font-family: monospace;'>
+                                        {$exibir_codigo}
                                     </div>
                                     
                                     <p style='color: {$texto_secundario}; font-size: 14px; margin-top: 30px; line-height: 1.5;'>
-                                        Este código é válido por <strong>1 hora</strong>.<br>
-                                        Se você não solicitou este código, pode ignorar este e-mail com segurança.
+                                        Esta credencial é válida por <strong>1 hora</strong>.<br>
+                                        Use-a juntamente com seu <strong>Secure ID</strong> para acessar o painel administrativo.
                                     </p>
                                 </td>
                             </tr>
