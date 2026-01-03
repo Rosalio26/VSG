@@ -1,5 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
-  let tipoAtual = document.body.dataset.tipoInicial;
+  // Ajuste de Prioridade: Se não houver escolha salva, define como business
+  if (!localStorage.getItem('vg_type')) {
+    localStorage.setItem('vg_type', 'business');
+  }
+
+  // Define o tipo atual baseado no localStorage (preferencial) ou no dataset do servidor
+  let tipoAtual = localStorage.getItem('vg_type') || document.body.dataset.tipoInicial;
   const csrfToken = document.body.dataset.csrf;
 
   const titulo = document.getElementById("titulo");
@@ -25,6 +31,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (formBusiness) formBusiness.hidden = !isBusiness;
     if (formPessoa) formPessoa.hidden = isBusiness;
 
+    // Gerenciamento de Sliders de Imagem (conforme o tipo)
+    if (isBusiness) {
+        if (typeof stopSlide === "function") stopSlide();
+    } else {
+        if (typeof startSlide === "function") startSlide();
+    }
+
     // Atualiza a classe ativa nos botões do switch
     if (switchConta) {
       switchConta.querySelectorAll("button").forEach(btn => {
@@ -39,6 +52,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     }
+    
+    // Sincroniza a escolha com o localStorage para persistência no Reload
+    localStorage.setItem('vg_type', tipoAtual);
   }
 
   if (switchConta) {
@@ -89,6 +105,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Inicializa a tela
+  // Inicializa a tela com a lógica de prioridade aplicada
   render();
 });

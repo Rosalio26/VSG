@@ -102,7 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let erroDetectado = false;
         let mensagem = 'Campo obrigatório';
 
-        // 1. VALIDAÇÃO DE ARQUIVOS (Alvará, Logo, etc)
+        // 1. VALIDAÇÃO DE ARQUIVOS (Alvará, Logo, Tax ID File, etc)
         if (input.type === 'file') {
             if (input.files.length === 0) {
                 erroDetectado = true;
@@ -150,7 +150,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (erroDetectado) {
             valido = false;
             
-            // Define o alvo da borda vermelha (Container customizado para files ou ITI para telefone)
             const target = input.type === 'file' ? input.closest('.custom-file-upload') : (input.closest('.iti') || input);
             if (target) target.classList.add('input-error');
             
@@ -162,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 msg.style.fontSize = "12pt";
                 msg.style.display = "block";
                 msg.style.marginTop = "5px";
-                msg.style.padding = "5px 0"; // Corrigido: Removido o ; de dentro e o padding superior
+                msg.style.padding = "5px 0";
                 msg.innerText = mensagem;
                 parent.appendChild(msg);
             }
@@ -236,7 +235,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     el.dispatchEvent(new Event('change'));
                 } else {
                     el.value = dados[key];
-                    // Dispara evento para que plugins (telefone) reconheçam o valor no reload
                     el.dispatchEvent(new Event('input', { bubbles: true }));
                 }
             });
@@ -258,18 +256,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.updateFileName = (input) => {
     const fileNameDisplay = input.parentElement.querySelector('.file-selected-name');
-    fileNameDisplay.textContent = input.files.length > 0 ? "Selecionado: " + input.files[0].name : "";
+    if (input.files.length > 0) {
+      fileNameDisplay.textContent = "Selecionado: " + input.files[0].name;
+      fileNameDisplay.style.color = "#28a745";
+    } else {
+      fileNameDisplay.textContent = "";
+    }
   };
 
   window.toggleFiscalMode = (mode) => {
     const input = document.getElementById('tax_id');
     const fileArea = document.getElementById('area_tax_file');
+    const fileInput = document.getElementById('tax_id_file');
+
     if (mode === 'text') {
-        input.style.display = 'block'; input.required = true;
+        input.style.display = 'block'; 
+        input.required = true;
         fileArea.style.display = 'none';
+        fileInput.required = false;
+        fileInput.value = ""; // Limpa seleção se mudar de modo
+        fileArea.querySelector('.file-selected-name').textContent = "";
     } else {
-        input.style.display = 'none'; input.required = false;
+        input.style.display = 'none'; 
+        input.required = false;
+        input.value = ""; // Limpa texto se mudar de modo
         fileArea.style.display = 'block';
+        fileInput.required = true;
     }
   };
 
@@ -336,7 +348,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const btn = form.querySelector('button[type="submit"]');
       const oldTxt = btn.innerHTML;
       
-      // Notificação visual de envio
       btn.disabled = true; 
       btn.innerHTML = "<span>Gerando código de acesso...</span>";
       clearErrors(form);

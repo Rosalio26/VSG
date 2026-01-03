@@ -10,8 +10,15 @@ if (!isset($_SESSION['cadastro']['started'])) {
 }
 
 /* ================= VARIÁVEIS ================= */
-$tiposPermitidos = $_SESSION['tipos_permitidos'] ?? ['pessoal'];
-$tipoAtual       = $_SESSION['tipo_atual'] ?? 'pessoal';
+// Priorizamos 'business' no array de tipos permitidos
+$tiposPermitidos = $_SESSION['tipos_permitidos'] ?? ['business', 'pessoal'];
+
+// NOVA LÓGICA: Se não houver tipo definido na sessão (primeiro acesso), o padrão agora é 'business'
+if (!isset($_SESSION['tipo_atual'])) {
+    $_SESSION['tipo_atual'] = 'business'; 
+}
+
+$tipoAtual       = $_SESSION['tipo_atual'] ?? 'business';
 $isMobile        = count($tiposPermitidos) === 1;
 
 // Usamos a função do security.php para garantir que o token existe
@@ -30,7 +37,29 @@ $csrf = csrf_generate();
     <link rel="stylesheet" href="../../assets/style/business_style.css">
 
     <style>
+        /* Estilos para o seletor de modo fiscal */
+        .fiscal-mode-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .fiscal-mode-selector label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #475569;
+        }
         
+        /* Garante que formulários marcados com hidden não ocupem espaço nem 'pisquem' no reload */
+        form[hidden] {
+            display: none !important;
+        }
     </style>
 </head>
 
@@ -106,7 +135,7 @@ $csrf = csrf_generate();
                 </div>
                 
                 <div class="person-field-input">
-                    <label id="label_fiscal">Documento Fiscal (Único)</label>
+                    <label id="label_fiscal">Documento Fiscal (CNPJ / NUIT)</label>
                     
                     <div class="fiscal-mode-selector">
                         <label>
@@ -123,12 +152,12 @@ $csrf = csrf_generate();
 
                     <label class="custom-file-upload" id="area_tax_file" style="display:none;">
                         <i>📁</i>
-                        <span>Clique para anexar o Documento Fiscal</span>
+                        <span>Clique para anexar o Comprovante do Tax ID</span>
                         <input type="file" name="tax_id_file" id="tax_id_file" accept=".pdf,image/*" onchange="updateFileName(this)">
                         <div class="file-selected-name"></div>
                     </label>
 
-                    <small style="color: #070129ff; display: block; margin-top: 5px;">Este documento sera verificado agora - futuramente.</small>
+                    <small style="color: #070129ff; display: block; margin-top: 5px;">Se fizer upload, nosso Admin validará o número manualmente.</small>
                 </div>
 
                 <div class="person-field-input">
@@ -164,7 +193,7 @@ $csrf = csrf_generate();
                         <input type="file" name="licenca" accept=".pdf,image/*" required onchange="updateFileName(this)">
                         <div class="file-selected-name"></div>
                     </label>
-                    <small style="color: #070129ff; display: block; margin-top: 5px;">Este documento sera verificado agora - futuramente.</small>
+                    <small style="color: #070129ff; display: block; margin-top: 5px;">Documento obrigatório para verificação da empresa.</small>
                 </div>
 
                 <div class="person-field-input">

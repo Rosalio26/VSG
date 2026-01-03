@@ -96,24 +96,18 @@ h2 { color: #050386c9; text-align: center; font-size: 14pt; margin-top: 10px; }
 }
 
 /* ================= TELEFONE (INTL-TEL-INPUT) ESTILOS NORMAIS ================= */
-/* O plugin cria este container .iti ao redor do input */
 .iti { width: 100%; margin-top: 0px; display: block; }
-
-/* Estilo do input dentro do plugin quando normal */
 .iti input {
     width: 100% !important; height: 45px; padding: 12px 12px 12px 85px !important;
     background-color: #4af35ec9; border: 2px solid transparent; border-radius: 0 0 5px 5px;
     font-size: 1.1rem; color: #000; outline: none; transition: all 0.3s ease;
 }
 .iti input:focus { background-color: #ffffff; border-color: #0f0be1; }
-
 .iti__selected-dial-code { font-weight: bold; color: #020151; font-size: 0.95rem; }
 .iti__flag-container { padding: 2px; }
 .iti__country-list { border: 1px solid #ddd !important; border-radius: 8px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important; color: #000; }
 
-/* ================= ESTADOS DE ERRO (CORREÇÃO CRÍTICA) ================= */
-
-/* 1. Estilo para inputs normais com erro */
+/* ================= ESTADOS DE ERRO ================= */
 .person-field-input > input.input-error,
 .person-field-input > textarea.input-error,
 .person-field-input > select.input-error {
@@ -122,24 +116,19 @@ h2 { color: #050386c9; text-align: center; font-size: 14pt; margin-top: 10px; }
     color: #a30000 !important;
 }
 
-/* 2. FIX PARA O CONTAINER DO TELEFONE (ITI) */
-/* Aplicamos o estilo ao CONTAINER gerado pelo plugin, não apenas ao input */
 .iti.input-error {
-    border: 2px solid #ff0000 !important; /* Borda vermelha no container */
-    background-color: #ffcccc !important; /* Fundo rosa no container */
+    border: 2px solid #ff0000 !important;
+    background-color: #ffcccc !important;
     border-radius: 0 0 5px 5px;
-    box-sizing: border-box; /* Garante que a borda não aumente a largura */
+    box-sizing: border-box;
 }
 
-/* 3. Quando o container tem erro, o input dentro dele deve ficar transparente */
-/* Isso permite que o fundo rosa do container apareça */
 .iti.input-error input {
     background-color: transparent !important; 
-    border: none !important; /* Remove borda interna para não duplicar */
+    border: none !important;
     box-shadow: none !important;
 }
 
-/* Estilo da mensagem de erro */
 .error-msg {
     color: #ff0000; font-size: 9pt; font-weight: bold; margin: 5px 10px;
     display: block; animation: shake 0.4s ease-in-out;
@@ -157,7 +146,7 @@ button[type="submit"]:disabled { background-color: #555; cursor: not-allowed; }
 
 #btnFinalizarBus {margin-top: 0px;}
 
-/* Estilos críticos mantidos no PHP para evitar CLS (Cumulative Layout Shift) */
+/* Estilos críticos para sliders */
 .cnt-image { position: relative; overflow: hidden; height: 100vh; }
 .cnt-img-item { 
     position: absolute; 
@@ -169,33 +158,27 @@ button[type="submit"]:disabled { background-color: #555; cursor: not-allowed; }
 }
 .cnt-img-item.active { opacity: 1; z-index: 2; }
 .cnt-img-item img { width: 60%; object-fit: cover; margin: auto;}
-.step-content { display: none; animation: fadeIn 0.4s; }
-.step-content.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* ================= ESTILOS PARA MULTI-STEP ================= */
 .step-content { 
     display: none; 
     animation: fadeIn 0.4s ease-in-out; 
 }
-
 .step-content.active { 
     display: block; 
 }
-
 @keyframes fadeIn { 
     from { opacity: 0; transform: translateY(5px); } 
     to { opacity: 1; transform: translateY(0); } 
 }
 
-/* ================= PADRONIZAÇÃO DOS BOTÕES DE NAVEGAÇÃO ================= */
+/* ================= BOTÕES DE NAVEGAÇÃO ================= */
 .btn-navigation { 
     display: flex; 
     gap: 10px; 
     margin-top: 20px; 
     width: 100%;
 }
-
 .btn-next, .btn-prev { 
     flex: 1; 
     padding: 12px 20px; 
@@ -206,15 +189,18 @@ button[type="submit"]:disabled { background-color: #555; cursor: not-allowed; }
     transition: all 0.3s ease;
     margin: 0; height: max-content;
 }
-
 .btn-next { background: #28a745; color: white; }
 .btn-next:hover { background: #218838; }
-
 .btn-prev { background: #63839e; color: white; }
 .btn-prev:hover { background: #183181; }
 
-/*=========================================*/
-/* Container de Alternância (Radio Buttons) */
+/* ================= LÓGICA DE PRIORIDADE E VISIBILIDADE ================= */
+/* Garante que o formulário com atributo hidden não seja renderizado */
+form[hidden] {
+    display: none !important;
+}
+
+/* Container de Alternância Fiscal */
 .fiscal-mode-selector {
     display: flex;
     align-items: center;
@@ -224,7 +210,6 @@ button[type="submit"]:disabled { background-color: #555; cursor: not-allowed; }
     margin-bottom: 15px;
     gap: 5px;
 }
-
 .fiscal-mode-selector label {
     flex: 1;
     text-align: center;
@@ -237,15 +222,12 @@ button[type="submit"]:disabled { background-color: #555; cursor: not-allowed; }
     margin: 0 !important;
     color: #64748b;
 }
-
 .fiscal-mode-selector input[type="radio"] {
-    display: none; /* Esconde o rádio padrão */
+    display: none;
 }
-
-/* Estilo quando selecionado */
 .fiscal-mode-selector input[type="radio"]:checked + span {
     background: rgba(255, 255, 255, 0.74);
-    color: var(--color-bus-blue, #2563eb);
+    color: #0f0be1;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     display: block;
     width: 100%;
@@ -254,49 +236,44 @@ button[type="submit"]:disabled { background-color: #555; cursor: not-allowed; }
     border-radius: 6px;
 }
 
-/* Estilização do Input de Arquivo (Custom File Upload) */
+/* Custom File Upload */
 .custom-file-upload {
     position: relative;
     display: block;
     width: 100%;
     padding: 20px;
-    border: 2px dashed #cbd5e1;
+    border: 2px dashed #020151;
     border-radius: 10px;
     text-align: center;
     cursor: pointer;
     transition: 0.3s;
     background: #4af35ec9;
 }
-
 .custom-file-upload:hover {
-    border-color: #2563eb;
-    background: #eff6ff;
+    border-color: #0f0be1;
+    background: #ffffff;
 }
-
 .custom-file-upload i {
     font-size: 24px;
-    color: #64748b;
+    color: #020151;
     display: block;
     margin-bottom: 8px;
 }
-
 .custom-file-upload span {
     font-size: 14px;
-    color: #475569;
+    color: #020151;
+    font-weight: 500;
 }
-
 .custom-file-upload input[type="file"] {
     position: absolute;
     top: 0; left: 0; opacity: 0;
     width: 100%; height: 100%;
     cursor: pointer;
 }
-
-/* Preview de arquivo selecionado */
 .file-selected-name {
     margin-top: 8px;
     font-size: 12px;
-    color: #2563eb;
+    color: #0f0be1;
     font-weight: bold;
 }
 
@@ -306,9 +283,8 @@ button[type="submit"]:disabled { background-color: #555; cursor: not-allowed; }
 
 .input-error { border-color: red !important; background-color: #fff0f0; }
 .error-message { color: red; font-size: 12px; display: none; margin-top: 5px; }
-input[type="tel"] { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ddd; }
 input:disabled { background-color: #f9f9f9; cursor: not-allowed; color: #666; }
 
-/* Estilos do Medidor de Senha */
+/* Medidor de Senha */
 .strength-meter { height: 8px; width: 100%; background: #eee; margin-top: 5px; border-radius: 4px; overflow: hidden; }
 .strength-bar { height: 100%; width: 0%; transition: 0.4s ease; }

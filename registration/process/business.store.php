@@ -4,6 +4,7 @@ session_start();
 /**
  * Arquivo: business.store.php
  * Finalizado com criação automática de diretórios e validação rigorosa de arquivos (5MB, formatos específicos).
+ * Atualizado com a nova lógica de coluna separada para tax_id_file.
  */
 
 ini_set('display_errors', 0);
@@ -57,7 +58,7 @@ try {
     if ($fiscal_mode === 'text' && empty($tax_id)) {
         $errors['tax_id'] = 'O código fiscal é obrigatório.';
     } elseif ($fiscal_mode === 'file' && (!isset($_FILES['tax_id_file']) || $_FILES['tax_id_file']['error'] !== UPLOAD_ERR_OK)) {
-        $errors['tax_id'] = 'O upload do documento fiscal é obrigatório.';
+        $errors['tax_id_file'] = 'O upload do documento fiscal é obrigatório.';
     }
 
     if (empty($password)) {
@@ -74,9 +75,7 @@ try {
     $stmt->bind_param('ss', $email_business, $telefone);
     $stmt->execute();
     $result = $stmt->get_result();
-    while ($row = $result->fetch_assoc()) {
-        // Lógica simples para identificar qual dado está duplicado
-        // (Em produção, ideal fazer consultas separadas para mensagens precisas)
+    if ($result->num_rows > 0) {
         $errors['email_business'] = 'E-mail ou telefone já cadastrados.';
     }
 
@@ -91,19 +90,18 @@ try {
         echo json_encode(['errors' => $errors]);
         exit;
     }
-/* ================= 4. FUNÇÃO DE UPLOAD REFORÇADA ================= */
+
+    /* ================= 4. FUNÇÃO DE UPLOAD REFORÇADA ================= */
     /**
      * @param string $fileKey Nome do campo no $_FILES
      * @param string $prefix Prefixo para o nome do arquivo salvo
      * @param array &$errors Referência ao array de erros global
      */
     function uploadBusinessDoc($fileKey, $prefix, &$errors) {
-        // Se não houver arquivo e não houver erro de upload (campo vazio)
         if (!isset($_FILES[$fileKey]) || $_FILES[$fileKey]['error'] === UPLOAD_ERR_NO_FILE) {
             return null;
         }
 
-        // Se houver algum erro de upload do sistema PHP (ex: excede post_max_size)
         if ($_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) {
             $errors[$fileKey] = "Falha técnica no upload do arquivo.";
             return null;
@@ -114,19 +112,16 @@ try {
         $allowedExts = ['png', 'jpg', 'jpeg', 'pdf'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
-        // Validação de Extensão
         if (!in_array($ext, $allowedExts)) {
             $errors[$fileKey] = "Formato inválido. Use PNG, JPEG ou PDF.";
             return null;
         }
 
-        // Validação de Tamanho
         if ($file['size'] > $maxSize) {
             $errors[$fileKey] = "Arquivo muito grande. O limite é 5MB.";
             return null;
         }
 
-        // Criação automática do diretório
         $uploadDir = "../uploads/business/";
         if (!is_dir($uploadDir)) {
             if (!mkdir($uploadDir, 0755, true)) {
@@ -135,7 +130,6 @@ try {
             }
         }
 
-        // Gera nome único e seguro
         $newName = $prefix . "_" . bin2hex(random_bytes(10)) . "." . $ext;
         $dest = $uploadDir . $newName;
         
@@ -147,7 +141,7 @@ try {
         return null;
     }
 
-    // --- Processar uploads e alimentar o array de erros ---
+    // --- Processar uploads ---
 
     // 1. Alvará (Obrigatório)
     $pathLicenca = uploadBusinessDoc('licenca', 'lic', $errors);
@@ -155,7 +149,7 @@ try {
         $errors['licenca'] = "O upload do Alvará / Licença é obrigatório.";
     }
 
-    // 2. Logo (Obrigatório se no_logo não estiver marcado)
+    // 2. Logo (Opcional conforme checkbox)
     $pathLogo = null;
     if (!$no_logo) {
         $pathLogo = uploadBusinessDoc('logo', 'log', $errors);
@@ -164,7 +158,7 @@ try {
         }
     }
 
-    // 3. Documento Fiscal (Se modo arquivo)
+    // 3. Documento Fiscal (Novo: Salva em tax_id_file se modo for 'file')
     $pathFiscal = null;
     if ($fiscal_mode === 'file') {
         $pathFiscal = uploadBusinessDoc('tax_id_file', 'tax', $errors);
@@ -173,7 +167,6 @@ try {
         }
     }
 
-    // Se houver erros acumulados (seja de texto ou de arquivos), retorna o JSON e para o script
     if (!empty($errors)) {
         echo json_encode(['errors' => $errors]);
         exit;
@@ -194,15 +187,19 @@ try {
     $stmt->execute();
     $newUserId = $mysqli->insert_id; 
 
-    // Valor final do Tax ID (Texto ou referência ao Arquivo)
-    $finalTaxValue = ($fiscal_mode === 'file') ? "FILE:" . $pathFiscal : $tax_id;
+    /* LÓGICA DE COLUNA NOVA: 
+       Se o usuário subiu arquivo, tax_id fica null/vazio e path vai para tax_id_file.
+       Se digitou texto, o texto vai para tax_id e tax_id_file fica null.
+    */
+    $finalTaxIdText = ($fiscal_mode === 'text') ? $tax_id : null;
+    $finalTaxIdFile = ($fiscal_mode === 'file') ? $pathFiscal : null;
 
-    // Inserir Business
-    $sqlBus = "INSERT INTO businesses (user_id, tax_id, business_type, description, country, region, city, license_path, logo_path) 
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    // Inserir Business (Adicionada a coluna tax_id_file)
+    $sqlBus = "INSERT INTO businesses (user_id, tax_id, tax_id_file, business_type, description, country, region, city, license_path, logo_path) 
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmtBus = $mysqli->prepare($sqlBus);
-    $stmtBus->bind_param("issssssss", 
-        $newUserId, $finalTaxValue, $tipo_empresa, $descricao, $pais, $regiao, $localidade, $pathLicenca, $pathLogo
+    $stmtBus->bind_param("isssssssss", 
+        $newUserId, $finalTaxIdText, $finalTaxIdFile, $tipo_empresa, $descricao, $pais, $regiao, $localidade, $pathLicenca, $pathLogo
     );
     $stmtBus->execute();
 
@@ -220,5 +217,5 @@ try {
 } catch (Exception $e) {
     if (isset($mysqli)) $mysqli->rollback();
     error_log("Erro no registro de negócio: " . $e->getMessage());
-    echo json_encode(['error' => 'Ocorreu um erro ao salvar os dados. Tente novamente.']);
+    echo json_encode(['error' => 'Ocorreu um erro ao salvar os dados: ' . $e->getMessage()]);
 }
