@@ -11,7 +11,7 @@ if (basename($_SERVER['PHP_SELF']) === 'db.php') {
 $DB_HOST = 'localhost';
 $DB_NAME = 'vsg';
 $DB_USER = 'root';
-$DB_PASS = ''; 
+$DB_PASS = 'Rosalio'; 
 
 /* ================= SINCRONIZAÇÃO GLOBAL (UTC) ================= */
 // Define o fuso horário do PHP para o padrão universal
