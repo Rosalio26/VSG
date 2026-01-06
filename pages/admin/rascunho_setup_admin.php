@@ -6,7 +6,7 @@ header("Expires: 0");
 
 require_once '../../registration/includes/db.php';
 
-// Função para gerar o Secure ID estruturado
+// Função para gerar o Secure ID estruturado conforme sua ideia
 function generateSecureID() {
     $n1 = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
     $n2 = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
@@ -18,16 +18,16 @@ $secure_id_original = generateSecureID();
 $secure_id_hash = password_hash($secure_id_original, PASSWORD_BCRYPT);
 
 $email = "admin@visiongreen.com";
-$password_inicial = "Vsg@2026!Admin"; 
+$password_inicial = "0000000000"; 
 $hash_senha = password_hash($password_inicial, PASSWORD_BCRYPT);
 
 $mysqli->begin_transaction();
 
 try {
-    // Limpa registros anteriores
+    // Limpa registros anteriores para evitar duplicidade de SuperAdmin
     $mysqli->query("DELETE FROM users WHERE role = 'superadmin' OR (role = 'admin' AND email = '$email')");
 
-    // Cadastro com type 'admin'
+    // Cadastro explícito com type 'admin'
     $stmt = $mysqli->prepare("
         INSERT INTO users (
             nome, email, telefone, password_hash, secure_id_hash, 
@@ -48,7 +48,7 @@ try {
     $backup_content .= "SECURE ID: $secure_id_original\n";
     $backup_content .= "----------------------------------------\n";
     $backup_content .= "AVISO: GUARDE ESTE ARQUIVO EM LOCAL SEGURO (OFFLINE).\n";
-    $backup_content .= "ESTE ARQUIVO SE AUTO-DESTRUIRÁ NO SERVIDOR APÓS O DOWNLOAD.";
+    $backup_content .= "ESTE ARQUIVO FOI APAGADO DO SERVIDOR POR SEGURANÇA.";
 
     ?>
     <!DOCTYPE html>
@@ -74,10 +74,12 @@ try {
             <p>ID DE SEGURANÇA: <br><strong class="highlight"><?php echo $secure_id_original; ?></strong></p>
             <p>SENHA ATUAL: <br><strong class="highlight"><?php echo $password_inicial; ?></strong></p>
             
+            <p>O download das credenciais iniciará automaticamente.</p>
+
             <a href="data:text/plain;charset=utf-8,<?php echo rawurlencode($backup_content); ?>" 
                download="VisionGreen_Admin_Keys.txt" 
                class="btn-download" id="downloadBtn">
-               BAIXAR CHAVES DE ACESSO (.TXT)
+               BAIXAR CHAVES NOVAMENTE (.TXT)
             </a>
 
             <hr style="border:0; border-top:1px solid #00a63e; margin: 20px 0;">
@@ -93,11 +95,11 @@ try {
                 link.click();
             };
 
-            // Bloqueio de navegação
+            // Bloqueio de navegação (anti-back)
             history.pushState(null, null, location.href);
             window.onpopstate = function () { history.go(1); };
 
-            let count = 20; // Aumentei para 20s para dar tempo do download e cópia
+            let count = 20; 
             const counter = setInterval(() => {
                 count--;
                 document.getElementById('secs').textContent = count;
@@ -116,6 +118,7 @@ try {
     die("<div style='color:red; font-family:monospace; padding:20px;'>ERRO: " . $e->getMessage() . "</div>");
 }
 
+// Lógica de auto-destruição física do arquivo
 unlink(__FILE__); 
 exit;
 ?>
