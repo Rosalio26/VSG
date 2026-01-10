@@ -37,7 +37,7 @@ if ($statusDoc === 'rejeitado') {
     $agoraTimestamp = time();
 
     if ($agoraTimestamp >= $deadlineTimestamp) {
-        header("Location: process/reeviar_documentos.php?status=expired");
+        header("Location: process/reenviar_documentos.php?status=expired");
         exit;
     }
 }

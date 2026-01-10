@@ -60,18 +60,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         $new_hash = password_hash($nova_senha, PASSWORD_DEFAULT);
         
+        // CORREÇÃO: Removidas as colunas inexistentes na tabela users
+        // A limpeza de tentativas agora depende exclusivamente da função clearLoginAttempts
         $update = $mysqli->prepare("
             UPDATE users 
             SET password_hash = ?, 
-                email_token = NULL, 
-                login_attempts = 0, 
-                lock_until = NULL 
+                email_token = NULL 
             WHERE id = ?
         ");
         $update->bind_param('si', $new_hash, $user_id);
         $update->execute();
         $update->close();
 
+        // Limpa as tentativas na sua tabela externa 'login_attempts'
         clearLoginAttempts($mysqli, $email_usuario);
         unset($_SESSION['recovery']);
 
@@ -86,79 +87,156 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Definir Nova Senha - VisionGreen</title>
-    <link rel="stylesheet" href="../../assets/style/geral.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --color-main: <?= $isBusiness ? '#2563eb' : '#28a745' ?>;
-            --color-bg: #f0f2f5;
-            --color-error: #dc3545;
+            --primary: <?= $isBusiness ? '#2563eb' : '#10b981' ?>;
+            --primary-hover: <?= $isBusiness ? '#1d4ed8' : '#059669' ?>;
+            --bg: #f8fafc;
+            --white: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
         }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--color-bg); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .box { width: 100%; max-width: 450px; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); border-top: 5px solid var(--color-main); }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: var(--bg); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            color: var(--text-main);
+        }
+
+        .box { 
+            width: 100%; 
+            max-width: 440px; 
+            background: var(--white); 
+            padding: 40px; 
+            border-radius: var(--radius); 
+            box-shadow: var(--shadow);
+            border-top: 6px solid var(--primary);
+        }
         
-        h2 { text-align: center; color: #333; margin-top: 0; }
-        p.subtitle { text-align: center; font-size: 0.9em; color: #777; margin-bottom: 20px; }
+        h2 { text-align: center; font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px; }
+        p.subtitle { text-align: center; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 30px; }
 
-        label { font-size: 0.85em; color: #666; font-weight: bold; display: block; margin-top: 15px; }
-        input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; transition: 0.3s; }
+        .form-group { margin-bottom: 18px; position: relative; }
+
+        label { font-size: 0.85rem; color: var(--text-main); font-weight: 600; display: block; margin-bottom: 6px; }
         
-        /* Estilo de erro no input */
-        input.is-invalid { border-color: var(--color-error); background-color: #fff8f8; }
-        .error-text { color: var(--color-error); font-size: 0.75em; margin-top: 4px; font-weight: 500; }
+        input { 
+            width: 100%; 
+            padding: 12px 16px; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            transition: all 0.2s ease;
+            font-family: inherit;
+            font-size: 0.95rem;
+            background: #fdfdfd;
+        }
 
-        button { width: 100%; padding: 12px; background: var(--color-main); color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 25px; font-weight: bold; transition: 0.3s; }
-        button:hover { opacity: 0.9; }
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(var(--primary), 0.1);
+            background: var(--white);
+        }
+        
+        input.is-invalid { border-color: var(--danger); background-color: #fffafa; }
+        .error-text { color: var(--danger); font-size: 0.75rem; margin-top: 5px; font-weight: 600; }
 
-        .strength-meter { height: 6px; width: 100%; background: #eee; margin-top: 5px; border-radius: 6px; overflow: hidden; }
-        .strength-bar { height: 100%; width: 0%; transition: 0.4s ease; }
-        .weak { background: #ff4d4d; width: 33.33%; }
-        .medium { background: #ffd633; width: 66.66%; }
-        .strong { background: #28a745; width: 100%; }
+        button { 
+            width: 100%; 
+            padding: 14px; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin-top: 10px; 
+            font-weight: 700; 
+            font-size: 1rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover { 
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .strength-meter { height: 4px; width: 100%; background: #e2e8f0; margin-top: 8px; border-radius: 10px; overflow: hidden; }
+        .strength-bar { height: 100%; width: 0%; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .weak { background: var(--danger); width: 33.33%; }
+        .medium { background: #f59e0b; width: 66.66%; }
+        .strong { background: #10b981; width: 100%; }
+
+        hr { border: 0; border-top: 1px solid var(--border); margin: 30px 0; }
     </style>
 </head>
 <body>
     <div class="box">
         <h2>Recuperar Acesso</h2>
-        <p class="subtitle">Verificação para Conta <?= $isBusiness ? 'Empresarial' : 'Pessoal' ?></p>
+        <p class="subtitle">Verificação de Segurança: Conta <?= $isBusiness ? 'Empresarial' : 'Pessoal' ?></p>
 
         <form method="POST" novalidate>
-            <label>Código de 6 dígitos (E-mail)</label>
-            <input type="text" name="codigo" class="<?= isset($errors['codigo']) ? 'is-invalid' : '' ?>" 
-                   value="<?= htmlspecialchars($_POST['codigo'] ?? '') ?>" required maxlength="6">
-            <?php if (isset($errors['codigo'])): ?><div class="error-text"><?= $errors['codigo'] ?></div><?php endif; ?>
+            <div class="form-group">
+                <label>Código de Verificação (E-mail)</label>
+                <input type="text" name="codigo" class="<?= isset($errors['codigo']) ? 'is-invalid' : '' ?>" 
+                       value="<?= htmlspecialchars($_POST['codigo'] ?? '') ?>" required maxlength="6" placeholder="000000">
+                <?php if (isset($errors['codigo'])): ?><div class="error-text"><?= $errors['codigo'] ?></div><?php endif; ?>
+            </div>
 
             <?php if ($isBusiness): ?>
-                <label>Identificador UID da Empresa</label>
-                <input type="text" name="uid" class="<?= isset($errors['uid']) ? 'is-invalid' : '' ?>" 
-                       value="<?= htmlspecialchars($_POST['uid'] ?? '') ?>" placeholder="Ex: 12345678C" required>
-                <?php if (isset($errors['uid'])): ?><div class="error-text"><?= $errors['uid'] ?></div><?php endif; ?>
+                <div class="form-group">
+                    <label>UID da Empresa</label>
+                    <input type="text" name="uid" class="<?= isset($errors['uid']) ? 'is-invalid' : '' ?>" 
+                           value="<?= htmlspecialchars($_POST['uid'] ?? '') ?>" placeholder="Ex: 12345678C" required>
+                    <?php if (isset($errors['uid'])): ?><div class="error-text"><?= $errors['uid'] ?></div><?php endif; ?>
+                </div>
 
-                <label>E-mail Corporativo (@visiongreen.com)</label>
-                <input type="text" name="email_corp" class="<?= isset($errors['email_corp']) ? 'is-invalid' : '' ?>" 
-                       value="<?= htmlspecialchars($_POST['email_corp'] ?? '') ?>" placeholder="empresa@visiongreen.com" required>
-                <?php if (isset($errors['email_corp'])): ?><div class="error-text"><?= $errors['email_corp'] ?></div><?php endif; ?>
+                <div class="form-group">
+                    <label>E-mail Corporativo</label>
+                    <input type="text" name="email_corp" class="<?= isset($errors['email_corp']) ? 'is-invalid' : '' ?>" 
+                           value="<?= htmlspecialchars($_POST['email_corp'] ?? '') ?>" placeholder="empresa@visiongreen.com" required>
+                    <?php if (isset($errors['email_corp'])): ?><div class="error-text"><?= $errors['email_corp'] ?></div><?php endif; ?>
+                </div>
 
             <?php else: ?>
-                <label>Seu Telefone Cadastrado</label>
-                <input type="text" name="telefone" class="<?= isset($errors['telefone']) ? 'is-invalid' : '' ?>" 
-                       value="<?= htmlspecialchars($_POST['telefone'] ?? '') ?>" placeholder="+244..." required>
-                <?php if (isset($errors['telefone'])): ?><div class="error-text"><?= $errors['telefone'] ?></div><?php endif; ?>
+                <div class="form-group">
+                    <label>Telefone Cadastrado</label>
+                    <input type="text" name="telefone" class="<?= isset($errors['telefone']) ? 'is-invalid' : '' ?>" 
+                           value="<?= htmlspecialchars($_POST['telefone'] ?? '') ?>" placeholder="+244..." required>
+                    <?php if (isset($errors['telefone'])): ?><div class="error-text"><?= $errors['telefone'] ?></div><?php endif; ?>
+                </div>
             <?php endif; ?>
 
-            <hr style="margin: 25px 0; border: 0; border-top: 1px solid #eee;">
+            <hr>
 
-            <label>Nova Senha</label>
-            <input type="password" name="password" id="passInput" class="<?= isset($errors['password']) ? 'is-invalid' : '' ?>" 
-                   placeholder="Mínimo 8 caracteres" required oninput="checkStrength(this.value)">
-            <div class="strength-meter"><div id="strengthBar" class="strength-bar"></div></div>
-            <?php if (isset($errors['password'])): ?><div class="error-text"><?= $errors['password'] ?></div><?php endif; ?>
+            <div class="form-group">
+                <label>Nova Senha</label>
+                <input type="password" name="password" id="passInput" class="<?= isset($errors['password']) ? 'is-invalid' : '' ?>" 
+                       placeholder="Mínimo 8 caracteres" required oninput="checkStrength(this.value)">
+                <div class="strength-meter"><div id="strengthBar" class="strength-bar"></div></div>
+                <?php if (isset($errors['password'])): ?><div class="error-text"><?= $errors['password'] ?></div><?php endif; ?>
+            </div>
 
-            <label>Confirmar Nova Senha</label>
-            <input type="password" name="confirm_password" class="<?= isset($errors['confirm_password']) ? 'is-invalid' : '' ?>" 
-                   placeholder="Repita a senha" required>
-            <?php if (isset($errors['confirm_password'])): ?><div class="error-text"><?= $errors['confirm_password'] ?></div><?php endif; ?>
+            <div class="form-group">
+                <label>Confirmar Nova Senha</label>
+                <input type="password" name="confirm_password" class="<?= isset($errors['confirm_password']) ? 'is-invalid' : '' ?>" 
+                       placeholder="Repita a nova senha" required>
+                <?php if (isset($errors['confirm_password'])): ?><div class="error-text"><?= $errors['confirm_password'] ?></div><?php endif; ?>
+            </div>
 
-            <button type="submit">Atualizar Senha e Liberar Login</button>
+            <button type="submit">Redefinir Senha</button>
         </form>
     </div>
 
@@ -170,6 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (password.length >= 8) strength++;
             if (password.match(/[A-Z]/) && password.match(/[0-9]/)) strength++;
             if (password.match(/[^a-zA-Z0-9]/)) strength++;
+            
             bar.className = 'strength-bar';
             if (strength === 1) bar.classList.add('weak');
             else if (strength === 2) bar.classList.add('medium');
