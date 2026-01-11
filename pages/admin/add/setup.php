@@ -17,8 +17,8 @@ function generateSecureID() {
 $secure_id_original = generateSecureID();
 $secure_id_hash = password_hash($secure_id_original, PASSWORD_BCRYPT);
 
-$email = "admin@visiongreen.com";
-$password_inicial = "0000000000"; 
+$email = "eanixr@gmail.com";
+$password_inicial = "0000000000";
 $hash_senha = password_hash($password_inicial, PASSWORD_BCRYPT);
 
 $mysqli->begin_transaction();

@@ -123,29 +123,13 @@ $uploadBase = "../../registration/uploads/business/";
  */
 if (isset($_GET['action']) && $_GET['action'] === 'get_counters') {
     header('Content-Type: application/json');
-    
-    // Conta mensagens não lidas (categoria 'chat')
-    $res_chat = $mysqli->query("
-        SELECT COUNT(*) as total 
-        FROM notifications 
-        WHERE receiver_id = $adminId 
-          AND status = 'unread' 
-          AND category = 'chat'
-    ")->fetch_assoc();
-    
-    // Conta alertas não lidos (todas as outras categorias)
-    $res_alerts = $mysqli->query("
-        SELECT COUNT(*) as total 
-        FROM notifications 
-        WHERE receiver_id = $adminId 
-          AND status = 'unread' 
-          AND category IN ('alert', 'security', 'system_error', 'audit')
-    ")->fetch_assoc();
+    $res_count = $mysqli->query("SELECT COUNT(*) as total FROM notifications WHERE receiver_id = $adminId AND status = 'unread' AND category = 'chat'")->fetch_assoc();
+    $res_alerts_count = $mysqli->query("SELECT COUNT(*) as total FROM notifications WHERE receiver_id = $adminId AND status = 'unread' AND category IN ('alert', 'security')")->fetch_assoc();
     
     echo json_encode([
-        'unread_chat' => (int)$res_chat['total'],
-        'unread_alerts' => (int)$res_alerts['total'],
-        'unread_total' => (int)$res_chat['total'] + (int)$res_alerts['total']
+        'unread_chat' => (int)$res_count['total'],
+        'unread_alerts' => (int)$res_alerts_count['total'],
+        'unread_total' => (int)$res_count['total'] + (int)$res_alerts_count['total']
     ]);
     exit;
 }
@@ -407,7 +391,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_counters') {
                     <div class="icon-action-btn" title="Chat Admin">
                         <i class="fa-solid fa-comment-dots"></i>
                         <?php if($has_new_msgs): ?>
-                            <span class="badge-dot badge-pulse" style="background: var(--accent-green);"></span>
+                            <span class="badge-dot badge-pulse" id="chat-badge-dot" style="background: var(--accent-green);"></span>
                         <?php endif; ?>
                     </div>
                     <div class="header-dropdown">
@@ -437,7 +421,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_counters') {
                     <div class="icon-action-btn" title="Alertas Críticos">
                         <i class="fa-solid fa-bell"></i>
                         <?php if($has_critical): ?>
-                            <span class="badge-dot" style="background: #ff4d4d;"></span>
+                            <span class="badge-dot" id="alerts-badge-dot" style="background: #ff4d4d;"></span>
                         <?php endif; ?>
                     </div>
                     <div class="header-dropdown">

@@ -167,30 +167,25 @@ try {
 
     /* ================= 4. FLUXO DE REDIRECIONAMENTO FINAL ABSOLUTO ================= */
 
-    // A. FLUXO PARA ADMINS (STEP 2: 2FA + SECURE ID)
-    // Agora validamos tanto pelo cargo (role) quanto pelo novo tipo (admin)
+    // A. FLUXO PARA ADMINS (STEP 2: APENAS SECURE ID)
+    // Código de e-mail 2FA removido conforme solicitação
     if (in_array($user['role'], ['admin', 'superadmin']) || $user['type'] === 'admin') {
-        $two_fa_code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         
-        $stmt_2fa = $mysqli->prepare("UPDATE users SET email_token = ?, email_token_expires = DATE_ADD(NOW(), INTERVAL 10 MINUTE) WHERE id = ?");
-        $stmt_2fa->bind_param('si', $two_fa_code, $user['id']);
-        $stmt_2fa->execute();
-
+        // Registramos o sucesso do primeiro passo no log
         $mysqli->query("INSERT INTO admin_audit_logs (admin_id, action, ip_address) VALUES ({$user['id']}, 'LOGIN_STEP_1_SUCCESS', '$ip_address')");
 
-        enviarEmailVisionGreen($user['email'], $user['nome'], $two_fa_code);
-
-        // Movemos para sessão temporária
+        // Movemos para sessão temporária para exigir o Protocolo de Acesso
         $_SESSION['temp_admin_auth'] = $_SESSION['auth'];
         unset($_SESSION['auth']); 
 
+        // Redireciona para a página do Secure ID (V-S-G)
         header("Location: ../../pages/admin/verify_secure_access.php");
         exit;
     }
 
     // B. FLUXO PARA USUÁRIOS COMUNS (PERSON/COMPANY)
     
-    // Verificação de e-mail pendente
+    // Verificação de e-mail pendente (Mantido para usuários comuns)
     if (!$user['email_verified_at']) {
         $token_mail = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $upd_mail = $mysqli->prepare("UPDATE users SET email_token = ?, email_token_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE id = ?");
@@ -209,7 +204,6 @@ try {
     } elseif ($user['type'] === 'company') {
         header("Location: ../../pages/business/dashboard_business.php");
     } else {
-        // Fallback de segurança caso o type seja desconhecido
         session_destroy();
         header("Location: login.php?error=invalid_account_type");
     }

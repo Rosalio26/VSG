@@ -1,0 +1,11 @@
+# Define o tipo de autenticação
+AuthType Basic
+
+# Mensagem que aparecerá no pop-up do navegador
+AuthName "Acesso Restrito ao Localhost"
+
+# Caminho exato para o arquivo de senhas que criamos no Passo 1
+AuthUserFile "C:/xampp/passwords.txt"
+
+# Exige que o usuário esteja no arquivo para entrar
+Require valid-user

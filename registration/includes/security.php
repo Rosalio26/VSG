@@ -142,10 +142,19 @@ if (isset($_SESSION['auth']['role']) && in_array($_SESSION['auth']['role'], ['ad
     }
 }
 
-/* ================= 6. CONTROLE DE ACESSO E PROTEÇÃO DE PASTAS ================= */
+/* ================= 6. CONTROLE DE ACESSO E ATIVIDADE ONLINE ================= */
 
-// Atualiza atividade
-$_SESSION['last_activity'] = time();
+// 6.1 Atualiza atividade na sessão
+$current_time = time();
+$_SESSION['last_activity'] = $current_time;
+
+// 6.2 SINCRONIZAÇÃO COM O BANCO (Para Status Online/Offline na lista de auditores)
+if (isset($_SESSION['auth']['user_id'])) {
+    require_once __DIR__ . '/db.php';
+    $u_id = $_SESSION['auth']['user_id'];
+    // Atualiza a coluna last_activity para que outros administradores vejam o status online
+    $mysqli->query("UPDATE users SET last_activity = $current_time WHERE id = $u_id");
+}
 
 /**
  * LÓGICA DE BLOQUEIO DE REDIRECIONAMENTO INDEVIDO:
@@ -160,7 +169,6 @@ if (isset($_SESSION['auth']['user_id'])) {
     // 1. TRAVA PARA ADMINS: Impede que entrem nas pastas de clientes (person/business)
     if (in_array($user_role, ['admin', 'superadmin'])) {
         if (strpos($current_path, '/pages/person/') !== false || strpos($current_path, '/pages/business/') !== false) {
-            // Se o admin tentar acessar dashboards de usuários, ele é mandado para a área segura dele
             header("Location: ../../pages/admin/dashboard_admin.php");
             exit;
         }
@@ -180,7 +188,7 @@ if (isset($_SESSION['auth']['user_id'])) {
 }
 
 /**
- * TRAVA PARA PÁGINAS ADMINISTRATIVAS
+ * TRAVA PARA PÁGINAS ADMINISTRATIVAS E TIMEOUT
  */
 if (defined('IS_ADMIN_PAGE') || (isset($_SESSION['auth']['role']) && in_array($_SESSION['auth']['role'], ['admin', 'superadmin']))) {
     if(!defined('BYPASS_DOCUMENT_CHECK')) define('BYPASS_DOCUMENT_CHECK', true);
