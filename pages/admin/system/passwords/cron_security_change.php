@@ -1,7 +1,7 @@
 <?php
 // Caminhos baseados na sua estrutura
-require_once __DIR__ . '/../../registration/includes/db.php';
-require_once __DIR__ . '/../../registration/includes/mailer.php'; 
+require_once __DIR__ . '/../../../../registration/includes/db.php';
+require_once __DIR__ . '/../../../../registration/includes/mailer.php'; 
 
 // 1. Busca todos os Admins cuja senha expirou (mais de 1 hora) 
 // E que ainda não tiveram um reset registrado na última hora

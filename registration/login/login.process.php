@@ -27,7 +27,7 @@ if (!csrf_validate($csrf)) {
     exit;
 }
 
-/* ================= RATE LIMIT (Usando sua tabela login_attempts) ================= */
+/* ================= RATE LIMIT ================= */
 $stmt_check = $mysqli->prepare("SELECT attempts FROM login_attempts WHERE email = ? AND last_attempt > NOW() - INTERVAL 30 MINUTE");
 $stmt_check->bind_param("s", $identifier);
 $stmt_check->execute();
@@ -109,50 +109,85 @@ try {
 
     /* ================= 1. VALIDAÇÃO DE SENHA (FÍSICA) ================= */
     if (!password_verify($password, $user['password_hash'])) {
-        $mysqli->query("INSERT INTO login_attempts (email, ip, attempts, last_attempt) 
-                        VALUES ('$identifier', '$ip_address', 1, NOW()) 
-                        ON DUPLICATE KEY UPDATE attempts = attempts + 1, last_attempt = NOW()");
+        // ✅ CORRIGIDO: Usando prepared statement
+        $stmt_fail = $mysqli->prepare("
+            INSERT INTO login_attempts (email, ip, attempts, last_attempt) 
+            VALUES (?, ?, 1, NOW()) 
+            ON DUPLICATE KEY UPDATE attempts = attempts + 1, last_attempt = NOW()
+        ");
+        $stmt_fail->bind_param('ss', $identifier, $ip_address);
+        $stmt_fail->execute();
         
         $_SESSION['login_error'] = "Credenciais inválidas.";
         header("Location: login.php");
         exit;
     }
 
-    /* ================= 2. LÓGICA DE SEGURANÇA PARA ADMINS ================= */
+    /* ================= 2. LÓGICA DE SEGURANÇA PARA ADMINS (CORRIGIDA) ================= */
     if (in_array($user['role'], ['admin', 'superadmin'])) {
         $lastChange = strtotime($user['password_changed_at']);
         $currentTime = time();
+        $timeoutLimit = ($user['role'] === 'superadmin') ? 3600 : 86400; // 1h ou 24h
+        $timeSinceChange = $currentTime - $lastChange;
 
-        // KILL-SWITCH (24 HORAS)
-        if ($currentTime > ($lastChange + 86400)) {
-            $mysqli->query("UPDATE users SET status = 'blocked', is_in_lockdown = 1 WHERE id = " . $user['id']);
-            $mysqli->query("UPDATE businesses SET status_documentos = 'rejeitado', motivo_rejeicao = 'LOCKOUT: INATIVIDADE ADMINISTRATIVA SUPERIOR A 24H'");
-            $mysqli->query("INSERT INTO admin_audit_logs (admin_id, action, ip_address) VALUES ({$user['id']}, 'KILL_SWITCH_24H', '$ip_address')");
+        // ✅ NOVO: Apenas AVISA se a senha expirou, mas DEIXA entrar
+        if ($timeSinceChange >= $timeoutLimit) {
+            // Calcula tempo decorrido
+            $hoursExpired = floor($timeSinceChange / 3600);
+            $minutesExpired = floor(($timeSinceChange % 3600) / 60);
             
-            $_SESSION['login_error'] = 'Protocolo de segurança 24h ativado. O acesso foi revogado.';
-            header("Location: login.php");
-            exit;
+            // Salva na sessão para mostrar no dashboard
+            $_SESSION['password_expired'] = true;
+            $_SESSION['password_expired_since'] = $lastChange;
+            $_SESSION['password_expired_time'] = "{$hoursExpired}h {$minutesExpired}m";
+            
+            // ✅ CORRIGIDO: Prepared statement para log
+            $stmt_log = $mysqli->prepare("
+                INSERT INTO admin_audit_logs (admin_id, action, ip_address, details) 
+                VALUES (?, 'LOGIN_WITH_EXPIRED_PASSWORD', ?, ?)
+            ");
+            $details = "Senha expirada há {$hoursExpired}h {$minutesExpired}m - Login permitido com aviso";
+            $stmt_log->bind_param('iss', $user['id'], $ip_address, $details);
+            $stmt_log->execute();
+            
+            // Define mensagem de aviso (não erro!)
+            $_SESSION['password_warning'] = '⚠️ SEGURANÇA: Sua senha expirou! Renove imediatamente no painel.';
+            
+            // ✅ IMPORTANTE: NÃO FAZ EXIT AQUI - Continua o login normalmente!
         }
-
-        // ROTAÇÃO SILENCIOSA (1 HORA)
-        if ($currentTime > ($lastChange + 3600)) {
-            $new_pass = substr(str_shuffle("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*"), 0, 10);
-            $new_hash = password_hash($new_pass, PASSWORD_BCRYPT);
-            $php_now = date('Y-m-d H:i:s');
-
-            $mysqli->query("UPDATE users SET password_hash = '$new_hash', password_changed_at = '$php_now' WHERE id = " . $user['id']);
-            $mysqli->query("INSERT INTO admin_audit_logs (admin_id, action, ip_address) VALUES ({$user['id']}, 'OFFLINE_AUTO_ROTATION', '$ip_address')");
+        
+        // ✅ NOVO: Sistema de "última chance" - Após 48h, força renovação
+        if ($timeSinceChange >= 172800) { // 48 horas
+            // Em vez de bloquear, redireciona para renovação obrigatória
+            $_SESSION['force_password_renewal'] = true;
+            $_SESSION['temp_admin_auth'] = [
+                'user_id'   => $user['id'], 
+                'email'     => $user['email'], 
+                'public_id' => $user['public_id'], 
+                'nome'      => $user['nome'],
+                'type'      => $user['type'],
+                'role'      => $user['role']
+            ];
             
-            enviarEmailVisionGreen($user['email'], $user['nome'], $new_pass);
-
-            $_SESSION['login_error'] = 'Sua senha expirou por segurança. Verifique seu e-mail para obter a nova credencial.';
-            header("Location: login.php?info=new_password_sent");
+            // ✅ CORRIGIDO: Prepared statement
+            $stmt_log2 = $mysqli->prepare("
+                INSERT INTO admin_audit_logs (admin_id, action, ip_address, details) 
+                VALUES (?, 'FORCED_PASSWORD_RENEWAL_TRIGGER', ?, '48h sem renovação - Renovação obrigatória')
+            ");
+            $stmt_log2->bind_param('is', $user['id'], $ip_address);
+            $stmt_log2->execute();
+            
+            header("Location: ../../admin/system/force_password_change.php");
             exit;
         }
     }
 
     /* ================= 3. LOGIN BEM-SUCEDIDO ================= */
-    $mysqli->query("DELETE FROM login_attempts WHERE email = '$identifier'");
+    // ✅ CORRIGIDO: Prepared statement
+    $stmt_clear = $mysqli->prepare("DELETE FROM login_attempts WHERE email = ?");
+    $stmt_clear->bind_param('s', $identifier);
+    $stmt_clear->execute();
+    
     session_regenerate_id(true);
 
     // Salva os dados na sessão
@@ -165,16 +200,20 @@ try {
         'role'      => $user['role']
     ];
 
-    /* ================= 4. FLUXO DE REDIRECIONAMENTO FINAL ABSOLUTO ================= */
+    /* ================= 4. FLUXO DE REDIRECIONAMENTO FINAL ================= */
 
-    // A. FLUXO PARA ADMINS (STEP 2: APENAS SECURE ID)
-    // Código de e-mail 2FA removido conforme solicitação
+    // A. FLUXO PARA ADMINS (STEP 2: SECURE ID)
     if (in_array($user['role'], ['admin', 'superadmin']) || $user['type'] === 'admin') {
         
-        // Registramos o sucesso do primeiro passo no log
-        $mysqli->query("INSERT INTO admin_audit_logs (admin_id, action, ip_address) VALUES ({$user['id']}, 'LOGIN_STEP_1_SUCCESS', '$ip_address')");
+        // ✅ CORRIGIDO: Prepared statement para log
+        $stmt_log3 = $mysqli->prepare("
+            INSERT INTO admin_audit_logs (admin_id, action, ip_address) 
+            VALUES (?, 'LOGIN_STEP_1_SUCCESS', ?)
+        ");
+        $stmt_log3->bind_param('is', $user['id'], $ip_address);
+        $stmt_log3->execute();
 
-        // Movemos para sessão temporária para exigir o Protocolo de Acesso
+        // Movemos para sessão temporária para exigir o Secure ID
         $_SESSION['temp_admin_auth'] = $_SESSION['auth'];
         unset($_SESSION['auth']); 
 
@@ -185,10 +224,17 @@ try {
 
     // B. FLUXO PARA USUÁRIOS COMUNS (PERSON/COMPANY)
     
-    // Verificação de e-mail pendente (Mantido para usuários comuns)
+    // Verificação de e-mail pendente
     if (!$user['email_verified_at']) {
+        // Gera código 2FA de 6 dígitos
         $token_mail = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $upd_mail = $mysqli->prepare("UPDATE users SET email_token = ?, email_token_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE id = ?");
+        
+        // ✅ CORRIGIDO: Prepared statement
+        $upd_mail = $mysqli->prepare("
+            UPDATE users 
+            SET email_token = ?, email_token_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) 
+            WHERE id = ?
+        ");
         $upd_mail->bind_param('si', $token_mail, $user['id']);
         $upd_mail->execute();
 
@@ -215,3 +261,4 @@ try {
     header("Location: login.php");
     exit;
 }
+?>

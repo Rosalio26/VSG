@@ -15,8 +15,8 @@ $adminId = $_SESSION['auth']['user_id'];
 $sql_msgs = "SELECT n.id, 
                     IFNULL(u.nome, 'Sistema') AS sender_name, 
                     n.subject, 
-                    n.created_at,
-                    n.priority
+                    n.priority,
+                    DATE_FORMAT(n.created_at, '%d/%m %H:%i') as created_at
              FROM notifications n 
              LEFT JOIN users u ON n.sender_id = u.id 
              WHERE n.receiver_id = ? 
@@ -32,16 +32,11 @@ $res_msgs = $stmt_msgs->get_result();
 
 $messages = [];
 while ($msg = $res_msgs->fetch_assoc()) {
-    $messages[] = [
-        'id' => $msg['id'],
-        'sender_name' => $msg['sender_name'],
-        'subject' => $msg['subject'],
-        'created_at' => date('d/m H:i', strtotime($msg['created_at'])),
-        'priority' => $msg['priority']
-    ];
+    $messages[] = $msg;
 }
+$stmt_msgs->close();
 
-// Busca alertas não lidos (categorias: alert, security, system_error, audit)
+// Busca alertas não lidos
 $sql_alerts = "SELECT id, 
                       category, 
                       subject, 
@@ -63,17 +58,11 @@ $res_alerts = $stmt_alerts->get_result();
 
 $alerts = [];
 while ($alert = $res_alerts->fetch_assoc()) {
-    $alerts[] = [
-        'id' => $alert['id'],
-        'category' => $alert['category'],
-        'subject' => $alert['subject'],
-        'created_at' => $alert['created_at'],
-        'priority' => $alert['priority']
-    ];
+    $alerts[] = $alert;
 }
+$stmt_alerts->close();
 
 echo json_encode([
     'messages' => $messages,
-    'alerts' => $alerts,
-    'total_unread' => count($messages) + count($alerts)
+    'alerts' => $alerts
 ]);
