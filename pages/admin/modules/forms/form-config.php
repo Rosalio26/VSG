@@ -1,623 +1,655 @@
 <?php
-    if (!defined('IS_ADMIN_PAGE')) {
-        require_once '../../../../registration/includes/db.php';
-        session_start();
-    }
+if (!defined('IS_ADMIN_PAGE')) {
+    require_once '../../../../registration/includes/db.php';
+    session_start();
+}
 
-    // ATIVAR DEBUG (remover em produção)
-    $DEBUG_MODE = true;
+// ATIVAR DEBUG (remover em produção)
+$DEBUG_MODE = true;
+if ($DEBUG_MODE) {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+}
+
+$adminId = $_SESSION['auth']['user_id'] ?? 0;
+$adminRole = $_SESSION['auth']['role'] ?? 'admin';
+$isSuperAdmin = ($adminRole === 'superadmin');
+
+if (!$isSuperAdmin) {
+    die("Acesso negado. Apenas SuperAdmin pode acessar configurações.");
+}
+
+/* ================= HELPER FUNCTIONS ================= */
+function getConfig($mysqli, $key, $default = null) {
+    $key = $mysqli->real_escape_string($key);
+    $result = $mysqli->query("SELECT config_value, config_type FROM form_config WHERE config_key = '$key'");
+    if ($result && $row = $result->fetch_assoc()) {
+        if ($row['config_type'] === 'boolean') {
+            return (bool)(int)$row['config_value'];
+        } elseif ($row['config_type'] === 'integer') {
+            return (int)$row['config_value'];
+        }
+        return $row['config_value'];
+    }
+    return $default;
+}
+
+function setConfig($mysqli, $key, $value, $adminId) {
+    $key = $mysqli->real_escape_string($key);
+    $value = $mysqli->real_escape_string($value);
+    
+    // USAR INSERT ... ON DUPLICATE KEY UPDATE (mais seguro)
+    $query = "INSERT INTO form_config (config_key, config_value, updated_by) 
+              VALUES ('$key', '$value', $adminId)
+              ON DUPLICATE KEY UPDATE config_value = '$value', updated_by = $adminId";
+    
+    $result = $mysqli->query($query);
+    
+    if (!$result) {
+        throw new Exception("Erro ao salvar config '$key': " . $mysqli->error);
+    }
+    
+    return $result;
+}
+
+/* ================= CARREGAR CONFIGURAÇÕES ================= */
+$config = [
+    'require_tax_id' => getConfig($mysqli, 'require_tax_id', true),
+    'require_license' => getConfig($mysqli, 'require_license', true),
+    'allow_manual_creation' => getConfig($mysqli, 'allow_manual_creation', true),
+    'validate_nif_format' => getConfig($mysqli, 'validate_nif_format', false),
+    'tax_id_min_length' => getConfig($mysqli, 'tax_id_min_length', 9),
+    'tax_id_max_length' => getConfig($mysqli, 'tax_id_max_length', 14),
+    'allow_duplicate_email' => getConfig($mysqli, 'allow_duplicate_email', false),
+    'auto_approve' => getConfig($mysqli, 'auto_approve', false),
+    'notify_on_create' => getConfig($mysqli, 'notify_on_create', true),
+    'notify_on_approve' => getConfig($mysqli, 'notify_on_approve', true),
+    'notify_on_reject' => getConfig($mysqli, 'notify_on_reject', true),
+    'send_welcome_email' => getConfig($mysqli, 'send_welcome_email', true),
+    'reminder_after_days' => getConfig($mysqli, 'reminder_after_days', 7),
+    'create_in_platform_x' => getConfig($mysqli, 'create_in_platform_x', false),
+    'add_to_crm' => getConfig($mysqli, 'add_to_crm', false),
+    'generate_contract' => getConfig($mysqli, 'generate_contract', false),
+    'setup_payment' => getConfig($mysqli, 'setup_payment', false)
+];
+
+/* ================= PROCESSAR SAVE ================= */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_config') {
+    
     if ($DEBUG_MODE) {
-        error_reporting(E_ALL);
-        ini_set('display_errors', 1);
+        error_log("POST recebido: " . print_r($_POST, true));
     }
-
-    $adminId = $_SESSION['auth']['user_id'] ?? 0;
-    $adminRole = $_SESSION['auth']['role'] ?? 'admin';
-    $isSuperAdmin = ($adminRole === 'superadmin');
-
-    if (!$isSuperAdmin) {
-        die("Acesso negado. Apenas SuperAdmin pode acessar configurações.");
-    }
-
-    /* ================= HELPER FUNCTIONS ================= */
-    function getConfig($mysqli, $key, $default = null) {
-        $key = $mysqli->real_escape_string($key);
-        $result = $mysqli->query("SELECT config_value, config_type FROM form_config WHERE config_key = '$key'");
-        if ($result && $row = $result->fetch_assoc()) {
-            if ($row['config_type'] === 'boolean') {
-                return (bool)(int)$row['config_value'];
-            } elseif ($row['config_type'] === 'integer') {
-                return (int)$row['config_value'];
-            }
-            return $row['config_value'];
-        }
-        return $default;
-    }
-
-    function setConfig($mysqli, $key, $value, $adminId) {
-        $key = $mysqli->real_escape_string($key);
-        $value = $mysqli->real_escape_string($value);
+    
+    try {
+        $mysqli->begin_transaction();
         
-        // USAR INSERT ... ON DUPLICATE KEY UPDATE (mais seguro)
-        $query = "INSERT INTO form_config (config_key, config_value, updated_by) 
-                VALUES ('$key', '$value', $adminId)
-                ON DUPLICATE KEY UPDATE config_value = '$value', updated_by = $adminId";
+        // Salvar cada configuração
+        setConfig($mysqli, 'require_tax_id', isset($_POST['require_tax_id']) ? '1' : '0', $adminId);
+        setConfig($mysqli, 'require_license', isset($_POST['require_license']) ? '1' : '0', $adminId);
+        setConfig($mysqli, 'allow_manual_creation', isset($_POST['allow_manual_creation']) ? '1' : '0', $adminId);
+        setConfig($mysqli, 'validate_nif_format', isset($_POST['validate_nif_format']) ? '1' : '0', $adminId);
+        setConfig($mysqli, 'tax_id_min_length', (string)(int)($_POST['tax_id_min_length'] ?? 9), $adminId);
+        setConfig($mysqli, 'tax_id_max_length', (string)(int)($_POST['tax_id_max_length'] ?? 14), $adminId);
+        setConfig($mysqli, 'allow_duplicate_email', isset($_POST['allow_duplicate_email']) ? '1' : '0', $adminId);
+        setConfig($mysqli, 'auto_approve', isset($_POST['auto_approve']) ? '1' : '0', $adminId);
+        setConfig($mysqli, 'notify_on_create', isset($_POST['notify_on_create']) ? '1' : '0', $adminId);
+        setConfig($mysqli, 'notify_on_approve', isset($_POST['notify_on_approve']) ? '1' : '0', $adminId);
+        setConfig($mysqli, 'notify_on_reject', isset($_POST['notify_on_reject']) ? '1' : '0', $adminId);
+        setConfig($mysqli, 'send_welcome_email', isset($_POST['send_welcome_email']) ? '1' : '0', $adminId);
+        setConfig($mysqli, 'reminder_after_days', (string)(int)($_POST['reminder_after_days'] ?? 7), $adminId);
+        setConfig($mysqli, 'create_in_platform_x', isset($_POST['create_in_platform_x']) ? '1' : '0', $adminId);
+        setConfig($mysqli, 'add_to_crm', isset($_POST['add_to_crm']) ? '1' : '0', $adminId);
+        setConfig($mysqli, 'generate_contract', isset($_POST['generate_contract']) ? '1' : '0', $adminId);
+        setConfig($mysqli, 'setup_payment', isset($_POST['setup_payment']) ? '1' : '0', $adminId);
         
-        $result = $mysqli->query($query);
+        // Log de auditoria
+        $mysqli->query("INSERT INTO admin_audit_logs (admin_id, action, ip_address) 
+                       VALUES ($adminId, 'ATUALIZOU_CONFIG_FORMULARIOS', '{$_SERVER['REMOTE_ADDR']}')");
         
-        if (!$result) {
-            throw new Exception("Erro ao salvar config '$key': " . $mysqli->error);
-        }
+        $mysqli->commit();
         
-        return $result;
-    }
-
-    /* ================= CARREGAR CONFIGURAÇÕES ================= */
-    $config = [
-        'require_tax_id' => getConfig($mysqli, 'require_tax_id', true),
-        'require_license' => getConfig($mysqli, 'require_license', true),
-        'allow_manual_creation' => getConfig($mysqli, 'allow_manual_creation', true),
-        'validate_nif_format' => getConfig($mysqli, 'validate_nif_format', false),
-        'tax_id_min_length' => getConfig($mysqli, 'tax_id_min_length', 9),
-        'tax_id_max_length' => getConfig($mysqli, 'tax_id_max_length', 14),
-        'allow_duplicate_email' => getConfig($mysqli, 'allow_duplicate_email', false),
-        'auto_approve' => getConfig($mysqli, 'auto_approve', false),
-        'notify_on_create' => getConfig($mysqli, 'notify_on_create', true),
-        'notify_on_approve' => getConfig($mysqli, 'notify_on_approve', true),
-        'notify_on_reject' => getConfig($mysqli, 'notify_on_reject', true),
-        'send_welcome_email' => getConfig($mysqli, 'send_welcome_email', true),
-        'reminder_after_days' => getConfig($mysqli, 'reminder_after_days', 7),
-        'create_in_platform_x' => getConfig($mysqli, 'create_in_platform_x', false),
-        'add_to_crm' => getConfig($mysqli, 'add_to_crm', false),
-        'generate_contract' => getConfig($mysqli, 'generate_contract', false),
-        'setup_payment' => getConfig($mysqli, 'setup_payment', false)
-    ];
-
-    /* ================= PROCESSAR SAVE ================= */
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_config') {
+        // DETECTAR SE É AJAX
+        $isAjax = isset($_POST['ajax']) || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest');
         
         if ($DEBUG_MODE) {
-            error_log("POST recebido: " . print_r($_POST, true));
+            error_log("Configurações salvas com sucesso! AJAX: " . ($isAjax ? 'YES' : 'NO'));
         }
         
-        try {
-            $mysqli->begin_transaction();
-            
-            // Salvar cada configuração
-            setConfig($mysqli, 'require_tax_id', isset($_POST['require_tax_id']) ? '1' : '0', $adminId);
-            setConfig($mysqli, 'require_license', isset($_POST['require_license']) ? '1' : '0', $adminId);
-            setConfig($mysqli, 'allow_manual_creation', isset($_POST['allow_manual_creation']) ? '1' : '0', $adminId);
-            setConfig($mysqli, 'validate_nif_format', isset($_POST['validate_nif_format']) ? '1' : '0', $adminId);
-            setConfig($mysqli, 'tax_id_min_length', (string)(int)($_POST['tax_id_min_length'] ?? 9), $adminId);
-            setConfig($mysqli, 'tax_id_max_length', (string)(int)($_POST['tax_id_max_length'] ?? 14), $adminId);
-            setConfig($mysqli, 'allow_duplicate_email', isset($_POST['allow_duplicate_email']) ? '1' : '0', $adminId);
-            setConfig($mysqli, 'auto_approve', isset($_POST['auto_approve']) ? '1' : '0', $adminId);
-            setConfig($mysqli, 'notify_on_create', isset($_POST['notify_on_create']) ? '1' : '0', $adminId);
-            setConfig($mysqli, 'notify_on_approve', isset($_POST['notify_on_approve']) ? '1' : '0', $adminId);
-            setConfig($mysqli, 'notify_on_reject', isset($_POST['notify_on_reject']) ? '1' : '0', $adminId);
-            setConfig($mysqli, 'send_welcome_email', isset($_POST['send_welcome_email']) ? '1' : '0', $adminId);
-            setConfig($mysqli, 'reminder_after_days', (string)(int)($_POST['reminder_after_days'] ?? 7), $adminId);
-            setConfig($mysqli, 'create_in_platform_x', isset($_POST['create_in_platform_x']) ? '1' : '0', $adminId);
-            setConfig($mysqli, 'add_to_crm', isset($_POST['add_to_crm']) ? '1' : '0', $adminId);
-            setConfig($mysqli, 'generate_contract', isset($_POST['generate_contract']) ? '1' : '0', $adminId);
-            setConfig($mysqli, 'setup_payment', isset($_POST['setup_payment']) ? '1' : '0', $adminId);
-            
-            // Log de auditoria
-            $mysqli->query("INSERT INTO admin_audit_logs (admin_id, action, ip_address) 
-                        VALUES ($adminId, 'ATUALIZOU_CONFIG_FORMULARIOS', '{$_SERVER['REMOTE_ADDR']}')");
-            
-            $mysqli->commit();
-            $_SESSION['success_msg'] = 'Configurações salvas com sucesso!';
-            
-            // Recarregar configurações
-            $config = [
-                'require_tax_id' => getConfig($mysqli, 'require_tax_id', true),
-                'require_license' => getConfig($mysqli, 'require_license', true),
-                'allow_manual_creation' => getConfig($mysqli, 'allow_manual_creation', true),
-                'validate_nif_format' => getConfig($mysqli, 'validate_nif_format', false),
-                'tax_id_min_length' => getConfig($mysqli, 'tax_id_min_length', 9),
-                'tax_id_max_length' => getConfig($mysqli, 'tax_id_max_length', 14),
-                'allow_duplicate_email' => getConfig($mysqli, 'allow_duplicate_email', false),
-                'auto_approve' => getConfig($mysqli, 'auto_approve', false),
-                'notify_on_create' => getConfig($mysqli, 'notify_on_create', true),
-                'notify_on_approve' => getConfig($mysqli, 'notify_on_approve', true),
-                'notify_on_reject' => getConfig($mysqli, 'notify_on_reject', true),
-                'send_welcome_email' => getConfig($mysqli, 'send_welcome_email', true),
-                'reminder_after_days' => getConfig($mysqli, 'reminder_after_days', 7),
-                'create_in_platform_x' => getConfig($mysqli, 'create_in_platform_x', false),
-                'add_to_crm' => getConfig($mysqli, 'add_to_crm', false),
-                'generate_contract' => getConfig($mysqli, 'generate_contract', false),
-                'setup_payment' => getConfig($mysqli, 'setup_payment', false)
-            ];
-            
-            if ($DEBUG_MODE) {
-                error_log("Configurações salvas com sucesso!");
-            }
-            
-        } catch (Exception $e) {
-            $mysqli->rollback();
-            $_SESSION['error_msg'] = 'Erro ao salvar: ' . $e->getMessage();
-            
-            if ($DEBUG_MODE) {
-                error_log("ERRO no save: " . $e->getMessage());
-                error_log("Stack trace: " . $e->getTraceAsString());
-            }
+        // RESPONDER EM JSON SE FOR AJAX
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Configurações salvas com sucesso!'
+            ]);
+            exit;
         }
+        
+        $_SESSION['success_msg'] = 'Configurações salvas com sucesso!';
+        
+        // Recarregar configurações
+        $config = [
+            'require_tax_id' => getConfig($mysqli, 'require_tax_id', true),
+            'require_license' => getConfig($mysqli, 'require_license', true),
+            'allow_manual_creation' => getConfig($mysqli, 'allow_manual_creation', true),
+            'validate_nif_format' => getConfig($mysqli, 'validate_nif_format', false),
+            'tax_id_min_length' => getConfig($mysqli, 'tax_id_min_length', 9),
+            'tax_id_max_length' => getConfig($mysqli, 'tax_id_max_length', 14),
+            'allow_duplicate_email' => getConfig($mysqli, 'allow_duplicate_email', false),
+            'auto_approve' => getConfig($mysqli, 'auto_approve', false),
+            'notify_on_create' => getConfig($mysqli, 'notify_on_create', true),
+            'notify_on_approve' => getConfig($mysqli, 'notify_on_approve', true),
+            'notify_on_reject' => getConfig($mysqli, 'notify_on_reject', true),
+            'send_welcome_email' => getConfig($mysqli, 'send_welcome_email', true),
+            'reminder_after_days' => getConfig($mysqli, 'reminder_after_days', 7),
+            'create_in_platform_x' => getConfig($mysqli, 'create_in_platform_x', false),
+            'add_to_crm' => getConfig($mysqli, 'add_to_crm', false),
+            'generate_contract' => getConfig($mysqli, 'generate_contract', false),
+            'setup_payment' => getConfig($mysqli, 'setup_payment', false)
+        ];
+        
+        if ($DEBUG_MODE) {
+            error_log("Configurações salvas com sucesso!");
+        }
+        
+    } catch (Exception $e) {
+        $mysqli->rollback();
+        
+        // DETECTAR SE É AJAX
+        $isAjax = isset($_POST['ajax']) || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest');
+        
+        if ($DEBUG_MODE) {
+            error_log("ERRO no save: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+        }
+        
+        // RESPONDER EM JSON SE FOR AJAX
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erro ao salvar: ' . $e->getMessage()
+            ]);
+            exit;
+        }
+        
+        $_SESSION['error_msg'] = 'Erro ao salvar: ' . $e->getMessage();
     }
+}
 
-    /* ================= DEBUG INFO ================= */
-    if ($DEBUG_MODE && isset($_GET['debug'])) {
-        echo "<pre style='background:#000;color:#0f0;padding:20px;border-radius:10px;'>";
-        echo "=== DEBUG INFO ===\n\n";
-        echo "Admin ID: $adminId\n";
-        echo "Admin Role: $adminRole\n";
-        echo "Is SuperAdmin: " . ($isSuperAdmin ? 'YES' : 'NO') . "\n\n";
-        
-        echo "=== CONFIGURAÇÕES ATUAIS ===\n";
-        print_r($config);
-        
-        echo "\n=== BANCO DE DADOS ===\n";
-        $result = $mysqli->query("SELECT * FROM form_config ORDER BY config_key");
-        if ($result) {
-            while ($row = $result->fetch_assoc()) {
-                echo "{$row['config_key']} = {$row['config_value']} ({$row['config_type']})\n";
-            }
-        } else {
-            echo "ERRO: " . $mysqli->error . "\n";
+/* ================= DEBUG INFO ================= */
+if ($DEBUG_MODE && isset($_GET['debug'])) {
+    echo "<pre style='background:#000;color:#0f0;padding:20px;border-radius:10px;'>";
+    echo "=== DEBUG INFO ===\n\n";
+    echo "Admin ID: $adminId\n";
+    echo "Admin Role: $adminRole\n";
+    echo "Is SuperAdmin: " . ($isSuperAdmin ? 'YES' : 'NO') . "\n\n";
+    
+    echo "=== CONFIGURAÇÕES ATUAIS ===\n";
+    print_r($config);
+    
+    echo "\n=== BANCO DE DADOS ===\n";
+    $result = $mysqli->query("SELECT * FROM form_config ORDER BY config_key");
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            echo "{$row['config_key']} = {$row['config_value']} ({$row['config_type']})\n";
         }
-        
-        echo "\n=== POST DATA ===\n";
-        print_r($_POST);
-        
-        echo "</pre>";
-        exit;
+    } else {
+        echo "ERRO: " . $mysqli->error . "\n";
     }
+    
+    echo "\n=== POST DATA ===\n";
+    print_r($_POST);
+    
+    echo "</pre>";
+    exit;
+}
 ?>
 
 <style>
-    :root {
-        --bg-page: #0d1117;
-        --bg-card: #161b22;
-        --bg-elevated: #21262d;
-        --text-primary: #c9d1d9;
-        --text-secondary: #8b949e;
-        --text-muted: #6e7681;
-        --accent: #238636;
-        --accent-hover: #2ea043;
-        --border: #30363d;
-        --success: #238636;
-        --warning: #9e6a03;
-        --error: #da3633;
-    }
+:root {
+    --bg-page: #0d1117;
+    --bg-card: #161b22;
+    --bg-elevated: #21262d;
+    --text-primary: #c9d1d9;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --accent: #238636;
+    --accent-hover: #2ea043;
+    --border: #30363d;
+    --success: #238636;
+    --warning: #9e6a03;
+    --error: #da3633;
+}
 
-    * {
-        box-sizing: border-box;
-    }
+* {
+    box-sizing: border-box;
+}
 
-    body {
-        margin: 0;
-        padding: 0;
-        background: var(--bg-page);
-        color: var(--text-primary);
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
-    }
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+}
 
-    .config-container {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 32px 24px;
-    }
+.config-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 24px;
+}
 
-    /* ========== HEADER ========== */
-    .page-header {
-        margin-bottom: 32px;
-        padding-bottom: 24px;
-        border-bottom: 1px solid var(--border);
-    }
+/* ========== HEADER ========== */
+.page-header {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+}
 
-    .header-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-    }
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
 
-    .header-title {
-        font-size: 2rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 0;
-    }
+.header-title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
 
-    .header-subtitle {
-        color: var(--text-secondary);
-        font-size: 0.938rem;
-        line-height: 1.5;
-    }
+.header-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.938rem;
+    line-height: 1.5;
+}
 
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        border-radius: 6px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        cursor: pointer;
-        border: 1px solid transparent;
-        text-decoration: none;
-        transition: all 0.15s;
-    }
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    text-decoration: none;
+    transition: all 0.15s;
+}
 
-    .btn-primary {
-        background: var(--accent);
-        color: #fff;
-        border-color: var(--accent);
-    }
+.btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
 
-    .btn-primary:hover {
-        background: var(--accent-hover);
-    }
+.btn-primary:hover {
+    background: var(--accent-hover);
+}
 
-    .btn-secondary {
-        background: transparent;
-        color: var(--text-secondary);
-        border-color: var(--border);
-    }
+.btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border);
+}
 
-    .btn-secondary:hover {
-        background: var(--bg-elevated);
-        color: var(--text-primary);
-    }
+.btn-secondary:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
 
-    /* ========== ALERT ========== */
-    .alert {
-        padding: 16px;
-        border-radius: 6px;
-        margin-bottom: 24px;
-        font-size: 0.875rem;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        border: 1px solid;
-    }
+/* ========== ALERT ========== */
+.alert {
+    padding: 16px;
+    border-radius: 6px;
+    margin-bottom: 24px;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid;
+}
 
-    .alert-success {
-        background: rgba(35, 134, 54, 0.15);
-        border-color: var(--success);
-        color: #7ee787;
-    }
+.alert-success {
+    background: rgba(35, 134, 54, 0.15);
+    border-color: var(--success);
+    color: #7ee787;
+}
 
-    .alert-error {
-        background: rgba(218, 54, 51, 0.15);
-        border-color: var(--error);
-        color: #ff7b72;
-    }
+.alert-error {
+    background: rgba(218, 54, 51, 0.15);
+    border-color: var(--error);
+    color: #ff7b72;
+}
 
-    .alert-warning {
-        background: rgba(158, 106, 3, 0.15);
-        border-color: var(--warning);
-        color: #f0c065;
-    }
+.alert-warning {
+    background: rgba(158, 106, 3, 0.15);
+    border-color: var(--warning);
+    color: #f0c065;
+}
 
-    /* ========== INFO BANNER ========== */
-    .info-banner {
-        background: rgba(56, 139, 253, 0.15);
-        border: 1px solid #388bfd;
-        border-radius: 6px;
-        padding: 16px;
-        margin-bottom: 32px;
-        display: flex;
-        gap: 16px;
-    }
+/* ========== INFO BANNER ========== */
+.info-banner {
+    background: rgba(56, 139, 253, 0.15);
+    border: 1px solid #388bfd;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 32px;
+    display: flex;
+    gap: 16px;
+}
 
-    .info-icon {
-        color: #58a6ff;
-        font-size: 1.25rem;
-        flex-shrink: 0;
-    }
+.info-icon {
+    color: #58a6ff;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
 
-    .info-content {
-        flex: 1;
-    }
+.info-content {
+    flex: 1;
+}
 
-    .info-title {
-        font-size: 0.938rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 0 0 4px 0;
-    }
+.info-title {
+    font-size: 0.938rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+}
 
-    .info-text {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        line-height: 1.5;
-        margin: 0;
-    }
+.info-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
+}
 
-    /* ========== DEBUG LINK ========== */
-    .debug-link {
-        position: fixed;
-        bottom: 90px;
-        right: 24px;
-        background: rgba(218, 54, 51, 0.2);
-        border: 1px solid var(--error);
-        color: #ff7b72;
-        padding: 8px 16px;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        text-decoration: none;
-        z-index: 99;
-    }
+/* ========== DEBUG LINK ========== */
+.debug-link {
+    position: fixed;
+    bottom: 90px;
+    right: 24px;
+    background: rgba(218, 54, 51, 0.2);
+    border: 1px solid var(--error);
+    color: #ff7b72;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    text-decoration: none;
+    z-index: 99;
+}
 
-    .debug-link:hover {
-        background: rgba(218, 54, 51, 0.3);
-    }
+.debug-link:hover {
+    background: rgba(218, 54, 51, 0.3);
+}
 
-    /* ========== CONFIG GRID ========== */
+/* ========== CONFIG GRID ========== */
+.config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+    gap: 24px;
+    margin-bottom: 80px;
+}
+
+.config-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.section-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: #fff;
+}
+
+.section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* ========== CONFIG ITEMS ========== */
+.config-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.config-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.config-label {
+    flex: 1;
+    padding-right: 16px;
+}
+
+.config-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+}
+
+.config-desc {
+    font-size: 0.813rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin: 0;
+}
+
+.config-control {
+    flex-shrink: 0;
+}
+
+/* ========== TOGGLE SWITCH ========== */
+.toggle {
+    position: relative;
+    width: 48px;
+    height: 28px;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #484f58;
+    border-radius: 28px;
+    transition: 0.3s;
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 4px;
+    top: 4px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.toggle input:checked + .toggle-slider {
+    background: var(--accent);
+}
+
+.toggle input:checked + .toggle-slider::before {
+    transform: translateX(20px);
+}
+
+/* ========== NUMBER INPUT ========== */
+.number-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.number-field {
+    width: 70px;
+    background: var(--bg-page);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    text-align: center;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.number-field:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.number-unit {
+    font-size: 0.813rem;
+    color: var(--text-muted);
+}
+
+/* ========== ACTION CARDS ========== */
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+.action-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    transition: all 0.2s;
+}
+
+.action-card:hover {
+    border-color: var(--accent);
+}
+
+.action-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.action-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.action-desc {
+    font-size: 0.813rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* ========== SAVE BUTTON ========== */
+.save-float {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 100;
+    display: flex;
+    gap: 12px;
+}
+
+.save-btn {
+    background: var(--accent);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 8px 24px rgba(35, 134, 54, 0.5);
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.save-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(35, 134, 54, 0.6);
+}
+
+/* ========== DIVIDER ========== */
+.divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 16px 0;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 1024px) {
     .config-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-        gap: 24px;
-        margin-bottom: 80px;
+        grid-template-columns: 1fr;
     }
-
-    .config-section {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        padding: 24px;
-    }
-
-    .section-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 20px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid var(--border);
-    }
-
-    .section-icon {
-        width: 32px;
-        height: 32px;
-        background: var(--accent);
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-        color: #fff;
-    }
-
-    .section-title {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 0;
-    }
-
-    /* ========== CONFIG ITEMS ========== */
-    .config-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: start;
-        padding: 16px 0;
-        border-bottom: 1px solid var(--border);
-    }
-
-    .config-item:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
-    }
-
-    .config-label {
-        flex: 1;
-        padding-right: 16px;
-    }
-
-    .config-name {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: var(--text-primary);
-        margin: 0 0 4px 0;
-    }
-
-    .config-desc {
-        font-size: 0.813rem;
-        color: var(--text-secondary);
-        line-height: 1.4;
-        margin: 0;
-    }
-
-    .config-control {
-        flex-shrink: 0;
-    }
-
-    /* ========== TOGGLE SWITCH ========== */
-    .toggle {
-        position: relative;
-        width: 48px;
-        height: 28px;
-        cursor: pointer;
-        display: inline-block;
-    }
-
-    .toggle input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-
-    .toggle-slider {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: #484f58;
-        border-radius: 28px;
-        transition: 0.3s;
-    }
-
-    .toggle-slider::before {
-        content: '';
-        position: absolute;
-        width: 20px;
-        height: 20px;
-        left: 4px;
-        top: 4px;
-        background: #fff;
-        border-radius: 50%;
-        transition: 0.3s;
-    }
-
-    .toggle input:checked + .toggle-slider {
-        background: var(--accent);
-    }
-
-    .toggle input:checked + .toggle-slider::before {
-        transform: translateX(20px);
-    }
-
-    /* ========== NUMBER INPUT ========== */
-    .number-input {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .number-field {
-        width: 70px;
-        background: var(--bg-page);
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        padding: 8px 12px;
-        text-align: center;
-        color: var(--text-primary);
-        font-size: 0.875rem;
-    }
-
-    .number-field:focus {
-        outline: none;
-        border-color: var(--accent);
-    }
-
-    .number-unit {
-        font-size: 0.813rem;
-        color: var(--text-muted);
-    }
-
-    /* ========== ACTION CARDS ========== */
+    
     .actions-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .config-container {
+        padding: 16px;
+    }
+    
+    .header-top {
+        flex-direction: column;
+        align-items: flex-start;
         gap: 16px;
     }
-
-    .action-card {
-        background: var(--bg-elevated);
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        padding: 16px;
-        transition: all 0.2s;
-    }
-
-    .action-card:hover {
-        border-color: var(--accent);
-    }
-
-    .action-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-    }
-
-    .action-name {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: var(--text-primary);
-    }
-
-    .action-desc {
-        font-size: 0.813rem;
-        color: var(--text-secondary);
-        line-height: 1.4;
-    }
-
-    /* ========== SAVE BUTTON ========== */
+    
     .save-float {
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        z-index: 100;
-        display: flex;
-        gap: 12px;
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
     }
-
+    
     .save-btn {
-        background: var(--accent);
-        color: #fff;
-        padding: 12px 24px;
-        border-radius: 6px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        box-shadow: 0 8px 24px rgba(35, 134, 54, 0.5);
-        transition: all 0.2s;
-        border: none;
-        cursor: pointer;
-        font-size: 0.875rem;
+        width: 100%;
+        justify-content: center;
     }
-
-    .save-btn:hover {
-        background: var(--accent-hover);
-        transform: translateY(-2px);
-        box-shadow: 0 12px 28px rgba(35, 134, 54, 0.6);
-    }
-
-    /* ========== DIVIDER ========== */
-    .divider {
-        border: none;
-        border-top: 1px solid var(--border);
-        margin: 16px 0;
-    }
-
-    /* ========== RESPONSIVE ========== */
-    @media (max-width: 1024px) {
-        .config-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .actions-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .config-container {
-            padding: 16px;
-        }
-        
-        .header-top {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 16px;
-        }
-        
-        .save-float {
-            left: 16px;
-            right: 16px;
-            bottom: 16px;
-        }
-        
-        .save-btn {
-            width: 100%;
-            justify-content: center;
-        }
-    }
+}
 </style>
 
 <div class="config-container">
@@ -962,50 +994,182 @@ function toggleNifLimits(checkbox) {
     limits.style.display = checkbox.checked ? 'block' : 'none';
 }
 
-let formChanged = false;
-document.getElementById('configForm').addEventListener('change', () => {
-    formChanged = true;
-});
+// PREVENIR REDECLARAÇÃO DE VARIÁVEIS
+if (typeof formChanged === 'undefined') {
+    var formChanged = false;
+}
 
-window.addEventListener('beforeunload', (e) => {
-    if (formChanged) {
+const configForm = document.getElementById('configForm');
+
+if (configForm && !configForm.dataset.listenerAttached) {
+    configForm.dataset.listenerAttached = 'true';
+    
+    configForm.addEventListener('change', () => {
+        formChanged = true;
+    });
+    
+    // CORRIGIR ENVIO DO FORMULÁRIO
+    configForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        e.returnValue = '';
-    }
-});
+        formChanged = false;
+        
+        console.log('🔄 Salvando configurações...');
+        
+        const formData = new FormData(e.target);
+        
+        // Debug: mostrar o que está sendo enviado
+        console.log('📦 FormData a ser enviado:');
+        for (let [key, value] of formData.entries()) {
+            console.log(`  ${key}: ${value}`);
+        }
+        
+        // Adicionar flag para retornar JSON
+        formData.append('ajax', '1');
+        
+        const saveBtn = document.querySelector('.save-btn');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+        saveBtn.disabled = true;
+        
+        try {
+            // USAR CAMINHO ABSOLUTO DO HANDLER
+            const ajaxUrl = 'modules/forms/form-config-save.php';
+            
+            console.log('🌐 Enviando para:', ajaxUrl);
+            
+            const response = await fetch(ajaxUrl, {
+                method: 'POST',
+                body: formData
+            });
+            
+            console.log('📡 Status da resposta:', response.status, response.statusText);
+            
+            const contentType = response.headers.get('content-type');
+            console.log('📄 Content-Type:', contentType);
+            
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('❌ Resposta não é JSON:', text.substring(0, 500));
+                throw new Error('Servidor não retornou JSON. Verifique o console para detalhes.');
+            }
+            
+            const result = await response.json();
+            console.log('✅ Resposta do servidor:', result);
+            
+            if (result.success) {
+                showNotification('success', result.message || 'Configurações salvas com sucesso!');
+            } else {
+                showNotification('error', result.message || 'Erro ao salvar configurações.');
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao salvar:', error);
+            showNotification('error', 'Erro: ' + error.message);
+        } finally {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }
+    });
+}
 
-// CORRIGIR ENVIO DO FORMULÁRIO
-document.getElementById('configForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    formChanged = false;
+// SISTEMA DE NOTIFICAÇÕES MELHORADO
+function showNotification(type, message) {
+    console.log(`🔔 Mostrando notificação: [${type}] ${message}`);
     
-    console.log('Salvando configurações...');
+    // Remover notificações anteriores
+    const oldNotifications = document.querySelectorAll('.notification-toast');
+    oldNotifications.forEach(notif => notif.remove());
     
-    const formData = new FormData(e.target);
+    // Criar notificação
+    const notification = document.createElement('div');
+    notification.className = `notification-toast notification-${type}`;
     
-    // Debug: mostrar o que está sendo enviado
-    console.log('FormData a ser enviado:');
-    for (let [key, value] of formData.entries()) {
-        console.log(`  ${key}: ${value}`);
-    }
+    const icon = type === 'success' 
+        ? '<i class="fa-solid fa-circle-check"></i>' 
+        : '<i class="fa-solid fa-triangle-exclamation"></i>';
     
-    try {
-        const response = await fetch('modules/forms/form-config.php', {
-            method: 'POST',
-            body: formData
-        });
+    const bgColor = type === 'success' ? '#238636' : '#da3633';
+    
+    notification.innerHTML = `
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: ${bgColor};
+            color: #fff;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            font-size: 0.875rem;
+            font-weight: 500;
+            animation: slideInRight 0.3s ease;
+        ">
+            <div style="font-size: 1.25rem;">${icon}</div>
+            <div style="flex: 1;">${message}</div>
+            <button onclick="this.parentElement.parentElement.remove()" style="
+                background: rgba(255,255,255,0.2);
+                border: none;
+                color: #fff;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                cursor: pointer;
+                font-size: 0.75rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            ">×</button>
+        </div>
+    `;
+    
+    // Estilo da notificação
+    notification.style.cssText = `
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        z-index: 10000;
+        min-width: 300px;
+        max-width: 500px;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remover automaticamente após 5 segundos
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+// Adicionar animações CSS
+if (!document.getElementById('notification-styles')) {
+    const style = document.createElement('style');
+    style.id = 'notification-styles';
+    style.textContent = `
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
         
-        const text = await response.text();
-        console.log('Resposta do servidor:', text);
-        
-        // Recarregar a página para mostrar o resultado
-        loadContent('modules/forms/form-config');
-        
-    } catch (error) {
-        console.error('Erro ao salvar:', error);
-        alert('Erro ao salvar configurações. Verifique o console.');
-    }
-});
+        @keyframes slideOutRight {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
 
 console.log('✅ Form Config (Debug Mode) loaded!');
 </script>

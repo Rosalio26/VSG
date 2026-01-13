@@ -1,6 +1,7 @@
 <?php
 /**
  * Middleware de Validação de Dispositivo e Sessão - VisionGreen
+ * USO: Páginas de CADASTRO (novos usuários)
  */
 
 require_once __DIR__ . '/../includes/security.php';
@@ -16,18 +17,13 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 /* ================= 1. EXCEÇÃO TOTAL PARA LOGADOS ================= */
-// Se o usuário já tem uma sessão ativa (Admin, Person ou Company), 
-// ele não precisa validar "fluxo de cadastro".
 if (isset($_SESSION['auth']['user_id'])) {
-    // Apenas validamos o Fingerprint para garantir que a sessão não foi roubada
     validarFingerprint();
-    return; // Libera o acesso para as Dashboards
+    return; // ✅ Usuário logado, libera acesso
 }
 
-/* ================= 2. BLOQUEIO DE FLUXO (APENAS PARA VISITANTES/CADASTRO) ================= */
-// Esta regra só roda se NÃO houver login.
+/* ================= 2. BLOQUEIO DE FLUXO (APENAS PARA VISITANTES) ================= */
 if (empty($_SESSION['cadastro']) || empty($_SESSION['cadastro']['started'])) {
-    // Se não está logado e não iniciou cadastro, manda para o login (ou index)
     header("Location: ../../registration/login/login.php");
     exit;
 }
@@ -54,7 +50,6 @@ function validarFingerprint() {
     }
 }
 
-// Executa detecção para lógica de cadastro abaixo
 $device = detectDevice();
 $isMobileReal  = in_array($device['os'], ['android', 'ios'], true);
 $isDesktopReal = in_array($device['os'], ['windows', 'mac', 'linux'], true);
@@ -83,3 +78,4 @@ if ((defined('APP_ENV') && APP_ENV === 'dev')) {
     $logData = sprintf("[%s] %s | OS: %s | Role: %s\n", date('Y-m-d H:i:s'), $_SERVER['REMOTE_ADDR'], $device['os'], ($_SESSION['auth']['role'] ?? 'Visitante'));
     @file_put_contents($logPath, $logData, FILE_APPEND);
 }
+?>

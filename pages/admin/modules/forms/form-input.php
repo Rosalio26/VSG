@@ -884,9 +884,9 @@ $companies = $mysqli->query("
                     <div class="list-header">
                         <h3 class="list-title">Empresas Cadastradas (<?= $companies->num_rows ?>)</h3>
                         <div class="search-box">
-                            <form method="GET" style="display: flex; gap: 8px;">
-                                <input type="text" name="search" class="search-input" placeholder="Buscar..." value="<?= htmlspecialchars($searchTerm) ?>">
-                                <select name="status" class="filter-select" onchange="this.form.submit()">
+                            <form id="searchForm" style="display: flex; gap: 8px;">
+                                <input type="text" name="search" id="searchInput" class="search-input" placeholder="Buscar..." value="<?= htmlspecialchars($searchTerm) ?>">
+                                <select name="status" id="statusFilter" class="filter-select">
                                     <option value="todos">Todos</option>
                                     <option value="pendente" <?= $statusFilter === 'pendente' ? 'selected' : '' ?>>Pendentes</option>
                                     <option value="aprovado" <?= $statusFilter === 'aprovado' ? 'selected' : '' ?>>Aprovados</option>
@@ -1021,5 +1021,210 @@ document.getElementById('licenseFile')?.addEventListener('change', function(e) {
     }
 });
 
-console.log('✅ Form Input (Expanded) loaded!');
+// ========== BUSCA E FILTRO AJAX ==========
+const searchInput = document.getElementById('searchInput');
+const statusFilter = document.getElementById('statusFilter');
+
+if (searchInput && statusFilter) {
+    let searchTimeout;
+    
+    // Busca com delay
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            applyFilters();
+        }, 500);
+    });
+    
+    // Filtro imediato
+    statusFilter.addEventListener('change', function() {
+        applyFilters();
+    });
+    
+    function applyFilters() {
+        const search = searchInput.value;
+        const status = statusFilter.value;
+        
+        console.log('🔍 Aplicando filtros:', { search, status });
+        
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (status && status !== 'todos') params.append('status', status);
+        
+        const newUrl = 'modules/forms/form-input' + (params.toString() ? '?' + params.toString() : '');
+        loadContent(newUrl);
+    }
+}
+
+// ========== FORM CREATE/EDIT AJAX ==========
+const mainForm = document.querySelector('form[method="POST"][enctype="multipart/form-data"]');
+
+if (mainForm && !mainForm.dataset.listenerAttached) {
+    mainForm.dataset.listenerAttached = 'true';
+    
+    mainForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        console.log('💾 Salvando empresa...');
+        
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+        submitBtn.disabled = true;
+        
+        try {
+            const response = await fetch('modules/forms/form-input-save.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const contentType = response.headers.get('content-type');
+            
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('❌ Resposta não é JSON:', text.substring(0, 500));
+                throw new Error('Servidor não retornou JSON.');
+            }
+            
+            const result = await response.json();
+            console.log('✅ Resposta:', result);
+            
+            if (result.success) {
+                showNotification('success', result.message);
+                
+                // Voltar para lista após 1.5s
+                setTimeout(() => {
+                    loadContent('modules/forms/form-input');
+                }, 1500);
+            } else {
+                showNotification('error', result.message);
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro:', error);
+            showNotification('error', 'Erro: ' + error.message);
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    });
+}
+
+// ========== DELETE AJAX ==========
+document.querySelectorAll('form[method="POST"]:not([enctype])').forEach(form => {
+    if (form.querySelector('input[name="action"][value="delete"]') && !form.dataset.listenerAttached) {
+        form.dataset.listenerAttached = 'true';
+        
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!confirm('Deletar esta empresa?')) return;
+            
+            console.log('🗑️ Deletando empresa...');
+            
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch('modules/forms/form-input-save.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                console.log('✅ Resposta:', result);
+                
+                if (result.success) {
+                    showNotification('success', result.message);
+                    
+                    // Recarregar lista após 1s
+                    setTimeout(() => {
+                        loadContent('modules/forms/form-input');
+                    }, 1000);
+                } else {
+                    showNotification('error', result.message);
+                }
+                
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                showNotification('error', 'Erro ao deletar.');
+            }
+        });
+    }
+});
+
+// ========== SISTEMA DE NOTIFICAÇÕES ==========
+function showNotification(type, message) {
+    console.log(`🔔 [${type}] ${message}`);
+    
+    const oldNotifications = document.querySelectorAll('.notification-toast');
+    oldNotifications.forEach(notif => notif.remove());
+    
+    const notification = document.createElement('div');
+    notification.className = 'notification-toast';
+    
+    const icon = type === 'success' 
+        ? '<i class="fa-solid fa-circle-check"></i>' 
+        : '<i class="fa-solid fa-triangle-exclamation"></i>';
+    
+    const bgColor = type === 'success' ? '#238636' : '#da3633';
+    
+    notification.innerHTML = `
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: ${bgColor};
+            color: #fff;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            font-size: 0.875rem;
+            font-weight: 500;
+            animation: slideInRight 0.3s ease;
+        ">
+            <div style="font-size: 1.25rem;">${icon}</div>
+            <div style="flex: 1;">${message}</div>
+            <button onclick="this.parentElement.parentElement.remove()" style="
+                background: rgba(255,255,255,0.2);
+                border: none;
+                color: #fff;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                cursor: pointer;
+                font-size: 0.75rem;
+            ">×</button>
+        </div>
+    `;
+    
+    notification.style.cssText = 'position: fixed; top: 24px; right: 24px; z-index: 10000; min-width: 300px; max-width: 500px;';
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+// Adicionar animações CSS
+if (!document.getElementById('notification-styles')) {
+    const style = document.createElement('style');
+    style.id = 'notification-styles';
+    style.textContent = `
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideOutRight {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(100px); }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+console.log('✅ Form Input (Expanded + AJAX) loaded!');
 </script>

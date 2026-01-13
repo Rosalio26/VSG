@@ -1,10 +1,11 @@
 <?php
 define('IS_ADMIN_PAGE', true); 
 define('REQUIRED_TYPE', 'admin'); 
-
+define('REQUIRED_ROLE', ['admin', 'superadmin']);
 session_start();
 require_once '../../registration/includes/db.php';
 require_once '../../registration/includes/security.php';
+require_once '../../registration/middleware/middleware_auth.php';
 
 /* ================= 1. SEGURANÇA E FINGERPRINT ================= */
 if (!isset($_SESSION['auth']['role']) || !in_array($_SESSION['auth']['role'], ['admin', 'superadmin'])) {
@@ -175,6 +176,22 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_counters') {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/style/dashboard_admin.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+    // Configuração global do Chart.js
+    window.addEventListener('DOMContentLoaded', function() {
+        if (typeof Chart !== 'undefined') {
+            Chart.defaults.color = '#8b949e';
+            Chart.defaults.borderColor = '#30363d';
+            Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            console.log('✅ Chart.js carregado globalmente');
+            window.chartJSLoaded = true;
+        } else {
+            console.error('❌ Chart.js não carregou');
+        }
+    });
+    </script>
 </head>
 <style>
     /* ========== BOTÃO DE ROTAÇÃO DE SENHA ========== */

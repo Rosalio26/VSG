@@ -86,16 +86,24 @@ if (!isset($_SESSION['auth']) && isset($_COOKIE['remember_token'])) {
     }
 }
 
-/* ================= 5. VIGILANTE DE ROTAÇÃO PARA ADMINS (1 HORA) ================= */
+/* ================= 5. VERIFICAÇÃO DE SENHA EXPIRADA (SEM ROTAÇÃO) ================= */
+/**
+ * MUDANÇA IMPORTANTE:
+ * - Não gera mais senha automaticamente
+ * - Apenas define aviso na sessão
+ * - Admin pode continuar navegando
+ * - Banner no dashboard vai alertar
+ */
 if (isset($_SESSION['auth']['role']) && in_array($_SESSION['auth']['role'], ['admin', 'superadmin'])) {
     require_once __DIR__ . '/db.php';
-    require_once __DIR__ . '/mailer.php';
 
     $admin_id = $_SESSION['auth']['user_id'];
+    $admin_role = $_SESSION['auth']['role'];
     
     // Forçar UTC para sincronia
     date_default_timezone_set('UTC');
     
+    // Busca dados do admin
     $stmt_check = $mysqli->prepare("SELECT password_changed_at, email, nome FROM users WHERE id = ?");
     $stmt_check->bind_param("i", $admin_id);
     $stmt_check->execute();
@@ -105,39 +113,39 @@ if (isset($_SESSION['auth']['role']) && in_array($_SESSION['auth']['role'], ['ad
     if ($admin_info) {
         $last_change = strtotime($admin_info['password_changed_at']);
         $seconds_passed = time() - $last_change;
+        $timeoutLimit = ($admin_role === 'superadmin') ? 3600 : 86400; // 1h ou 24h
 
-        if ($seconds_passed >= 3600) {
-            $chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*";
-            $new_pass = "";
-            for ($i = 0; $i < 10; $i++) { 
-                $new_pass .= $chars[random_int(0, strlen($chars) - 1)]; 
+        // ✅ APENAS AVISA, NÃO EXPULSA
+        if ($seconds_passed >= $timeoutLimit) {
+            $hours_expired = floor($seconds_passed / 3600);
+            $minutes_expired = floor(($seconds_passed % 3600) / 60);
+            
+            // Define aviso na sessão (será mostrado no dashboard)
+            $_SESSION['password_expired'] = true;
+            $_SESSION['password_expired_since'] = $last_change;
+            $_SESSION['password_expired_time'] = "{$hours_expired}h {$minutes_expired}m";
+            $_SESSION['password_warning'] = '⚠️ SEGURANÇA: Sua senha expirou! Renove imediatamente no painel.';
+            
+            // ✅ Log mas NÃO expulsa
+            $ip = $_SERVER['REMOTE_ADDR'];
+            $stmt_log = $mysqli->prepare("
+                INSERT INTO admin_audit_logs (admin_id, action, ip_address, details) 
+                VALUES (?, 'PASSWORD_EXPIRED_WARNING', ?, ?)
+            ");
+            $details = "Senha expirada há {$hours_expired}h {$minutes_expired}m - Admin continua navegando com aviso";
+            if ($stmt_log) {
+                $stmt_log->bind_param('iss', $admin_id, $ip, $details);
+                $stmt_log->execute();
+                $stmt_log->close();
             }
-            $new_hash = password_hash($new_pass, PASSWORD_BCRYPT);
-
-            $mysqli->begin_transaction();
-            try {
-                $php_now = date('Y-m-d H:i:s');
-                $mysqli->query("UPDATE users SET password_hash = '$new_hash', password_changed_at = '$php_now' WHERE id = $admin_id");
-                
-                $ip = $_SERVER['REMOTE_ADDR'];
-                $mysqli->query("INSERT INTO admin_audit_logs (admin_id, action, ip_address) VALUES ($admin_id, 'FORCE_ROTATION_EXPIRED', '$ip')");
-
-                $assunto = "⚠️ Sessão Expirada - Nova Senha VisionGreen";
-                $mensagem = "Olá " . $admin_info['nome'] . ", sua sessão administrativa expirou.<br>Nova senha: <b>$new_pass</b>";
-                
-                enviarEmailVisionGreen($admin_info['email'], $admin_info['nome'], $mensagem);
-
-                $mysqli->commit();
-
-                session_unset();
-                session_destroy();
-                header("Location: ../../registration/login/login.php?info=session_expired");
-                exit;
-
-            } catch (Exception $e) {
-                $mysqli->rollback();
-                error_log("Erro na rotação forçada de admin: " . $e->getMessage());
-            }
+            
+            // ✅ NÃO FAZ NADA MAIS - Admin continua navegando
+        } else {
+            // Limpa avisos se a senha foi renovada
+            unset($_SESSION['password_expired']);
+            unset($_SESSION['password_expired_since']);
+            unset($_SESSION['password_expired_time']);
+            unset($_SESSION['password_warning']);
         }
     }
 }
@@ -148,12 +156,18 @@ if (isset($_SESSION['auth']['role']) && in_array($_SESSION['auth']['role'], ['ad
 $current_time = time();
 $_SESSION['last_activity'] = $current_time;
 
-// 6.2 SINCRONIZAÇÃO COM O BANCO (Para Status Online/Offline na lista de auditores)
+// 6.2 SINCRONIZAÇÃO COM O BANCO (Para Status Online/Offline)
 if (isset($_SESSION['auth']['user_id'])) {
     require_once __DIR__ . '/db.php';
-    $u_id = $_SESSION['auth']['user_id'];
-    // Atualiza a coluna last_activity para que outros administradores vejam o status online
-    $mysqli->query("UPDATE users SET last_activity = $current_time WHERE id = $u_id");
+    $u_id = (int)$_SESSION['auth']['user_id'];
+    
+    // ✅ CORRIGIDO: Usando prepared statement
+    $stmt_activity = $mysqli->prepare("UPDATE users SET last_activity = ? WHERE id = ?");
+    if ($stmt_activity) {
+        $stmt_activity->bind_param('ii', $current_time, $u_id);
+        $stmt_activity->execute();
+        $stmt_activity->close();
+    }
 }
 
 /**
@@ -202,3 +216,5 @@ if (defined('IS_ADMIN_PAGE') || (isset($_SESSION['auth']['role']) && in_array($_
         exit;
     }
 }
+
+?>

@@ -177,7 +177,7 @@ try {
             $stmt_log2->bind_param('is', $user['id'], $ip_address);
             $stmt_log2->execute();
             
-            header("Location: ../../admin/system/force_password_change.php");
+            header("Location: ../../admin/system/passwords/force_password_change.php");
             exit;
         }
     }

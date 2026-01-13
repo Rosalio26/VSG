@@ -1,7 +1,11 @@
 <?php
+define('REQUIRED_TYPE', 'company');
+define('REQUIRE_APPROVED_DOCS', true); // ⭐ Bloqueia se docs pendentes
+
 session_start();
 require_once '../../registration/includes/db.php';
 require_once '../../registration/includes/security.php';
+require_once '../../registration/middleware/middleware_auth.php';
 
 /* ================= 1. SEGURANÇA & DADOS ================= */
 if (empty($_SESSION['auth']['user_id'])) {
