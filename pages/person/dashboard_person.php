@@ -1,5 +1,7 @@
 <?php
-session_start();
+define('REQUIRED_TYPE', 'person');
+require_once '../../registration/middleware/middleware_auth.php';
+
 require_once '../../registration/includes/db.php';
 require_once '../../registration/includes/security.php'; // Inclusão para usar CSRF no logout
 
@@ -112,6 +114,7 @@ $statusTraduzido = [
             <li><strong>Telefone:</strong> <?= htmlspecialchars($user['telefone'] ?: 'Não informado') ?></li>
             <li><strong>ID Público (UID):</strong> <code><?= htmlspecialchars($user['public_id']) ?></code></li>
             <li><strong>Membro desde:</strong> <?= date('d/m/Y H:i', strtotime($user['created_at'])) ?></li>
+            <p>Type: <?= htmlspecialchars($authUser['type']) ?></p>
         </ul>
     </div>
 

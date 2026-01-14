@@ -119,7 +119,7 @@ body.sidebar-is-collapsed .sidebar {
 /* ========== BOTÃO COLLAPSE ========== */
 .collapse-btn {
     position: absolute;
-    right: -15px;
+    right: 1px;
     top: 35px;
     width: 30px;
     height: 30px;
@@ -863,4 +863,252 @@ body.sidebar-is-collapsed .sidebar .nav-submenu {
     .main-wrapper-content {
         padding: 20px;
     }
+}
+
+/* ========== BOTÃO DE ROTAÇÃO DE SENHA ========== */
+.security-widget {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.rotate-password-btn {
+    background: var(--accent-green);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #000;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rotate-password-btn:hover {
+    transform: rotate(180deg);
+    background: #00ff88;
+    box-shadow: 0 0 20px rgba(0,255,136,0.5);
+}
+
+/* ========== MODAL DE SENHA ========== */
+.password-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(10px);
+    z-index: 10000;
+}
+
+.password-modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.password-modal-content {
+    background: #1a1a1a;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 500px;
+    width: 90%;
+    animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.password-text {
+    font-family: 'Courier New', monospace;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--accent-green);
+    letter-spacing: 3px;
+}
+
+.password-warning-banner {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    max-width: 800px;
+    width: 90%;
+    animation: slideDown 0.5s ease, shake 0.5s ease 0.5s;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-50%) translateY(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(-50%) translateY(5px); }
+}
+
+.banner-container {
+    background: linear-gradient(135deg, #ff4d4d 0%, #ff1a1a 100%);
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 15px;
+    padding: 20px 25px;
+    box-shadow: 0 10px 40px rgba(255,77,77,0.4);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.banner-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.banner-icon {
+    font-size: 2.5rem;
+    color: #fff;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.banner-content {
+    flex: 1;
+}
+
+.banner-title {
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 900;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.banner-message {
+    color: rgba(255,255,255,0.95);
+    font-size: 0.9rem;
+    margin: 0 0 12px 0;
+    line-height: 1.5;
+}
+
+.banner-details {
+    display: flex;
+    gap: 20px;
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.8);
+}
+
+.banner-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.banner-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.btn-renew-now {
+    background: #fff;
+    color: #ff4d4d;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 900;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    justify-content: center;
+}
+
+.btn-renew-now:hover {
+    background: #ffff00;
+    transform: scale(1.05);
+    box-shadow: 0 5px 20px rgba(255,255,255,0.3);
+}
+
+.btn-dismiss {
+    background: transparent;
+    color: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-dismiss:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .password-warning-banner {
+        top: 60px;
+        width: 95%;
+    }
+    
+    .banner-container {
+        flex-direction: column;
+        padding: 20px;
+    }
+    
+    .banner-details {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .banner-actions {
+        width: 100%;
+    }
+    
+    .btn-renew-now {
+        width: 100%;
+    }
+}
+
+@keyframes slideUp {
+    from { opacity: 1; transform: translateX(-50%) translateY(0); }
+    to { opacity: 0; transform: translateX(-50%) translateY(-20px); }
 }
