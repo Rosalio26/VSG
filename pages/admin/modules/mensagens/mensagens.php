@@ -1,20 +1,34 @@
 <?php
-    if (!defined('IS_ADMIN_PAGE')) {
-        require_once '../../../../registration/includes/db.php';
-        session_start();
-    }
+/**
+ * ================================================================================
+ * VISIONGREEN DASHBOARD - SISTEMA DE MENSAGENS (COMPLETO)
+ * Módulo: modules/mensagens/mensagens.php
+ * Descrição: Chat em tempo real com UI GitHub Dark
+ * Proteção: Role-based access
+ * ================================================================================
+ */
 
-    $adminId = $_SESSION['auth']['user_id'] ?? 0;
-    $adminRole = $_SESSION['auth']['role'] ?? 'admin';
-    $isSuperAdmin = ($adminRole === 'superadmin');
+if (!defined('IS_ADMIN_PAGE')) {
+    require_once '../../../../registration/includes/db.php';
+    session_start();
+}
 
-    /* ================= BUSCAR CONVERSAS ================= */
-    $chatAtivo = isset($_GET['id']) ? (int)$_GET['id'] : null;
+$adminId = $_SESSION['auth']['user_id'] ?? 0;
+$adminRole = $_SESSION['auth']['role'] ?? 'admin';
+$isSuperAdmin = ($adminRole === 'superadmin');
 
+/* ================= BUSCAR CONVERSAS (ROLE-BASED) ================= */
+$chatAtivo = isset($_GET['id']) ? (int)$_GET['id'] : null;
+
+// Admin não vê conversas com SuperAdmins
+if ($isSuperAdmin) {
     $queryContatos = "
         SELECT 
             u.id as contato_id, 
             u.nome,
+            u.email,
+            u.role,
+            u.last_activity,
             conv.ultima_msg,
             conv.data_msg,
             conv.nao_lidas
@@ -33,507 +47,151 @@
             AND (n.sender_id = $adminId OR n.receiver_id = $adminId)
             GROUP BY user_id
         ) as conv ON conv.user_id = u.id
+        WHERE u.deleted_at IS NULL
         ORDER BY conv.data_msg DESC
     ";
+} else {
+    $queryContatos = "
+        SELECT 
+            u.id as contato_id, 
+            u.nome,
+            u.email,
+            u.role,
+            u.last_activity,
+            conv.ultima_msg,
+            conv.data_msg,
+            conv.nao_lidas
+        FROM users u
+        INNER JOIN (
+            SELECT 
+                CASE 
+                    WHEN n.sender_id = $adminId THEN n.receiver_id
+                    ELSE n.sender_id
+                END as user_id,
+                MAX(n.created_at) as data_msg,
+                SUBSTRING_INDEX(GROUP_CONCAT(n.message ORDER BY n.created_at DESC), ',', 1) as ultima_msg,
+                SUM(CASE WHEN n.receiver_id = $adminId AND n.status = 'unread' THEN 1 ELSE 0 END) as nao_lidas
+            FROM notifications n
+            WHERE n.category = 'chat'
+            AND (n.sender_id = $adminId OR n.receiver_id = $adminId)
+            GROUP BY user_id
+        ) as conv ON conv.user_id = u.id
+        WHERE u.deleted_at IS NULL
+        AND u.role != 'superadmin'
+        ORDER BY conv.data_msg DESC
+    ";
+}
 
-    $contatos = $mysqli->query($queryContatos);
+$contatos = $mysqli->query($queryContatos);
 
-    // Buscar informações do usuário ativo
-    $contatoInfo = null;
-    if ($chatAtivo) {
-        $resUser = $mysqli->query("SELECT nome FROM users WHERE id = $chatAtivo");
-        $contatoInfo = $resUser->fetch_assoc();
+// Buscar informações do usuário ativo
+$contatoInfo = null;
+if ($chatAtivo) {
+    $resUser = $mysqli->query("SELECT nome, email, role, last_activity FROM users WHERE id = $chatAtivo AND deleted_at IS NULL");
+    $contatoInfo = $resUser ? $resUser->fetch_assoc() : null;
+    
+    // Verificar se Admin pode ver este contato
+    if (!$isSuperAdmin && $contatoInfo && $contatoInfo['role'] === 'superadmin') {
+        $contatoInfo = null; // Bloqueia acesso
+        $chatAtivo = null;
     }
+}
+
+// Estatísticas
+$total_conversas = $contatos ? $contatos->num_rows : 0;
+$total_nao_lidas = 0;
+if ($contatos) {
+    $contatos->data_seek(0);
+    while ($c = $contatos->fetch_assoc()) {
+        $total_nao_lidas += $c['nao_lidas'];
+    }
+    $contatos->data_seek(0);
+}
 ?>
 
-<style>
-    :root {
-        --bg-sidebar: #0b0f0a;
-        --bg-body: #050705;
-        --bg-card: #121812;
-        --text-main: #a0ac9f;
-        --text-title: #ffffff;
-        --accent-green: #00ff88;
-        --accent-emerald: #00a63d;
-        --accent-glow: rgba(0, 255, 136, 0.3);
-        --border-color: rgba(0, 255, 136, 0.08);
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes fadeOut {
-        from { opacity: 1; transform: translateY(0); }
-        to { opacity: 0; transform: translateY(-10px); }
-    }
-
-    @keyframes slideIn {
-        from { transform: translateX(-20px); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-    }
-
-    .chat-container {
-        display: flex;
-        height: calc(100vh - 200px);
-        background: #0005078a;
-        border-radius: 20px;
-        overflow: hidden;
-        border: 1px solid var(--border-color);
-        animation: fadeIn 0.4s ease;
-    }
-
-    /* ========== SIDEBAR ========== */
-    .sidebar {
-        width: 350px;
-        border-right: 1px solid var(--border-color);
-        display: flex;
-        flex-direction: column;
-        background: var(--bg-card);
-    }
-
-    .sidebar-header {
-        padding: 15px 25px;
-        border-bottom: 1px solid var(--border-color);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: rgba(0, 255, 136, 0.02);
-    }
-
-    .sidebar-header h2 {
-        color: var(--text-title);
-        margin: 0;
-        font-size: 1.3rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, var(--accent-green), var(--accent-emerald));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    .new-chat-btn {
-        background: var(--accent-green);
-        border: none;
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        cursor: pointer;
-        color: #000;
-        font-size: 1.1rem;
-        transition: 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .new-chat-btn:hover {
-        box-shadow: 0 0 20px var(--accent-glow);
-        transform: translateY(-2px);
-    }
-
-    .search-box {
-        padding: 15px 20px;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .search-input {
-        width: 100%;
-        background: rgba(0, 255, 136, 0.05);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 10px 15px;
-        color: var(--text-title);
-        font-size: 0.85rem;
-        outline: none;
-        transition: 0.3s;
-    }
-
-    .search-input:focus {
-        border-color: var(--accent-green);
-        box-shadow: 0 0 15px var(--accent-glow);
-    }
-
-    .contacts-list {
-        flex: 1;
-        overflow-y: auto;
-        padding: 10px;
-    }
-
-    .contact-item {
-        padding: 15px;
-        border-radius: 12px;
-        margin-bottom: 8px;
-        cursor: pointer;
-        transition: 0.2s;
-        position: relative;
-        animation: slideIn 0.3s ease;
-        background: rgba(0, 255, 136, 0.02);
-        border: 1px solid transparent;
-    }
-
-    .contact-item:hover {
-        background: rgba(0, 255, 136, 0.05);
-        border-color: var(--border-color);
-    }
-
-    .contact-item.active {
-        background: rgba(0, 255, 136, 0.1);
-        border-color: var(--accent-green);
-        box-shadow: 0 0 15px var(--accent-glow);
-    }
-
-    .contact-avatar {
-        width: 45px;
-        height: 45px;
-        border-radius: 12px;
-    }
-
-    .online-status {
-        width: 10px;
-        height: 10px;
-        background: var(--accent-green);
-        border-radius: 50%;
-        position: absolute;
-        bottom: 2px;
-        right: 2px;
-        border: 2px solid var(--bg-card);
-        animation: pulse 2s infinite;
-    }
-
-    .unread-badge {
-        background: var(--accent-green);
-        color: #000;
-        font-size: 0.7rem;
-        font-weight: 900;
-        padding: 3px 8px;
-        border-radius: 10px;
-        min-width: 20px;
-        text-align: center;
-    }
-
-    /* ========== CHAT AREA ========== */
-    .chat-main {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        background: #0005078a;
-    }
-
-    .chat-header {
-        padding: 10px 30px;
-        background: var(--bg-card);
-        border-bottom: 1px solid var(--border-color);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        position: relative;
-    }
-
-    .chat-user-avatar {
-        width: 45px;
-        height: 45px;
-        border-radius: 12px;
-    }
-
-    .action-btn {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--border-color);
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        cursor: pointer;
-        color: var(--text-main);
-        transition: 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .action-btn:hover {
-        background: rgba(0, 255, 136, 0.1);
-        border-color: var(--accent-green);
-        color: var(--accent-green);
-    }
-
-    /* ========== MESSAGES ========== */
-    #chatBox {
-        flex: 1;
-        padding: 30px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        scroll-behavior: smooth;
-    }
-
-    /* ========== DATE DIVIDER ========== */
-    .date-divider {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 20px 0;
-        position: relative;
-    }
-
-    .date-divider::before,
-    .date-divider::after {
-        content: '';
-        flex: 1;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, var(--border-color), transparent);
-    }
-
-    .date-divider span {
-        padding: 0 15px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: var(--text-main);
-        background: var(--bg-body);
-        letter-spacing: 1px;
-    }
-
-    .message-wrapper {
-        max-width: 70%;
-        display: flex;
-        flex-direction: column;
-        animation: fadeIn 0.3s ease;
-    }
-
-    .message-wrapper.sent {
-        align-self: flex-end;
-        align-items: flex-end;
-    }
-
-    .message-wrapper.received {
-        align-self: flex-start;
-        align-items: flex-start;
-    }
-
-    .message-bubble {
-        padding: 12px 18px;
-        border-radius: 16px;
-        font-size: 0.95rem;
-        line-height: 1.5;
-        position: relative;
-        word-wrap: break-word;
-    }
-
-    .message-bubble:hover .delete-msg-btn {
-        display: block !important;
-    }
-
-    .message-wrapper.sent .message-bubble {
-        background: linear-gradient(135deg, var(--accent-green), var(--accent-emerald));
-        color: #000;
-        border-bottom-right-radius: 4px;
-    }
-
-    .message-wrapper.received .message-bubble {
-        background: var(--bg-card);
-        color: var(--text-title);
-        border: 1px solid var(--border-color);
-        border-bottom-left-radius: 4px;
-    }
-
-    .message-time {
-        color: rgba(255, 255, 255, 0.4);
-        font-size: 0.7rem;
-        margin-top: 4px;
-        font-weight: 600;
-    }
-
-    .message-status {
-        display: inline-block;
-        margin-left: 5px;
-        font-size: 0.75rem;
-    }
-
-    /* ========== INPUT ========== */
-    .message-input-area {
-        padding: 10px 30px;
-        background: var(--bg-card);
-        border-top: 1px solid var(--border-color);
-    }
-
-    .input-wrapper {
-        display: flex;
-        gap: 12px;
-        background: rgba(0, 255, 136, 0.05);
-        padding: 8px 15px;
-        border-radius: 25px;
-        border: 1px solid var(--border-color);
-        align-items: center;
-        transition: 0.3s;
-    }
-
-    .input-wrapper:focus-within {
-        border-color: var(--accent-green);
-        box-shadow: 0 0 20px var(--accent-glow);
-    }
-
-    .message-input {
-        flex: 1;
-        background: transparent;
-        border: none;
-        color: var(--text-title);
-        outline: none;
-        padding: 8px;
-        font-size: 0.95rem;
-    }
-
-    .input-btn {
-        background: transparent;
-        border: none;
-        color: var(--text-main);
-        cursor: pointer;
-        font-size: 1.1rem;
-        transition: 0.3s;
-        padding: 4px;
-    }
-
-    .input-btn:hover {
-        color: var(--accent-green);
-        transform: scale(1.1);
-    }
-
-    .send-btn {
-        background: var(--accent-green);
-        border: none;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        cursor: pointer;
-        color: #000;
-        transition: 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .send-btn:hover {
-        box-shadow: 0 0 20px var(--accent-glow);
-        transform: scale(1.05);
-    }
-
-    /* ========== CONTEXT MENU ========== */
-    .context-menu {
-        position: absolute;
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 8px;
-        display: none;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        z-index: 1000;
-        min-width: 180px;
-    }
-
-    .context-menu.active {
-        display: block;
-    }
-
-    .context-menu-item {
-        padding: 10px 15px;
-        border-radius: 8px;
-        cursor: pointer;
-        color: var(--text-title);
-        font-size: 0.85rem;
-        transition: 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .context-menu-item:hover {
-        background: rgba(0, 255, 136, 0.1);
-    }
-
-    .context-menu-item.danger {
-        color: #ff4d4d;
-    }
-
-    .context-menu-item.danger:hover {
-        background: rgba(255, 77, 77, 0.1);
-    }
-
-    /* ========== EMPTY STATE ========== */
-    .empty-chat {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-main);
-        opacity: 0.3;
-    }
-
-    .empty-chat i {
-        font-size: 5rem;
-        margin-bottom: 20px;
-    }
-
-    /* ========== SCROLLBAR ========== */
-    .contacts-list::-webkit-scrollbar,
-    #chatBox::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .contacts-list::-webkit-scrollbar-track,
-    #chatBox::-webkit-scrollbar-track {
-        background: rgba(0, 0, 0, 0.2);
-    }
-
-    .contacts-list::-webkit-scrollbar-thumb,
-    #chatBox::-webkit-scrollbar-thumb {
-        background: var(--accent-green);
-        border-radius: 10px;
-    }
-</style>
+<!-- HEADER -->
+<div style="margin-bottom: 24px;">
+    <h1 style="color: var(--text-title); font-size: 2rem; font-weight: 800; margin: 0 0 8px 0;">
+        <i class="fa-solid fa-comments" style="color: var(--accent);"></i>
+        Mensagens
+        <?php if (!$isSuperAdmin): ?>
+            <span class="badge info" style="margin-left: 12px; font-size: 0.8rem;">
+                <i class="fa-solid fa-info-circle"></i>
+                Visualização Limitada
+            </span>
+        <?php endif; ?>
+    </h1>
+    <p style="color: var(--text-secondary); font-size: 0.938rem;">
+        Sistema de mensagens em tempo real
+    </p>
+</div>
 
 <div class="chat-container">
     <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2>Mensagens</h2>
-            <button class="new-chat-btn" title="Nova conversa">
+            <h2>Conversas</h2>
+            <div class="sidebar-stats">
+                <div class="sidebar-stat">
+                    <i class="fa-solid fa-message"></i>
+                    <strong><?= $total_conversas ?></strong> conversas
+                </div>
+                <?php if ($total_nao_lidas > 0): ?>
+                    <div class="sidebar-stat">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <strong><?= $total_nao_lidas ?></strong> não lidas
+                    </div>
+                <?php endif; ?>
+            </div>
+            <button class="btn btn-primary" 
+                    onclick="loadContent('modules/mensagens/nova_msg')" 
+                    style="margin-top: 12px; width: 100%;"
+                    title="Nova conversa">
                 <i class="fa-solid fa-plus"></i>
+                Nova Conversa
             </button>
         </div>
 
         <div class="search-box">
-            <input type="text" id="searchContacts" class="search-input" placeholder="🔍 Buscar conversas...">
+            <input type="text" id="searchContacts" class="search-input" placeholder="Buscar conversas...">
         </div>
 
         <div class="contacts-list" id="contactsList">
             <?php if ($contatos && $contatos->num_rows > 0): ?>
-                <?php while ($c = $contatos->fetch_assoc()): ?>
+                <?php while ($c = $contatos->fetch_assoc()): 
+                    $isOnline = ($c['last_activity'] && $c['last_activity'] > (time() - 900)); // 15 min
+                ?>
                     <div class="contact-item <?= $chatAtivo == $c['contato_id'] ? 'active' : '' ?>" 
                          data-contact-id="<?= $c['contato_id'] ?>"
                          data-contact-name="<?= strtolower($c['nome']) ?>"
                          onclick="loadContent('modules/mensagens/mensagens?id=<?= $c['contato_id'] ?>')">
                         
-                        <div style="display: flex; gap: 12px; align-items: center;">
-                            <div style="position: relative;">
-                                <img src="https://ui-avatars.com/api/?name=<?= urlencode($c['nome']) ?>&background=00ff88&color=000&bold=true" class="contact-avatar">
-                                <?php if (rand(0,1)): ?><div class="online-status"></div><?php endif; ?>
+                        <?php if ($isOnline): ?>
+                            <div class="online-indicator"></div>
+                        <?php endif; ?>
+                        
+                        <img src="https://ui-avatars.com/api/?name=<?= urlencode($c['nome']) ?>&background=238636&color=fff&bold=true&size=44" 
+                             class="contact-avatar" 
+                             alt="<?= htmlspecialchars($c['nome']) ?>">
+                        
+                        <div class="contact-info">
+                            <div class="contact-name">
+                                <?= htmlspecialchars($c['nome']) ?>
+                                <?php if ($isSuperAdmin && $c['role']): ?>
+                                    <span class="badge <?= $c['role'] === 'superadmin' ? 'error' : ($c['role'] === 'admin' ? 'info' : 'neutral') ?> contact-role-badge">
+                                        <?= strtoupper($c['role']) ?>
+                                    </span>
+                                <?php endif; ?>
                             </div>
-                            <div style="flex: 1; overflow: hidden;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                    <strong style="color: var(--text-title); font-size: 0.9rem;"><?= htmlspecialchars($c['nome']) ?></strong>
-                                    <small style="color: var(--text-main); font-size: 0.7rem;">
-                                        <?= $c['data_msg'] ? date('H:i', strtotime($c['data_msg'])) : '' ?>
-                                    </small>
-                                </div>
-                                <p style="color: var(--text-main); font-size: 0.8rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    <?= htmlspecialchars($c['ultima_msg'] ?? 'Inicie uma conversa') ?>
-                                </p>
+                            <div class="contact-preview">
+                                <?= htmlspecialchars($c['ultima_msg'] ?? 'Inicie uma conversa') ?>
                             </div>
+                        </div>
+                        
+                        <div class="contact-meta">
+                            <span class="contact-time">
+                                <?= $c['data_msg'] ? date('H:i', strtotime($c['data_msg'])) : '' ?>
+                            </span>
                             <?php if ($c['nao_lidas'] > 0): ?>
                                 <span class="unread-badge"><?= $c['nao_lidas'] ?></span>
                             <?php endif; ?>
@@ -543,7 +201,8 @@
             <?php else: ?>
                 <div class="empty-chat">
                     <i class="fa-solid fa-inbox"></i>
-                    <p>Nenhuma conversa</p>
+                    <h3>Nenhuma conversa</h3>
+                    <p>Suas mensagens aparecerão aqui</p>
                 </div>
             <?php endif; ?>
         </div>
@@ -551,35 +210,55 @@
 
     <!-- CHAT AREA -->
     <div class="chat-main">
-        <?php if ($chatAtivo && $contatoInfo): ?>
+        <?php if ($chatAtivo && $contatoInfo): 
+            $isOnline = ($contatoInfo['last_activity'] && $contatoInfo['last_activity'] > (time() - 900));
+        ?>
             <!-- HEADER -->
             <div class="chat-header">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <img src="https://ui-avatars.com/api/?name=<?= urlencode($contatoInfo['nome']) ?>&background=00ff88&color=000&bold=true" class="chat-user-avatar">
+                <div class="chat-user-info">
+                    <img src="https://ui-avatars.com/api/?name=<?= urlencode($contatoInfo['nome']) ?>&background=238636&color=fff&bold=true&size=44" 
+                         class="chat-user-avatar" 
+                         alt="<?= htmlspecialchars($contatoInfo['nome']) ?>">
                     <div>
-                        <h4 style="color: var(--text-title); margin: 0; font-weight: 700;"><?= htmlspecialchars($contatoInfo['nome']) ?></h4>
-                        <small style="color: var(--text-main); font-size: 0.75rem;">Online</small>
+                        <div class="chat-user-name">
+                            <?= htmlspecialchars($contatoInfo['nome']) ?>
+                            <?php if ($isSuperAdmin && $contatoInfo['role']): ?>
+                                <span class="badge <?= $contatoInfo['role'] === 'superadmin' ? 'error' : ($contatoInfo['role'] === 'admin' ? 'info' : 'neutral') ?>" style="font-size: 0.7rem; margin-left: 6px;">
+                                    <?= strtoupper($contatoInfo['role']) ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="chat-user-status">
+                            <?php if ($isOnline): ?>
+                                <i class="fa-solid fa-circle" style="color: var(--accent); font-size: 0.5rem;"></i>
+                                Online
+                            <?php else: ?>
+                                <i class="fa-solid fa-circle" style="color: var(--text-muted); font-size: 0.5rem;"></i>
+                                Offline
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 10px;">
+                
+                <div class="action-buttons">
                     <button class="action-btn" onclick="markChatAsUnread(<?= $chatAtivo ?>)" title="Marcar como não lida">
                         <i class="fa-solid fa-envelope"></i>
                     </button>
-                    <button class="action-btn" onclick="toggleChatOptions()" title="Mais opções">
+                    <button class="action-btn" onclick="toggleChatOptions(event)" title="Mais opções">
                         <i class="fa-solid fa-ellipsis-vertical"></i>
                     </button>
-                    
-                    <!-- Menu de opções (3 pontos) -->
-                    <div id="chatOptionsMenu" style="display: none; position: absolute; right: 30px; top: 70px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; min-width: 200px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 1000;">
-                        <div class="context-menu-item" onclick="clearChat(<?= $chatAtivo ?>)">
-                            <i class="fa-solid fa-broom"></i> Limpar conversa
-                        </div>
-                        <div class="context-menu-item" onclick="exportChat(<?= $chatAtivo ?>)">
-                            <i class="fa-solid fa-download"></i> Exportar chat
-                        </div>
-                        <div class="context-menu-item danger" onclick="deleteConversation(<?= $chatAtivo ?>)">
-                            <i class="fa-solid fa-trash"></i> Excluir conversa
-                        </div>
+                </div>
+                
+                <!-- Options Menu -->
+                <div id="chatOptionsMenu" class="options-menu">
+                    <div class="context-menu-item" onclick="clearChat(<?= $chatAtivo ?>)">
+                        <i class="fa-solid fa-broom"></i> Limpar conversa
+                    </div>
+                    <div class="context-menu-item" onclick="exportChat(<?= $chatAtivo ?>)">
+                        <i class="fa-solid fa-download"></i> Exportar chat
+                    </div>
+                    <div class="context-menu-item danger" onclick="deleteConversation(<?= $chatAtivo ?>)">
+                        <i class="fa-solid fa-trash"></i> Excluir conversa
                     </div>
                 </div>
             </div>
@@ -596,98 +275,101 @@
                     ORDER BY created_at ASC
                 ");
                 
-                $currentDateLabel = null;
-                
-                while ($m = $historico->fetch_assoc()): 
-                    $isMe = ($m['sender_id'] == $adminId);
+                if ($historico && $historico->num_rows > 0):
+                    $currentDateLabel = null;
                     
-                    // Calcular label da data
-                    $msgDate = date('Y-m-d', strtotime($m['created_at']));
-                    $hoje = date('Y-m-d');
-                    $ontem = date('Y-m-d', strtotime('-1 day'));
-                    $semanaAtras = date('Y-m-d', strtotime('-7 days'));
-                    
-                    // Determinar label
-                    if ($msgDate === $hoje) {
-                        $dateLabel = 'HOJE';
-                    } elseif ($msgDate === $ontem) {
-                        $dateLabel = 'ONTEM';
-                    } elseif ($msgDate >= $semanaAtras) {
-                        // Dia da semana em português
-                        $diaSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
-                        $dateLabel = strtoupper($diaSemana[date('w', strtotime($msgDate))]);
-                    } else {
-                        // Data completa
-                        $dateLabel = date('d/m/Y', strtotime($msgDate));
-                    }
-                    
-                    // Mostrar divisor se mudou a data
-                    if ($dateLabel !== $currentDateLabel):
-                        $currentDateLabel = $dateLabel;
+                    while ($m = $historico->fetch_assoc()): 
+                        $isMe = ($m['sender_id'] == $adminId);
+                        
+                        // Date divider logic
+                        $msgDate = date('Y-m-d', strtotime($m['created_at']));
+                        $hoje = date('Y-m-d');
+                        $ontem = date('Y-m-d', strtotime('-1 day'));
+                        
+                        if ($msgDate === $hoje) {
+                            $dateLabel = 'HOJE';
+                        } elseif ($msgDate === $ontem) {
+                            $dateLabel = 'ONTEM';
+                        } else {
+                            $dateLabel = date('d/m/Y', strtotime($msgDate));
+                        }
+                        
+                        if ($dateLabel !== $currentDateLabel):
+                            $currentDateLabel = $dateLabel;
                 ?>
-                        <div class="date-divider">
-                            <span><?= $dateLabel ?></span>
-                        </div>
+                            <div class="date-divider">
+                                <span><?= $dateLabel ?></span>
+                            </div>
                 <?php endif; ?>
                 
-                    <div class="message-wrapper <?= $isMe ? 'sent' : 'received' ?>" data-msg-id="<?= $m['id'] ?>">
-                        <div class="message-bubble" oncontextmenu="showContextMenu(event, <?= $m['id'] ?>, <?= $isMe ? 'true' : 'false' ?>)">
-                            <?= nl2br(htmlspecialchars($m['message'])) ?>
-                            <?php if ($isMe): ?>
-                                <button onclick="event.stopPropagation(); deleteMessage(<?= $m['id'] ?>)" style="position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.5); border: none; color: #fff; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; display: none; font-size: 0.7rem;" class="delete-msg-btn" title="Excluir">
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
-                            <?php endif; ?>
+                        <div class="message-wrapper <?= $isMe ? 'sent' : 'received' ?>" data-msg-id="<?= $m['id'] ?>">
+                            <div class="message-bubble" oncontextmenu="showContextMenu(event, <?= $m['id'] ?>, <?= $isMe ? 'true' : 'false' ?>, '<?= htmlspecialchars(addslashes($m['message']), ENT_QUOTES) ?>')">
+                                <?= nl2br(htmlspecialchars($m['message'])) ?>
+                                <?php if ($isMe): ?>
+                                    <button onclick="event.stopPropagation(); deleteMessage(<?= $m['id'] ?>)" class="delete-msg-btn" title="Excluir">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                            <small class="message-time">
+                                <?= date('H:i', strtotime($m['created_at'])) ?>
+                                <?php if ($isMe): ?>
+                                    <span class="message-status">
+                                        <?= $m['status'] === 'read' ? '✓✓' : '✓' ?>
+                                    </span>
+                                <?php endif; ?>
+                            </small>
                         </div>
-                        <small class="message-time">
-                            <?= date('H:i', strtotime($m['created_at'])) ?>
-                            <?php if ($isMe): ?>
-                                <span class="message-status">
-                                    <?= $m['status'] === 'read' ? '✓✓' : '✓' ?>
-                                </span>
-                            <?php endif; ?>
-                        </small>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div class="empty-chat">
+                        <i class="fa-solid fa-message"></i>
+                        <h3>Nenhuma mensagem ainda</h3>
+                        <p>Inicie a conversa enviando uma mensagem</p>
                     </div>
-                <?php endwhile; ?>
+                <?php endif; ?>
             </div>
 
             <!-- INPUT -->
             <div class="message-input-area">
                 <div class="input-wrapper">
-                    <button class="input-btn" title="Anexar">
+                    <button class="input-btn" title="Anexar arquivo" onclick="showToast('Recurso em desenvolvimento', 'error')">
                         <i class="fa-solid fa-paperclip"></i>
                     </button>
-                    <input type="text" id="fastMsgInput" class="message-input" placeholder="Escreva uma mensagem...">
-                    <button class="input-btn" title="Emoji">
+                    <input type="text" id="fastMsgInput" class="message-input" placeholder="Digite uma mensagem..." autocomplete="off">
+                    <button class="input-btn" title="Emoji" onclick="showToast('Recurso em desenvolvimento', 'error')">
                         <i class="fa-solid fa-face-smile"></i>
                     </button>
-                    <button class="send-btn" onclick="enviarChatRapido(<?= $chatAtivo ?>)">
+                    <button class="send-btn" id="sendBtn" onclick="enviarChatRapido(<?= $chatAtivo ?>)">
                         <i class="fa-solid fa-paper-plane"></i>
                     </button>
-                </div>
-            </div>
-
-            <!-- CONTEXT MENU -->
-            <div id="contextMenu" class="context-menu">
-                <div class="context-menu-item" onclick="copyMessage()">
-                    <i class="fa-solid fa-copy"></i> Copiar
-                </div>
-                <div class="context-menu-item danger" onclick="deleteMessageFromContext()" id="deleteOption" style="display: none;">
-                    <i class="fa-solid fa-trash"></i> Excluir
                 </div>
             </div>
 
         <?php else: ?>
             <div class="empty-chat">
                 <i class="fa-solid fa-comments"></i>
-                <h2 style="color: var(--text-title); margin: 10px 0;">Selecione uma conversa</h2>
-                <p>Escolha um contato para começar</p>
+                <h3>Selecione uma conversa</h3>
+                <p>Escolha um contato para começar a conversar</p>
             </div>
         <?php endif; ?>
     </div>
 </div>
 
+<!-- Context Menu -->
+<div id="contextMenu" class="context-menu">
+    <div class="context-menu-item" onclick="copyMessage()">
+        <i class="fa-solid fa-copy"></i> Copiar mensagem
+    </div>
+    <div class="context-menu-item danger" onclick="deleteMessageFromContext()" id="deleteOption" style="display: none;">
+        <i class="fa-solid fa-trash"></i> Excluir mensagem
+    </div>
+</div>
+
 <script>
+(function() {
+    'use strict';
+    
     const ADMIN_ID = <?= $adminId ?>;
     const CHAT_ID = <?= $chatAtivo ?? 0 ?>;
     let currentContextMsgId = null;
@@ -695,15 +377,20 @@
     let isMyMessage = false;
     let lastMessageCount = 0;
 
-    // Enviar mensagem (CORRIGIDO: modules/mensagens/actions/processar_msg.php)
+    // ========== ENVIAR MENSAGEM ==========
     function enviarChatRapido(toId) {
         const inputElem = document.getElementById('fastMsgInput');
-        if(!inputElem) return;
+        const sendBtn = document.getElementById('sendBtn');
+        if (!inputElem || !sendBtn) return;
         
         const msg = inputElem.value.trim();
-        if(!msg) return;
+        if (!msg) return;
 
-        console.log('Enviando mensagem para:', toId, 'Mensagem:', msg);
+        // Disable input
+        inputElem.disabled = true;
+        sendBtn.disabled = true;
+        
+        const originalMsg = msg;
         inputElem.value = '';
 
         const formData = new FormData();
@@ -716,89 +403,207 @@
             method: 'POST',
             body: formData
         })
-        .then(res => {
-            console.log('Response status:', res.status);
-            return res.text();
-        })
+        .then(res => res.text())
         .then(text => {
-            console.log('Response text:', text);
             try {
                 const data = JSON.parse(text);
-                if(data.status === 'success') {
-                    atualizarMensagens(toId);
-                    showToast('Mensagem enviada!');
+                if (data.status === 'success') {
+                    // ADICIONAR MENSAGEM IMEDIATAMENTE (otimistic update)
+                    adicionarMensagemLocal(msg, true, data.msg_id);
+                    
+                    // ATUALIZAR LISTA DE CONVERSAS
+                    atualizarListaConversas();
+                    
+                    // ATUALIZAR MENSAGENS DO SERVIDOR (confirmação)
+                    setTimeout(() => atualizarMensagens(toId), 500);
+                    
+                    showToast('Mensagem enviada!', 'success');
                 } else {
-                    console.error('Erro:', data);
-                    inputElem.value = msg;
+                    inputElem.value = originalMsg;
                     showToast(data.message || 'Erro ao enviar', 'error');
                 }
             } catch(e) {
-                console.error('Erro ao parsear JSON:', e, 'Text:', text);
-                inputElem.value = msg;
+                console.error('Parse error:', e, 'Response:', text);
+                inputElem.value = originalMsg;
                 showToast('Erro ao processar resposta', 'error');
             }
         })
         .catch(err => {
-            console.error('Erro no fetch:', err);
-            inputElem.value = msg;
+            console.error('Fetch error:', err);
+            inputElem.value = originalMsg;
             showToast('Erro ao enviar mensagem', 'error');
+        })
+        .finally(() => {
+            inputElem.disabled = false;
+            sendBtn.disabled = false;
+            inputElem.focus();
+        });
+    }
+    window.enviarChatRapido = enviarChatRapido;
+
+    // ========== ADICIONAR MENSAGEM LOCAL (OPTIMISTIC UPDATE) ==========
+    function adicionarMensagemLocal(message, isSent, msgId) {
+        const chatBox = document.getElementById('chatBox');
+        if (!chatBox) return;
+        
+        // Verificar se precisa adicionar divisor de data (HOJE)
+        let lastDivider = chatBox.querySelector('.date-divider:last-of-type span');
+        if (!lastDivider || lastDivider.textContent !== 'HOJE') {
+            const divider = document.createElement('div');
+            divider.className = 'date-divider';
+            divider.innerHTML = '<span>HOJE</span>';
+            chatBox.appendChild(divider);
+        }
+        
+        const wrapper = document.createElement('div');
+        wrapper.className = `message-wrapper ${isSent ? 'sent' : 'received'}`;
+        wrapper.dataset.msgId = msgId || 'temp-' + Date.now();
+        
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+        const escapedMsg = escapeHtml(message).replace(/\n/g, '<br>');
+        
+        wrapper.innerHTML = `
+            <div class="message-bubble">
+                ${escapedMsg}
+                ${isSent ? `<button onclick="event.stopPropagation(); deleteMessage(${msgId || 0})" class="delete-msg-btn" title="Excluir"><i class="fa-solid fa-xmark"></i></button>` : ''}
+            </div>
+            <small class="message-time">
+                ${timeStr}
+                ${isSent ? '<span class="message-status">✓</span>' : ''}
+            </small>
+        `;
+        
+        chatBox.appendChild(wrapper);
+        
+        // Scroll para o fim
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        // Incrementar contador
+        lastMessageCount++;
+        
+        // Animação
+        wrapper.style.animation = 'fadeIn 0.3s ease';
+    }
+
+    // ========== ATUALIZAR LISTA DE CONVERSAS ==========
+    function atualizarListaConversas() {
+        fetch('modules/mensagens/actions/processar_msg.php?action=get_conversations')
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success' && data.conversations) {
+                atualizarSidebarConversas(data.conversations);
+            }
+        })
+        .catch(err => console.error('Erro ao atualizar conversas:', err));
+    }
+
+    // ========== ATUALIZAR SIDEBAR CONVERSAS ==========
+    function atualizarSidebarConversas(conversations) {
+        const contactsList = document.getElementById('contactsList');
+        if (!contactsList) return;
+        
+        // Manter conversa ativa
+        const activeId = CHAT_ID;
+        
+        // Limpar e recriar
+        contactsList.innerHTML = '';
+        
+        if (conversations.length === 0) {
+            contactsList.innerHTML = `
+                <div class="empty-chat">
+                    <i class="fa-solid fa-inbox"></i>
+                    <h3>Nenhuma conversa</h3>
+                    <p>Suas mensagens aparecerão aqui</p>
+                </div>
+            `;
+            return;
+        }
+        
+        conversations.forEach(conv => {
+            const isOnline = conv.is_online || false;
+            const isActive = (conv.contato_id == activeId);
+            
+            const contactDiv = document.createElement('div');
+            contactDiv.className = `contact-item ${isActive ? 'active' : ''}`;
+            contactDiv.dataset.contactId = conv.contato_id;
+            contactDiv.dataset.contactName = conv.nome.toLowerCase();
+            contactDiv.onclick = () => loadContent(`modules/mensagens/mensagens?id=${conv.contato_id}`);
+            
+            contactDiv.innerHTML = `
+                ${isOnline ? '<div class="online-indicator"></div>' : ''}
+                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(conv.nome)}&background=238636&color=fff&bold=true&size=44" 
+                     class="contact-avatar" 
+                     alt="${escapeHtml(conv.nome)}">
+                <div class="contact-info">
+                    <div class="contact-name">
+                        ${escapeHtml(conv.nome)}
+                        ${conv.role_badge ? `<span class="badge ${conv.role_badge.class} contact-role-badge">${conv.role_badge.text}</span>` : ''}
+                    </div>
+                    <div class="contact-preview">
+                        ${escapeHtml(conv.ultima_msg || 'Inicie uma conversa')}
+                    </div>
+                </div>
+                <div class="contact-meta">
+                    <span class="contact-time">
+                        ${conv.data_msg ? formatTime(conv.data_msg) : ''}
+                    </span>
+                    ${conv.nao_lidas > 0 ? `<span class="unread-badge">${conv.nao_lidas}</span>` : ''}
+                </div>
+            `;
+            
+            contactsList.appendChild(contactDiv);
         });
     }
 
-    // Atualizar mensagens (CORRIGIDO)
+    function formatTime(datetime) {
+        const date = new Date(datetime);
+        const today = new Date();
+        const isToday = date.toDateString() === today.toDateString();
+        
+        if (isToday) {
+            return date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+        } else {
+            return date.toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'});
+        }
+    }
+
+    // ========== ATUALIZAR MENSAGENS ==========
     function atualizarMensagens(toId) {
-        if(!toId) return;
+        if (!toId) return;
         
         fetch(`modules/mensagens/actions/processar_msg.php?action=fetch_messages&id=${toId}`)
         .then(res => res.json())
         .then(data => {
-            if(data.status === 'success') {
+            if (data.status === 'success') {
                 const chatBox = document.getElementById('chatBox');
-                if(!chatBox) return;
+                if (!chatBox) return;
                 
                 const currentMessages = data.messages.length;
                 
-                if(currentMessages > lastMessageCount) {
+                if (currentMessages > lastMessageCount) {
                     const isAtBottom = (chatBox.scrollHeight - chatBox.scrollTop <= chatBox.clientHeight + 100);
                     const newMessages = data.messages.slice(lastMessageCount);
                     
-                    let lastDateLabel = null;
-                    
-                    // Pegar última data label existente
-                    const lastDivider = chatBox.querySelector('.date-divider:last-of-type');
-                    if(lastDivider) {
-                        lastDateLabel = lastDivider.querySelector('span').textContent;
-                    }
+                    let lastDateLabel = chatBox.querySelector('.date-divider:last-of-type span')?.textContent;
                     
                     newMessages.forEach(m => {
                         const isMe = (m.sender_id == ADMIN_ID);
-                        
-                        // Calcular data label
                         const msgDate = new Date(m.created_at);
                         const hoje = new Date();
                         const ontem = new Date(hoje);
                         ontem.setDate(hoje.getDate() - 1);
-                        const semanaAtras = new Date(hoje);
-                        semanaAtras.setDate(hoje.getDate() - 7);
                         
                         let dateLabel;
-                        const msgDateStr = msgDate.toDateString();
-                        const hojeStr = hoje.toDateString();
-                        const ontemStr = ontem.toDateString();
-                        
-                        if(msgDateStr === hojeStr) {
+                        if (msgDate.toDateString() === hoje.toDateString()) {
                             dateLabel = 'HOJE';
-                        } else if(msgDateStr === ontemStr) {
+                        } else if (msgDate.toDateString() === ontem.toDateString()) {
                             dateLabel = 'ONTEM';
-                        } else if(msgDate >= semanaAtras) {
-                            const diasSemana = ['DOMINGO', 'SEGUNDA-FEIRA', 'TERÇA-FEIRA', 'QUARTA-FEIRA', 'QUINTA-FEIRA', 'SEXTA-FEIRA', 'SÁBADO'];
-                            dateLabel = diasSemana[msgDate.getDay()];
                         } else {
                             dateLabel = msgDate.toLocaleDateString('pt-BR');
                         }
                         
-                        // Adicionar divisor se mudou a data
-                        if(dateLabel !== lastDateLabel) {
+                        if (dateLabel !== lastDateLabel) {
                             const divider = document.createElement('div');
                             divider.className = 'date-divider';
                             divider.innerHTML = `<span>${dateLabel}</span>`;
@@ -811,11 +616,12 @@
                         wrapper.dataset.msgId = m.id;
                         
                         const escapedMsg = escapeHtml(m.message).replace(/\n/g, '<br>');
+                        const escapedForAttr = m.message.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         
                         wrapper.innerHTML = `
-                            <div class="message-bubble" oncontextmenu="showContextMenu(event, ${m.id}, ${isMe})">
+                            <div class="message-bubble" oncontextmenu="showContextMenu(event, ${m.id}, ${isMe}, '${escapedForAttr}')">
                                 ${escapedMsg}
-                                ${isMe ? `<button onclick="event.stopPropagation(); deleteMessage(${m.id})" style="position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.5); border: none; color: #fff; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; display: none; font-size: 0.7rem;" class="delete-msg-btn" title="Excluir"><i class="fa-solid fa-xmark"></i></button>` : ''}
+                                ${isMe ? `<button onclick="event.stopPropagation(); deleteMessage(${m.id})" class="delete-msg-btn" title="Excluir"><i class="fa-solid fa-xmark"></i></button>` : ''}
                             </div>
                             <small class="message-time">
                                 ${new Date(m.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}
@@ -827,48 +633,51 @@
                     });
                     
                     lastMessageCount = currentMessages;
-                    if(isAtBottom) chatBox.scrollTop = chatBox.scrollHeight;
+                    if (isAtBottom) chatBox.scrollTop = chatBox.scrollHeight;
                 }
             }
-        }).catch(err => console.error('Erro:', err));
+        }).catch(err => console.error('Update error:', err));
     }
 
-    // Deletar mensagem (CORRIGIDO)
+    // ========== DELETAR MENSAGEM ==========
     function deleteMessage(msgId) {
-        if(!confirm('Excluir esta mensagem?')) return;
+        if (!confirm('Excluir esta mensagem?')) return;
         
         fetch(`modules/mensagens/actions/processar_msg.php?action=delete_message&msg_id=${msgId}`)
         .then(res => res.json())
         .then(data => {
-            if(data.status === 'success') {
+            if (data.status === 'success') {
                 const elem = document.querySelector(`[data-msg-id="${msgId}"]`);
-                if(elem) {
+                if (elem) {
                     elem.style.animation = 'fadeOut 0.3s ease';
                     setTimeout(() => elem.remove(), 300);
                 }
                 lastMessageCount--;
-                showToast('Mensagem excluída');
+                
+                // Atualizar lista de conversas (última mensagem pode ter mudado)
+                setTimeout(() => atualizarListaConversas(), 500);
+                
+                showToast('Mensagem excluída', 'success');
             } else {
                 showToast(data.message || 'Erro ao excluir', 'error');
             }
         });
     }
+    window.deleteMessage = deleteMessage;
 
-    // Context menu
-    function showContextMenu(event, msgId, isMine) {
+    // ========== CONTEXT MENU ==========
+    function showContextMenu(event, msgId, isMine, msgText) {
         event.preventDefault();
         
         const menu = document.getElementById('contextMenu');
-        if(!menu) return;
+        if (!menu) return;
         
         currentContextMsgId = msgId;
         isMyMessage = isMine;
-        
-        const bubble = event.target.closest('.message-bubble');
-        currentContextMsgText = bubble ? bubble.textContent.trim() : '';
+        currentContextMsgText = msgText || event.target.textContent.trim();
         
         const deleteOption = document.getElementById('deleteOption');
-        if(deleteOption) deleteOption.style.display = isMine ? 'flex' : 'none';
+        if (deleteOption) deleteOption.style.display = isMine ? 'flex' : 'none';
         
         menu.style.left = event.pageX + 'px';
         menu.style.top = event.pageY + 'px';
@@ -878,36 +687,41 @@
             document.addEventListener('click', () => menu.classList.remove('active'), { once: true });
         }, 10);
     }
+    window.showContextMenu = showContextMenu;
 
     function copyMessage() {
         navigator.clipboard.writeText(currentContextMsgText).then(() => {
-            showToast('Mensagem copiada!');
+            showToast('Mensagem copiada!', 'success');
         });
     }
+    window.copyMessage = copyMessage;
 
     function deleteMessageFromContext() {
         deleteMessage(currentContextMsgId);
     }
+    window.deleteMessageFromContext = deleteMessageFromContext;
 
-    // Menu de 3 pontos (USA: processar_msg.php)
-    function toggleChatOptions() {
+    // ========== OPTIONS MENU ==========
+    function toggleChatOptions(event) {
+        event.stopPropagation();
         const menu = document.getElementById('chatOptionsMenu');
-        if(!menu) return;
+        if (!menu) return;
         
-        const isVisible = menu.style.display === 'block';
-        menu.style.display = isVisible ? 'none' : 'block';
+        const isActive = menu.classList.contains('active');
+        menu.classList.toggle('active');
         
-        if(!isVisible) {
+        if (!isActive) {
             setTimeout(() => {
                 document.addEventListener('click', () => {
-                    menu.style.display = 'none';
+                    menu.classList.remove('active');
                 }, { once: true });
             }, 10);
         }
     }
+    window.toggleChatOptions = toggleChatOptions;
 
     function clearChat(chatId) {
-        if(!confirm('Limpar toda a conversa? As mensagens serão apagadas permanentemente.')) return;
+        if (!confirm('Limpar toda a conversa? As mensagens serão apagadas permanentemente.')) return;
         
         const formData = new FormData();
         formData.append('action', 'clear_chat');
@@ -919,27 +733,27 @@
         })
         .then(res => res.json())
         .then(data => {
-            if(data.status === 'success') {
-                showToast('Conversa limpa!');
-                loadContent('modules/mensagens/mensagens');
+            if (data.status === 'success') {
+                showToast('Conversa limpa!', 'success');
+                setTimeout(() => loadContent('modules/mensagens/mensagens'), 500);
             } else {
                 showToast(data.message || 'Erro ao limpar', 'error');
             }
         });
     }
+    window.clearChat = clearChat;
 
     function exportChat(chatId) {
-        showToast('Exportando conversa...');
+        showToast('Exportando conversa...', 'success');
         
         fetch(`modules/mensagens/actions/processar_msg.php?action=export_chat&user_id=${chatId}`)
         .then(res => res.json())
         .then(data => {
-            if(data.status === 'success') {
-                // Criar arquivo para download
+            if (data.status === 'success') {
                 const content = `CONVERSA COM: ${data.user_name}\nDATA DE EXPORTAÇÃO: ${data.export_date}\n\n` +
                     data.messages.map(m => `[${m.timestamp}] ${m.sender}: ${m.message}`).join('\n\n');
                 
-                const blob = new Blob([content], { type: 'text/plain' });
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -947,48 +761,38 @@
                 a.click();
                 URL.revokeObjectURL(url);
                 
-                showToast('Conversa exportada!');
+                showToast('Conversa exportada!', 'success');
             } else {
                 showToast(data.message || 'Erro ao exportar', 'error');
             }
         });
     }
+    window.exportChat = exportChat;
 
     function deleteConversation(chatId) {
-        if(!confirm('ATENÇÃO: Excluir toda a conversa permanentemente? Esta ação não pode ser desfeita.')) return;
-        
-        clearChat(chatId); // Usa a mesma função de limpar
+        if (!confirm('ATENÇÃO: Excluir toda a conversa permanentemente? Esta ação não pode ser desfeita.')) return;
+        clearChat(chatId);
     }
+    window.deleteConversation = deleteConversation;
 
     function markChatAsUnread(chatId) {
         fetch(`modules/mensagens/actions/processar_msg.php?action=mark_unread&chat_id=${chatId}`)
         .then(res => res.json())
         .then(data => {
-            if(data.status === 'success') {
-                showToast('Marcado como não lida');
+            if (data.status === 'success') {
+                showToast('Marcado como não lida', 'success');
             }
         });
     }
+    window.markChatAsUnread = markChatAsUnread;
 
-    // Toast notification (ATUALIZADO com erro)
+    // ========== TOAST ==========
     function showToast(message, type = 'success', duration = 3000) {
         const toast = document.createElement('div');
-        toast.textContent = message;
-        const bgColor = type === 'success' ? 'var(--accent-green)' : '#ff4d4d';
-        const textColor = type === 'success' ? '#000' : '#fff';
-        
-        toast.style.cssText = `
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background: ${bgColor};
-            color: ${textColor};
-            padding: 15px 25px;
-            border-radius: 12px;
-            font-weight: 700;
-            z-index: 10000;
-            animation: fadeIn 0.3s ease;
-            box-shadow: 0 5px 20px ${type === 'success' ? 'var(--accent-glow)' : 'rgba(255,77,77,0.3)'};
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+            <i class="fa-solid fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+            ${message}
         `;
         document.body.appendChild(toast);
         
@@ -997,6 +801,7 @@
             setTimeout(() => toast.remove(), 300);
         }, duration);
     }
+    window.showToast = showToast;
 
     function escapeHtml(text) {
         const div = document.createElement('div');
@@ -1004,39 +809,49 @@
         return div.innerHTML;
     }
 
-    // Enter para enviar
+    // ========== EVENT LISTENERS ==========
     const msgInput = document.getElementById('fastMsgInput');
-    if(msgInput) {
+    if (msgInput) {
         msgInput.addEventListener('keypress', function(e) {
-            if(e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                if(CHAT_ID > 0) enviarChatRapido(CHAT_ID);
+                if (CHAT_ID > 0) enviarChatRapido(CHAT_ID);
             }
         });
     }
 
-    // Busca de contatos
     const searchInput = document.getElementById('searchContacts');
-    if(searchInput) {
+    if (searchInput) {
         searchInput.addEventListener('input', function(e) {
             const search = e.target.value.toLowerCase();
             document.querySelectorAll('.contact-item').forEach(contact => {
                 const name = contact.dataset.contactName || '';
-                contact.style.display = name.includes(search) ? 'block' : 'none';
+                contact.style.display = name.includes(search) ? 'flex' : 'none';
             });
         });
     }
 
-    // Auto-atualização
-    if(CHAT_ID > 0) {
+    // ========== AUTO-UPDATE ==========
+    if (CHAT_ID > 0) {
         const chatBox = document.getElementById('chatBox');
-        if(chatBox) {
+        if (chatBox) {
             lastMessageCount = chatBox.querySelectorAll('.message-wrapper').length;
             setTimeout(() => chatBox.scrollTop = chatBox.scrollHeight, 100);
         }
         
-        setInterval(() => atualizarMensagens(CHAT_ID), 5000);
+        // Atualizar mensagens a cada 3 segundos (mais rápido)
+        setInterval(() => atualizarMensagens(CHAT_ID), 3000);
     }
+    
+    // Atualizar lista de conversas a cada 10 segundos
+    setInterval(() => atualizarListaConversas(), 10000);
 
-    console.log('✅ Chat carregado! API: modules/mensagens/processar_msg.php');
+    console.log('✅ Sistema de mensagens carregado!');
+    console.log('🔄 Auto-refresh: Mensagens (3s), Conversas (10s)');
+    <?php if (!$isSuperAdmin): ?>
+    console.log('ℹ️ Modo Admin: Conversas com SuperAdmins ocultas');
+    <?php else: ?>
+    console.log('👑 Modo SuperAdmin: Todas as conversas visíveis');
+    <?php endif; ?>
+})();
 </script>

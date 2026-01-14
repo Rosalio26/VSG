@@ -226,30 +226,48 @@ $docs_urgentes = $mysqli->query("
     LIMIT 5
 ");
 
-/* ================= ATIVIDADES RECENTES ================= */
-// Admin vê apenas SUAS ações e ações de outros Admins (não vê SuperAdmin)
+/* ================= ATIVIDADES RECENTES (ROLE-BASED FILTERING) ================= */
+// Admin NÃO VÊ ações de SuperAdmins - PROTEÇÃO EM MÚLTIPLAS CAMADAS
 if ($isSuperAdmin) {
+    // SuperAdmin vê TODAS as ações (incluindo de outros SuperAdmins)
     $sql_atividades = "
         SELECT 
+            al.id,
             al.action,
-            COALESCE(u.nome, 'Sistema') as admin_nome,
+            al.ip_address,
+            al.details,
             al.created_at,
-            al.ip_address
+            COALESCE(u.nome, 'Sistema') as admin_nome,
+            u.email as admin_email,
+            u.role as admin_role
         FROM admin_audit_logs al
         LEFT JOIN users u ON al.admin_id = u.id
         ORDER BY al.created_at DESC
         LIMIT 6
     ";
 } else {
+    // Admin BLOQUEADO: Não vê SuperAdmins
     $sql_atividades = "
         SELECT 
+            al.id,
             al.action,
-            COALESCE(u.nome, 'Sistema') as admin_nome,
+            al.ip_address,
+            al.details,
             al.created_at,
-            al.ip_address
+            COALESCE(u.nome, 'Sistema') as admin_nome,
+            u.email as admin_email,
+            u.role as admin_role
         FROM admin_audit_logs al
         LEFT JOIN users u ON al.admin_id = u.id
-        WHERE (u.role = 'admin' OR u.role IS NULL OR al.admin_id = $adminId)
+        WHERE (
+            u.role = 'admin'                    -- Vê outros admins
+            OR u.role IS NULL                   -- Vê ações do sistema
+            OR al.admin_id = $adminId           -- Vê suas próprias ações
+        )
+        AND (
+            u.role != 'superadmin'              -- BLOQUEIA SuperAdmins
+            OR u.role IS NULL                   -- Permite sistema
+        )
         ORDER BY al.created_at DESC
         LIMIT 6
     ";
@@ -582,16 +600,33 @@ $atividades_recentes = $mysqli->query($sql_atividades);
                             <div style="color: var(--text-primary); font-weight: 600; font-size: 0.875rem; margin-bottom: 4px;">
                                 <?= htmlspecialchars($ativ['action']) ?>
                             </div>
-                            <div style="color: var(--text-secondary); font-size: 0.75rem; display: flex; gap: 16px;">
-                                <span>
+                            <div style="color: var(--text-secondary); font-size: 0.75rem; display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                                <span style="display: flex; align-items: center; gap: 4px;">
                                     <i class="fa-solid fa-user"></i>
                                     <?= htmlspecialchars($ativ['admin_nome']) ?>
+                                    
+                                    <?php if ($isSuperAdmin && $ativ['admin_role']): ?>
+                                        <span class="badge <?= $ativ['admin_role'] === 'superadmin' ? 'error' : 'info' ?>" style="font-size: 0.65rem; margin-left: 4px;">
+                                            <?= $ativ['admin_role'] === 'superadmin' ? '👑 SUPERADMIN' : '🛡️ ADMIN' ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </span>
                                 <span>
                                     <i class="fa-solid fa-clock"></i>
                                     <?= date('d/m/Y H:i', strtotime($ativ['created_at'])) ?>
                                 </span>
+                                <span>
+                                    <i class="fa-solid fa-location-dot"></i>
+                                    <?= htmlspecialchars($ativ['ip_address']) ?>
+                                </span>
                             </div>
+                            
+                            <?php if ($isSuperAdmin && !empty($ativ['details'])): ?>
+                                <div style="margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px; font-size: 0.7rem; color: var(--text-muted); font-family: 'Courier New', monospace;">
+                                    <i class="fa-solid fa-info-circle"></i>
+                                    <?= htmlspecialchars(substr($ativ['details'], 0, 100)) ?><?= strlen($ativ['details']) > 100 ? '...' : '' ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <?php endwhile; ?>

@@ -1,267 +1,358 @@
 <?php
 /**
- * PROCESSAR MENSAGENS - API ENDPOINT
- * Caminho: modules/mensagens/actions/processar_msg.php
+ * ================================================================================
+ * PROCESSADOR DE AÇÕES - SISTEMA DE MENSAGENS
+ * Arquivo: modules/mensagens/actions/processar_msg.php
+ * Descrição: Backend para todas as ações do chat com proteção role-based
+ * ================================================================================
  */
-
-// Habilitar log de erros
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-error_log("=== PROCESSAR_MSG.PHP INICIADO ===");
 
 require_once '../../../../../registration/includes/db.php';
 session_start();
 
-// Configurar headers para JSON
 header('Content-Type: application/json');
 
-// Verificar autenticação
-if (!isset($_SESSION['auth']['user_id'])) {
-    error_log("Erro: Usuário não autenticado");
+$adminId = $_SESSION['auth']['user_id'] ?? 0;
+$adminRole = $_SESSION['auth']['role'] ?? 'admin';
+$isSuperAdmin = ($adminRole === 'superadmin');
+
+if (!$adminId) {
     echo json_encode(['status' => 'error', 'message' => 'Não autenticado']);
     exit;
 }
 
-$adminId = $_SESSION['auth']['user_id'];
-error_log("Admin ID: $adminId");
-
-// Pegar ação
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
-error_log("Ação recebida: $action");
-error_log("POST: " . print_r($_POST, true));
-error_log("GET: " . print_r($_GET, true));
 
-/* ================= ENVIAR MENSAGEM ================= */
-if ($action === 'send_message' || isset($_POST['send_msg'])) {
-    error_log("=== PROCESSANDO ENVIO DE MENSAGEM ===");
-    
-    try {
-        $receiverId = (int)($_POST['receiver_id'] ?? 0);
-        $message = trim($_POST['message'] ?? '');
-        $subject = $_POST['subject'] ?? 'Mensagem';
+try {
+    switch ($action) {
         
-        error_log("Receiver: $receiverId, Message: $message");
-        
-        if ($receiverId <= 0) {
-            throw new Exception('ID do destinatário inválido');
-        }
-        
-        if (empty($message)) {
-            throw new Exception('Mensagem vazia');
-        }
-        
-        // Escapar dados
-        $messageEscaped = $mysqli->real_escape_string($message);
-        $subjectEscaped = $mysqli->real_escape_string($subject);
-        
-        // Inserir mensagem
-        $sql = "INSERT INTO notifications (sender_id, receiver_id, category, priority, subject, message, status, created_at) 
-                VALUES ($adminId, $receiverId, 'chat', 'low', '$subjectEscaped', '$messageEscaped', 'unread', NOW())";
-        
-        error_log("SQL: $sql");
-        
-        if ($mysqli->query($sql)) {
-            $messageId = $mysqli->insert_id;
-            error_log("Mensagem inserida com ID: $messageId");
+        // ========== ENVIAR MENSAGEM ==========
+        case 'send_message':
+            $receiverId = (int)($_POST['receiver_id'] ?? 0);
+            $subject = $_POST['subject'] ?? 'Mensagem';
+            $message = trim($_POST['message'] ?? '');
             
-            echo json_encode([
-                'status' => 'success',
-                'message' => 'Mensagem enviada',
-                'message_id' => $messageId
-            ]);
-        } else {
-            throw new Exception('Erro SQL: ' . $mysqli->error);
-        }
+            if (!$receiverId || !$message) {
+                throw new Exception('Dados inválidos');
+            }
+            
+            // 🔐 PROTEÇÃO: Admin não pode enviar para SuperAdmin
+            if (!$isSuperAdmin) {
+                $checkUser = $mysqli->query("SELECT role FROM users WHERE id = $receiverId AND deleted_at IS NULL");
+                $targetUser = $checkUser ? $checkUser->fetch_assoc() : null;
+                
+                if (!$targetUser || $targetUser['role'] === 'superadmin') {
+                    throw new Exception('Permissão negada');
+                }
+            }
+            
+            $stmt = $mysqli->prepare("
+                INSERT INTO notifications 
+                (sender_id, receiver_id, subject, message, category, status, created_at) 
+                VALUES (?, ?, ?, ?, 'chat', 'unread', NOW())
+            ");
+            
+            $stmt->bind_param("iiss", $adminId, $receiverId, $subject, $message);
+            
+            if ($stmt->execute()) {
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Mensagem enviada',
+                    'msg_id' => $mysqli->insert_id
+                ]);
+            } else {
+                throw new Exception('Erro ao enviar mensagem');
+            }
+            break;
         
-    } catch (Exception $e) {
-        error_log("Erro no envio: " . $e->getMessage());
-        echo json_encode([
-            'status' => 'error',
-            'message' => $e->getMessage()
-        ]);
-    }
-    exit;
-}
-
-/* ================= BUSCAR MENSAGENS ================= */
-if ($action === 'fetch_messages') {
-    error_log("=== BUSCANDO MENSAGENS ===");
-    
-    try {
-        $userId = (int)($_GET['id'] ?? $_GET['user_id'] ?? 0);
-        error_log("User ID: $userId");
-        
-        if ($userId <= 0) {
-            throw new Exception('ID inválido');
-        }
-        
-        // Marcar como lidas
-        $mysqli->query("UPDATE notifications 
-                       SET status = 'read' 
-                       WHERE sender_id = $userId 
-                       AND receiver_id = $adminId 
-                       AND category = 'chat'
-                       AND status = 'unread'");
-        
-        // Buscar mensagens
-        $sql = "SELECT id, message, sender_id, receiver_id, status, created_at
+        // ========== BUSCAR MENSAGENS ==========
+        case 'fetch_messages':
+            $userId = (int)($_GET['id'] ?? 0);
+            
+            if (!$userId) {
+                throw new Exception('ID inválido');
+            }
+            
+            // 🔐 PROTEÇÃO: Admin não pode ver mensagens com SuperAdmin
+            if (!$isSuperAdmin) {
+                $checkUser = $mysqli->query("SELECT role FROM users WHERE id = $userId AND deleted_at IS NULL");
+                $targetUser = $checkUser ? $checkUser->fetch_assoc() : null;
+                
+                if (!$targetUser || $targetUser['role'] === 'superadmin') {
+                    throw new Exception('Permissão negada');
+                }
+            }
+            
+            $messages = $mysqli->query("
+                SELECT id, message, sender_id, status, created_at 
                 FROM notifications 
                 WHERE category = 'chat'
                 AND ((sender_id = $adminId AND receiver_id = $userId) 
                      OR (sender_id = $userId AND receiver_id = $adminId))
-                ORDER BY created_at ASC";
-        
-        $result = $mysqli->query($sql);
-        $messages = [];
-        
-        while ($row = $result->fetch_assoc()) {
-            $messages[] = $row;
-        }
-        
-        error_log("Mensagens encontradas: " . count($messages));
-        
-        echo json_encode([
-            'status' => 'success',
-            'messages' => $messages
-        ]);
-        
-    } catch (Exception $e) {
-        error_log("Erro: " . $e->getMessage());
-        echo json_encode([
-            'status' => 'error',
-            'message' => $e->getMessage()
-        ]);
-    }
-    exit;
-}
-
-/* ================= DELETAR MENSAGEM ================= */
-if ($action === 'delete_message') {
-    try {
-        $msgId = (int)($_GET['msg_id'] ?? 0);
-        
-        if ($msgId <= 0) {
-            throw new Exception('ID inválido');
-        }
-        
-        $result = $mysqli->query("DELETE FROM notifications WHERE id = $msgId AND sender_id = $adminId");
-        
-        if ($result) {
-            echo json_encode(['status' => 'success', 'message' => 'Mensagem excluída']);
-        } else {
-            throw new Exception('Erro ao deletar');
-        }
-        
-    } catch (Exception $e) {
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-    }
-    exit;
-}
-
-/* ================= MARCAR COMO NÃO LIDA ================= */
-if ($action === 'mark_unread') {
-    try {
-        $chatId = (int)($_GET['chat_id'] ?? 0);
-        
-        $mysqli->query("UPDATE notifications 
-                       SET status = 'unread' 
-                       WHERE sender_id = $chatId 
-                       AND receiver_id = $adminId 
-                       AND category = 'chat'
-                       LIMIT 1");
-        
-        echo json_encode(['status' => 'success']);
-        
-    } catch (Exception $e) {
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-    }
-    exit;
-}
-
-/* ================= LIMPAR CONVERSA ================= */
-if ($action === 'clear_chat') {
-    try {
-        $userId = (int)($_POST['user_id'] ?? 0);
-        
-        if ($userId <= 0) {
-            throw new Exception('ID inválido');
-        }
-        
-        $result = $mysqli->query("DELETE FROM notifications 
-                                 WHERE category = 'chat'
-                                 AND ((sender_id = $adminId AND receiver_id = $userId) 
-                                      OR (sender_id = $userId AND receiver_id = $adminId))");
-        
-        if ($result) {
+                ORDER BY created_at ASC
+            ");
+            
+            $result = [];
+            while ($msg = $messages->fetch_assoc()) {
+                $result[] = $msg;
+            }
+            
+            // Marcar como lidas
+            $mysqli->query("
+                UPDATE notifications 
+                SET status = 'read' 
+                WHERE sender_id = $userId 
+                AND receiver_id = $adminId 
+                AND category = 'chat' 
+                AND status = 'unread'
+            ");
+            
             echo json_encode([
                 'status' => 'success',
-                'message' => 'Conversa limpa',
-                'deleted' => $mysqli->affected_rows
+                'messages' => $result
             ]);
-        } else {
-            throw new Exception('Erro ao limpar');
-        }
+            break;
         
-    } catch (Exception $e) {
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-    }
-    exit;
-}
-
-/* ================= EXPORTAR CONVERSA ================= */
-if ($action === 'export_chat') {
-    try {
-        $userId = (int)($_GET['user_id'] ?? 0);
+        // ========== DELETAR MENSAGEM ==========
+        case 'delete_message':
+            $msgId = (int)($_GET['msg_id'] ?? 0);
+            
+            if (!$msgId) {
+                throw new Exception('ID inválido');
+            }
+            
+            // Verificar se é o remetente
+            $check = $mysqli->query("SELECT sender_id FROM notifications WHERE id = $msgId");
+            $msg = $check ? $check->fetch_assoc() : null;
+            
+            if (!$msg || $msg['sender_id'] != $adminId) {
+                throw new Exception('Permissão negada');
+            }
+            
+            if ($mysqli->query("DELETE FROM notifications WHERE id = $msgId")) {
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Mensagem deletada'
+                ]);
+            } else {
+                throw new Exception('Erro ao deletar');
+            }
+            break;
         
-        if ($userId <= 0) {
-            throw new Exception('ID inválido');
-        }
+        // ========== LIMPAR CONVERSA ==========
+        case 'clear_chat':
+            $userId = (int)($_POST['user_id'] ?? 0);
+            
+            if (!$userId) {
+                throw new Exception('ID inválido');
+            }
+            
+            // 🔐 PROTEÇÃO: Admin não pode limpar conversa com SuperAdmin
+            if (!$isSuperAdmin) {
+                $checkUser = $mysqli->query("SELECT role FROM users WHERE id = $userId AND deleted_at IS NULL");
+                $targetUser = $checkUser ? $checkUser->fetch_assoc() : null;
+                
+                if (!$targetUser || $targetUser['role'] === 'superadmin') {
+                    throw new Exception('Permissão negada');
+                }
+            }
+            
+            if ($mysqli->query("
+                DELETE FROM notifications 
+                WHERE category = 'chat'
+                AND ((sender_id = $adminId AND receiver_id = $userId) 
+                     OR (sender_id = $userId AND receiver_id = $adminId))
+            ")) {
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Conversa limpa'
+                ]);
+            } else {
+                throw new Exception('Erro ao limpar conversa');
+            }
+            break;
         
-        // Buscar nome do usuário
-        $userInfo = $mysqli->query("SELECT nome FROM users WHERE id = $userId")->fetch_assoc();
-        $userName = $userInfo['nome'] ?? 'Usuário';
-        
-        // Buscar mensagens
-        $sql = "SELECT 
+        // ========== EXPORTAR CONVERSA ==========
+        case 'export_chat':
+            $userId = (int)($_GET['user_id'] ?? 0);
+            
+            if (!$userId) {
+                throw new Exception('ID inválido');
+            }
+            
+            // 🔐 PROTEÇÃO: Admin não pode exportar conversa com SuperAdmin
+            if (!$isSuperAdmin) {
+                $checkUser = $mysqli->query("SELECT role FROM users WHERE id = $userId AND deleted_at IS NULL");
+                $targetUser = $checkUser ? $checkUser->fetch_assoc() : null;
+                
+                if (!$targetUser || $targetUser['role'] === 'superadmin') {
+                    throw new Exception('Permissão negada');
+                }
+            }
+            
+            $userInfo = $mysqli->query("SELECT nome FROM users WHERE id = $userId")->fetch_assoc();
+            
+            $messages = $mysqli->query("
+                SELECT 
                     n.message,
                     n.sender_id,
                     n.created_at,
-                    COALESCE(u.nome, 'Sistema') as sender_name
+                    CASE 
+                        WHEN n.sender_id = $adminId THEN 'Você'
+                        ELSE '{$userInfo['nome']}'
+                    END as sender_name
                 FROM notifications n
-                LEFT JOIN users u ON n.sender_id = u.id
-                WHERE n.category = 'chat'
-                AND ((n.sender_id = $adminId AND n.receiver_id = $userId) 
-                     OR (n.sender_id = $userId AND n.receiver_id = $adminId))
-                ORDER BY n.created_at ASC";
+                WHERE category = 'chat'
+                AND ((sender_id = $adminId AND receiver_id = $userId) 
+                     OR (sender_id = $userId AND receiver_id = $adminId))
+                ORDER BY created_at ASC
+            ");
+            
+            $result = [];
+            while ($msg = $messages->fetch_assoc()) {
+                $result[] = [
+                    'sender' => $msg['sender_name'],
+                    'message' => $msg['message'],
+                    'timestamp' => date('d/m/Y H:i:s', strtotime($msg['created_at']))
+                ];
+            }
+            
+            echo json_encode([
+                'status' => 'success',
+                'user_name' => $userInfo['nome'],
+                'export_date' => date('d/m/Y H:i:s'),
+                'messages' => $result
+            ]);
+            break;
         
-        $result = $mysqli->query($sql);
-        $messages = [];
+        // ========== MARCAR COMO NÃO LIDA ==========
+        case 'mark_unread':
+            $chatId = (int)($_GET['chat_id'] ?? 0);
+            
+            if (!$chatId) {
+                throw new Exception('ID inválido');
+            }
+            
+            if ($mysqli->query("
+                UPDATE notifications 
+                SET status = 'unread' 
+                WHERE sender_id = $chatId 
+                AND receiver_id = $adminId 
+                AND category = 'chat'
+            ")) {
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Marcado como não lida'
+                ]);
+            } else {
+                throw new Exception('Erro ao atualizar');
+            }
+            break;
         
-        while ($row = $result->fetch_assoc()) {
-            $messages[] = [
-                'sender' => $row['sender_name'],
-                'message' => $row['message'],
-                'timestamp' => $row['created_at']
-            ];
-        }
+        // ========== BUSCAR LISTA DE CONVERSAS (PARA SIDEBAR) ==========
+        case 'get_conversations':
+            // Admin não vê conversas com SuperAdmins
+            if ($isSuperAdmin) {
+                $queryContatos = "
+                    SELECT 
+                        u.id as contato_id, 
+                        u.nome,
+                        u.email,
+                        u.role,
+                        u.last_activity,
+                        conv.ultima_msg,
+                        conv.data_msg,
+                        conv.nao_lidas,
+                        (u.last_activity > UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 15 MINUTE))) as is_online
+                    FROM users u
+                    INNER JOIN (
+                        SELECT 
+                            CASE 
+                                WHEN n.sender_id = $adminId THEN n.receiver_id
+                                ELSE n.sender_id
+                            END as user_id,
+                            MAX(n.created_at) as data_msg,
+                            SUBSTRING_INDEX(GROUP_CONCAT(n.message ORDER BY n.created_at DESC), ',', 1) as ultima_msg,
+                            SUM(CASE WHEN n.receiver_id = $adminId AND n.status = 'unread' THEN 1 ELSE 0 END) as nao_lidas
+                        FROM notifications n
+                        WHERE n.category = 'chat'
+                        AND (n.sender_id = $adminId OR n.receiver_id = $adminId)
+                        GROUP BY user_id
+                    ) as conv ON conv.user_id = u.id
+                    WHERE u.deleted_at IS NULL
+                    ORDER BY conv.data_msg DESC
+                ";
+            } else {
+                $queryContatos = "
+                    SELECT 
+                        u.id as contato_id, 
+                        u.nome,
+                        u.email,
+                        u.role,
+                        u.last_activity,
+                        conv.ultima_msg,
+                        conv.data_msg,
+                        conv.nao_lidas,
+                        (u.last_activity > UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 15 MINUTE))) as is_online
+                    FROM users u
+                    INNER JOIN (
+                        SELECT 
+                            CASE 
+                                WHEN n.sender_id = $adminId THEN n.receiver_id
+                                ELSE n.sender_id
+                            END as user_id,
+                            MAX(n.created_at) as data_msg,
+                            SUBSTRING_INDEX(GROUP_CONCAT(n.message ORDER BY n.created_at DESC), ',', 1) as ultima_msg,
+                            SUM(CASE WHEN n.receiver_id = $adminId AND n.status = 'unread' THEN 1 ELSE 0 END) as nao_lidas
+                        FROM notifications n
+                        WHERE n.category = 'chat'
+                        AND (n.sender_id = $adminId OR n.receiver_id = $adminId)
+                        GROUP BY user_id
+                    ) as conv ON conv.user_id = u.id
+                    WHERE u.deleted_at IS NULL
+                    AND u.role != 'superadmin'
+                    ORDER BY conv.data_msg DESC
+                ";
+            }
+            
+            $contatos = $mysqli->query($queryContatos);
+            $conversations = [];
+            
+            while ($c = $contatos->fetch_assoc()) {
+                $roleBadge = null;
+                if ($isSuperAdmin && $c['role']) {
+                    $roleBadge = [
+                        'text' => strtoupper($c['role']),
+                        'class' => $c['role'] === 'superadmin' ? 'error' : ($c['role'] === 'admin' ? 'info' : 'neutral')
+                    ];
+                }
+                
+                $conversations[] = [
+                    'contato_id' => $c['contato_id'],
+                    'nome' => $c['nome'],
+                    'email' => $c['email'],
+                    'role' => $c['role'],
+                    'ultima_msg' => $c['ultima_msg'],
+                    'data_msg' => $c['data_msg'],
+                    'nao_lidas' => (int)$c['nao_lidas'],
+                    'is_online' => (bool)$c['is_online'],
+                    'role_badge' => $roleBadge
+                ];
+            }
+            
+            echo json_encode([
+                'status' => 'success',
+                'conversations' => $conversations
+            ]);
+            break;
         
-        echo json_encode([
-            'status' => 'success',
-            'user_name' => $userName,
-            'messages' => $messages,
-            'export_date' => date('Y-m-d H:i:s')
-        ]);
-        
-    } catch (Exception $e) {
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        default:
+            throw new Exception('Ação inválida');
     }
-    exit;
+    
+} catch (Exception $e) {
+    echo json_encode([
+        'status' => 'error',
+        'message' => $e->getMessage()
+    ]);
 }
-
-/* ================= AÇÃO NÃO RECONHECIDA ================= */
-error_log("Ação não reconhecida: $action");
-echo json_encode([
-    'status' => 'error',
-    'message' => 'Ação não reconhecida: ' . $action
-]);
-exit;
