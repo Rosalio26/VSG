@@ -176,6 +176,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_counters') {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/style/dashboard_admin.css">
+    <link rel="stylesheet" href="assets/style/dashboard-components.css">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
@@ -1256,8 +1257,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_counters') {
         const savedPage = urlParams.get('page');
         const idParam = urlParams.get('id');
         
-        const finalPage = idParam ? `${savedPage}?id=${idParam}` : (savedPage || 'modules/dashboard/dashboard');
-        loadContent(finalPage);
+        // Se NÃO houver página na URL, carrega o dashboard
+        // Se houver, carrega a página especificada
+        if (!savedPage) {
+            loadContent('modules/dashboard/dashboard');
+        } else {
+            const finalPage = idParam ? `${savedPage}?id=${idParam}` : savedPage;
+            loadContent(finalPage);
+        }
     };
 
     window.onpopstate = () => {
@@ -1440,6 +1447,22 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_counters') {
             setTimeout(() => modal.remove(), 300);
         }
     }
+</script>
+
+<script>
+// DEBUG: Verificar carregamento
+console.log('=== DEBUG SYSTEM ===');
+console.log('CSS carregado:', !!document.querySelector('[href*="dashboard-components"]'));
+console.log('Chart.js:', typeof Chart !== 'undefined');
+console.log('Load function:', typeof loadContent !== 'undefined');
+console.log('====================');
+
+// Interceptar loadContent
+const originalLoad = window.loadContent;
+window.loadContent = function(path, element) {
+    console.log('🔍 Loading:', path);
+    return originalLoad(path, element);
+};
 </script>
 </body>
 </html>
