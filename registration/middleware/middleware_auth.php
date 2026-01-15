@@ -131,15 +131,21 @@ if (defined('REQUIRED_ROLE')) {
 
 /* ================= 9. VERIFICAÇÃO DE DOCUMENTOS (EMPRESAS) ================= */
 if (defined('REQUIRE_APPROVED_DOCS') && REQUIRE_APPROVED_DOCS === true && $authUser['type'] === 'company') {
-    $stmt_docs = $mysqli->prepare("SELECT status_documentos FROM businesses WHERE user_id = ? LIMIT 1");
-    $stmt_docs->bind_param('i', $userId);
-    $stmt_docs->execute();
-    $business = $stmt_docs->get_result()->fetch_assoc();
-    $stmt_docs->close();
     
-    if (!$business || $business['status_documentos'] !== 'aprovado') {
-        header("Location: ../../pages/business/dashboard_business.php?error=documents_pending");
-        exit;
+    // Ignora a verificação se a página atual for o próprio dashboard de negócios
+    // Assim evitamos o loop infinito.
+    if ($currentPage !== 'dashboard_business.php') {
+        
+        $stmt_docs = $mysqli->prepare("SELECT status_documentos FROM businesses WHERE user_id = ? LIMIT 1");
+        $stmt_docs->bind_param('i', $userId);
+        $stmt_docs->execute();
+        $business = $stmt_docs->get_result()->fetch_assoc();
+        $stmt_docs->close();
+        
+        if (!$business || $business['status_documentos'] !== 'aprovado') {
+            header("Location: ../../pages/business/dashboard_business.php?error=documents_pending");
+            exit;
+        }
     }
 }
 

@@ -431,7 +431,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_counters') {
                 <span>Encerrar Sessão</span>
             </a>
         </div>
-        <?php include 'debug-console-component.php'; ?>
+        <?php //include 'debug-console-component.php'; ?>
     </aside>
 
     <div class="main-wrapper">
