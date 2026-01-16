@@ -1,10 +1,10 @@
 <?php
 /**
  * ================================================================================
- * VISIONGREEN DASHBOARD - PENDÊNCIAS COM FILTROS DE DATA
+ * VISIONGREEN DASHBOARD - PENDÊNCIAS COM EMPRESAS REJEITADAS
  * Módulo: modules/dashboard/pendencias.php
- * Descrição: Central de pendências com filtros temporais
- * Dados: Direto do banco de dados (agora até o passado)
+ * Descrição: Central de pendências com filtros temporais + Empresas Rejeitadas
+ * Versão: 3.0 - Inclui empresas rejeitadas
  * ================================================================================
  */
 
@@ -18,30 +18,23 @@ $adminRole = $_SESSION['auth']['role'] ?? 'admin';
 $isSuperAdmin = ($adminRole === 'superadmin');
 
 /* ================= FILTROS DE DATA ================= */
-$filtro_docs = $_GET['filtro_docs'] ?? 'all'; // all, hoje, 7dias, 30dias
+$filtro_docs = $_GET['filtro_docs'] ?? 'all';
 $filtro_users = $_GET['filtro_users'] ?? 'all';
 $filtro_alerts = $_GET['filtro_alerts'] ?? 'all';
+$filtro_rejeitados = $_GET['filtro_rejeitados'] ?? 'all';
 
-/* ================= CONSTRUIR CONDIÇÕES DE DATA ================= */
-
-// Função helper para construir WHERE de data
-function getDateCondition($filtro, $column = 'created_at', $reverse = false) {
+/* ================= FUNÇÃO HELPER PARA DATA ================= */
+function getDateCondition($filtro, $column = 'created_at') {
     switch($filtro) {
         case 'hoje':
-            return $reverse 
-                ? "DATE($column) = CURDATE()" 
-                : "DATE($column) = CURDATE()";
+            return "DATE($column) = CURDATE()";
         case '7dias':
-            return $reverse
-                ? "$column >= DATE_SUB(NOW(), INTERVAL 7 DAY)"
-                : "$column >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+            return "$column >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
         case '30dias':
-            return $reverse
-                ? "$column >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
-                : "$column >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+            return "$column >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
         case 'all':
         default:
-            return "1=1"; // Sem filtro
+            return "1=1";
     }
 }
 
@@ -69,7 +62,6 @@ $sql_docs = "
 ";
 $result_docs = $mysqli->query($sql_docs);
 
-// Contador
 $count_docs = $mysqli->query("
     SELECT COUNT(*) as total 
     FROM businesses b
@@ -105,7 +97,6 @@ $sql_users = "
 ";
 $result_users = $mysqli->query($sql_users);
 
-// Contador
 $count_users = $mysqli->query("
     SELECT COUNT(*) as total 
     FROM users u
@@ -116,7 +107,40 @@ $count_users = $mysqli->query("
     AND $where_users
 ")->fetch_assoc()['total'];
 
-/* ================= 3. ALERTAS CRÍTICOS NÃO LIDOS ================= */
+/* ================= 3. EMPRESAS REJEITADAS (NOVO) ================= */
+$where_rejeitados = getDateCondition($filtro_rejeitados, 'b.updated_at');
+
+$sql_rejeitados = "
+    SELECT 
+        b.id,
+        b.user_id,
+        u.nome as empresa_nome,
+        u.email,
+        u.telefone,
+        b.status_documentos,
+        b.motivo_rejeicao,
+        b.updated_at,
+        u.created_at,
+        DATEDIFF(NOW(), b.updated_at) as dias_rejeitado
+    FROM businesses b
+    INNER JOIN users u ON b.user_id = u.id
+    WHERE b.status_documentos = 'rejeitado'
+    AND u.deleted_at IS NULL
+    AND $where_rejeitados
+    ORDER BY b.updated_at DESC
+";
+$result_rejeitados = $mysqli->query($sql_rejeitados);
+
+$count_rejeitados = $mysqli->query("
+    SELECT COUNT(*) as total 
+    FROM businesses b
+    INNER JOIN users u ON b.user_id = u.id
+    WHERE b.status_documentos = 'rejeitado'
+    AND u.deleted_at IS NULL
+    AND $where_rejeitados
+")->fetch_assoc()['total'];
+
+/* ================= 4. ALERTAS CRÍTICOS NÃO LIDOS ================= */
 $where_alerts = getDateCondition($filtro_alerts, 'n.created_at');
 
 $sql_alerts = "
@@ -144,7 +168,6 @@ $stmt_alerts->bind_param("i", $adminId);
 $stmt_alerts->execute();
 $result_alerts = $stmt_alerts->get_result();
 
-// Contador
 $count_alerts_query = "
     SELECT COUNT(*) as total 
     FROM notifications n
@@ -155,12 +178,10 @@ $count_alerts_query = "
 ";
 $count_alerts = $mysqli->query($count_alerts_query)->fetch_assoc()['total'];
 
-/* ================= 4. TOTAL DE PENDÊNCIAS ================= */
-$total_pendencias = $count_docs + $count_users + $count_alerts;
+/* ================= 5. TOTAL DE PENDÊNCIAS ================= */
+$total_pendencias = $count_docs + $count_users + $count_alerts + $count_rejeitados;
 
-/* ================= 5. ESTATÍSTICAS POR PERÍODO ================= */
-
-// Documentos por período
+/* ================= 6. ESTATÍSTICAS POR PERÍODO ================= */
 $stats_docs = [
     'hoje' => $mysqli->query("SELECT COUNT(*) as total FROM businesses b INNER JOIN users u ON b.user_id = u.id WHERE b.status_documentos = 'pendente' AND u.deleted_at IS NULL AND DATE(u.created_at) = CURDATE()")->fetch_assoc()['total'],
     '7dias' => $mysqli->query("SELECT COUNT(*) as total FROM businesses b INNER JOIN users u ON b.user_id = u.id WHERE b.status_documentos = 'pendente' AND u.deleted_at IS NULL AND u.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetch_assoc()['total'],
@@ -168,7 +189,6 @@ $stats_docs = [
     'all' => $count_docs
 ];
 
-// Usuários por período
 $stats_users = [
     'hoje' => $mysqli->query("SELECT COUNT(*) as total FROM users u LEFT JOIN businesses b ON u.id = b.user_id WHERE u.type = 'company' AND (b.status_documentos IS NULL OR b.status_documentos = 'pendente') AND u.deleted_at IS NULL AND DATE(u.created_at) = CURDATE()")->fetch_assoc()['total'],
     '7dias' => $mysqli->query("SELECT COUNT(*) as total FROM users u LEFT JOIN businesses b ON u.id = b.user_id WHERE u.type = 'company' AND (b.status_documentos IS NULL OR b.status_documentos = 'pendente') AND u.deleted_at IS NULL AND u.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetch_assoc()['total'],
@@ -176,14 +196,19 @@ $stats_users = [
     'all' => $count_users
 ];
 
-// Alertas por período
+$stats_rejeitados = [
+    'hoje' => $mysqli->query("SELECT COUNT(*) as total FROM businesses b INNER JOIN users u ON b.user_id = u.id WHERE b.status_documentos = 'rejeitado' AND u.deleted_at IS NULL AND DATE(b.updated_at) = CURDATE()")->fetch_assoc()['total'],
+    '7dias' => $mysqli->query("SELECT COUNT(*) as total FROM businesses b INNER JOIN users u ON b.user_id = u.id WHERE b.status_documentos = 'rejeitado' AND u.deleted_at IS NULL AND b.updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetch_assoc()['total'],
+    '30dias' => $mysqli->query("SELECT COUNT(*) as total FROM businesses b INNER JOIN users u ON b.user_id = u.id WHERE b.status_documentos = 'rejeitado' AND u.deleted_at IS NULL AND b.updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)")->fetch_assoc()['total'],
+    'all' => $count_rejeitados
+];
+
 $stats_alerts = [
     'hoje' => $mysqli->query("SELECT COUNT(*) as total FROM notifications WHERE receiver_id = $adminId AND status = 'unread' AND category IN ('alert', 'security', 'system_error') AND DATE(created_at) = CURDATE()")->fetch_assoc()['total'],
     '7dias' => $mysqli->query("SELECT COUNT(*) as total FROM notifications WHERE receiver_id = $adminId AND status = 'unread' AND category IN ('alert', 'security', 'system_error') AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetch_assoc()['total'],
     '30dias' => $mysqli->query("SELECT COUNT(*) as total FROM notifications WHERE receiver_id = $adminId AND status = 'unread' AND category IN ('alert', 'security', 'system_error') AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)")->fetch_assoc()['total'],
     'all' => $count_alerts
 ];
-
 ?>
 
 <style>
@@ -255,7 +280,7 @@ $stats_alerts = [
                         </thead>
                         <tbody>
                             <?php while($doc = $result_docs->fetch_assoc()): ?>
-                                <tr onclick="loadContent('modules/dashboard/analise?id=<?= $doc['user_id'] ?>')" style="cursor: pointer;">
+                                <tr style="cursor: pointer;" onclick="loadContent('modules/dashboard/analise?id=<?= $doc['user_id'] ?>')">
                                     <td>
                                         <div style="display: flex; align-items: center; gap: 12px;">
                                             <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--accent)20; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--accent);">
@@ -281,8 +306,8 @@ $stats_alerts = [
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-icon btn-ghost" title="Analisar Documentos">
-                                            <i class="fa-solid fa-arrow-right"></i>
+                                        <button class="btn btn-icon btn-ghost" title="Analisar" onclick="event.stopPropagation(); loadContent('modules/dashboard/analise?id=<?= $doc['user_id'] ?>')">
+                                            <i class="fa-solid fa-magnifying-glass"></i>
                                         </button>
                                     </td>
                                 </tr>
@@ -308,7 +333,108 @@ $stats_alerts = [
         </div>
     </div>
 
-    <!-- ===== CARD 2: NOVOS USUÁRIOS ===== -->
+    <!-- ===== CARD 2: EMPRESAS REJEITADAS (NOVO) ===== -->
+    <div class="card" data-category="rejeitados">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="card-title">
+                <i class="fa-solid fa-ban" style="color: #f85149;"></i>
+                Empresas Rejeitadas
+            </h3>
+            <span class="badge error" style="font-size: 1rem;">
+                <?= $count_rejeitados ?>
+            </span>
+        </div>
+        
+        <!-- FILTROS DE DATA -->
+        <div class="card-body" style="padding: 16px; border-bottom: 1px solid var(--border);">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-sm <?= $filtro_rejeitados === 'all' ? 'btn-primary' : 'btn-ghost' ?>" onclick="filtrarRejeitados('all')">
+                    Todos (<?= $stats_rejeitados['all'] ?>)
+                </button>
+                <button class="btn btn-sm <?= $filtro_rejeitados === 'hoje' ? 'btn-primary' : 'btn-ghost' ?>" onclick="filtrarRejeitados('hoje')">
+                    Hoje (<?= $stats_rejeitados['hoje'] ?>)
+                </button>
+                <button class="btn btn-sm <?= $filtro_rejeitados === '7dias' ? 'btn-primary' : 'btn-ghost' ?>" onclick="filtrarRejeitados('7dias')">
+                    7 dias (<?= $stats_rejeitados['7dias'] ?>)
+                </button>
+                <button class="btn btn-sm <?= $filtro_rejeitados === '30dias' ? 'btn-primary' : 'btn-ghost' ?>" onclick="filtrarRejeitados('30dias')">
+                    30 dias (<?= $stats_rejeitados['30dias'] ?>)
+                </button>
+            </div>
+        </div>
+        
+        <!-- TABELA -->
+        <div class="card-body" style="padding: 0;">
+            <?php if ($result_rejeitados && $result_rejeitados->num_rows > 0): ?>
+                <div class="table-wrapper">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Empresa</th>
+                                <th>Rejeitado em</th>
+                                <th>Motivo</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php while($rej = $result_rejeitados->fetch_assoc()): ?>
+                                <tr style="cursor: pointer;" onclick="loadContent('modules/dashboard/analise?id=<?= $rej['user_id'] ?>')">
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 12px;">
+                                            <div style="width: 40px; height: 40px; border-radius: 8px; background: #f8514920; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: #f85149;">
+                                                <i class="fa-solid fa-building-circle-xmark"></i>
+                                            </div>
+                                            <div>
+                                                <strong style="color: var(--text-primary);"><?= htmlspecialchars($rej['empresa_nome']) ?></strong><br>
+                                                <small style="color: var(--text-muted); font-size: 0.75rem;"><?= htmlspecialchars($rej['email']) ?></small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td style="color: var(--text-secondary); font-size: 0.875rem;">
+                                        <?= date('d/m/Y', strtotime($rej['updated_at'])) ?>
+                                        <br>
+                                        <small style="color: var(--text-muted); font-size: 0.75rem;">
+                                            Há <?= $rej['dias_rejeitado'] ?> dia<?= $rej['dias_rejeitado'] != 1 ? 's' : '' ?>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($rej['motivo_rejeicao'])): ?>
+                                            <div style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 0.813rem;" title="<?= htmlspecialchars($rej['motivo_rejeicao']) ?>">
+                                                <?= htmlspecialchars($rej['motivo_rejeicao']) ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <span style="color: var(--text-muted); font-size: 0.813rem; font-style: italic;">Sem motivo registrado</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-icon btn-ghost" title="Ver Detalhes" onclick="event.stopPropagation(); loadContent('modules/dashboard/analise?id=<?= $rej['user_id'] ?>')">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endwhile; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fa-solid fa-check-circle"></i>
+                    </div>
+                    <div class="empty-title">Nenhuma empresa rejeitada</div>
+                    <div class="empty-description">
+                        <?php if ($filtro_rejeitados !== 'all'): ?>
+                            Nenhuma rejeição no período selecionado
+                        <?php else: ?>
+                            Ótimo! Todas as empresas foram aprovadas
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- ===== CARD 3: NOVOS USUÁRIOS ===== -->
     <div class="card" data-category="usuarios">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h3 class="card-title">
@@ -353,7 +479,7 @@ $stats_alerts = [
                         </thead>
                         <tbody>
                             <?php while($user = $result_users->fetch_assoc()): ?>
-                                <tr onclick="loadContent('modules/dashboard/detalhes?type=empresa&id=<?= $user['id'] ?>')" style="cursor: pointer;">
+                                <tr style="cursor: pointer;" onclick="loadContent('modules/dashboard/analise?id=<?= $user['id'] ?>')">
                                     <td>
                                         <div style="display: flex; align-items: center; gap: 12px;">
                                             <div style="width: 40px; height: 40px; border-radius: 8px; background: #d2992220; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: #d29922;">
@@ -386,7 +512,7 @@ $stats_alerts = [
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <button class="btn btn-icon btn-ghost" title="Ver Detalhes">
+                                        <button class="btn btn-icon btn-ghost" title="Ver Detalhes" onclick="event.stopPropagation(); loadContent('modules/dashboard/analise?id=<?= $user['id'] ?>')">
                                             <i class="fa-solid fa-arrow-right"></i>
                                         </button>
                                     </td>
@@ -413,7 +539,7 @@ $stats_alerts = [
         </div>
     </div>
 
-    <!-- ===== CARD 3: ALERTAS CRÍTICOS ===== -->
+    <!-- ===== CARD 4: ALERTAS CRÍTICOS ===== -->
     <div class="card" data-category="alertas">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h3 class="card-title">
@@ -526,7 +652,12 @@ $stats_alerts = [
         } else {
             params.set('filtro_docs', periodo);
         }
-        loadContent('modules/dashboard/pendencias?' + params.toString());
+        
+        if (typeof loadContent === 'function') {
+            loadContent('modules/dashboard/pendencias' + (params.toString() ? '?' + params.toString() : ''));
+        } else {
+            window.location.href = 'modules/dashboard/pendencias' + (params.toString() ? '?' + params.toString() : '');
+        }
     };
     
     // Filtrar usuários por período
@@ -537,7 +668,28 @@ $stats_alerts = [
         } else {
             params.set('filtro_users', periodo);
         }
-        loadContent('modules/dashboard/pendencias?' + params.toString());
+        
+        if (typeof loadContent === 'function') {
+            loadContent('modules/dashboard/pendencias' + (params.toString() ? '?' + params.toString() : ''));
+        } else {
+            window.location.href = 'modules/dashboard/pendencias' + (params.toString() ? '?' + params.toString() : '');
+        }
+    };
+    
+    // Filtrar empresas rejeitadas por período (NOVO)
+    window.filtrarRejeitados = function(periodo) {
+        const params = new URLSearchParams(window.location.search);
+        if (periodo === 'all') {
+            params.delete('filtro_rejeitados');
+        } else {
+            params.set('filtro_rejeitados', periodo);
+        }
+        
+        if (typeof loadContent === 'function') {
+            loadContent('modules/dashboard/pendencias' + (params.toString() ? '?' + params.toString() : ''));
+        } else {
+            window.location.href = 'modules/dashboard/pendencias' + (params.toString() ? '?' + params.toString() : '');
+        }
     };
     
     // Filtrar alertas por período
@@ -548,9 +700,19 @@ $stats_alerts = [
         } else {
             params.set('filtro_alerts', periodo);
         }
-        loadContent('modules/dashboard/pendencias?' + params.toString());
+        
+        if (typeof loadContent === 'function') {
+            loadContent('modules/dashboard/pendencias' + (params.toString() ? '?' + params.toString() : ''));
+        } else {
+            window.location.href = 'modules/dashboard/pendencias' + (params.toString() ? '?' + params.toString() : '');
+        }
     };
     
-    console.log('✅ Pendências carregadas com filtros de data!');
+    console.log('✅ Pendências carregadas (v3.0 - Inclui empresas rejeitadas)');
+    console.log('📊 Estatísticas:');
+    console.log('  - Pendentes: <?= $count_docs ?>');
+    console.log('  - Rejeitados: <?= $count_rejeitados ?>');
+    console.log('  - Sem aprovação: <?= $count_users ?>');
+    console.log('  - Alertas: <?= $count_alerts ?>');
 })();
 </script>

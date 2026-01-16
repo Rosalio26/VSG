@@ -78,16 +78,37 @@ $has_critical = $mysqli->query("SELECT id FROM notifications WHERE receiver_id =
 $total_pendencias_sidebar = 0;
 
 // Documentos pendentes
-$count_docs_sidebar = $mysqli->query("SELECT COUNT(*) as total FROM businesses WHERE status_documentos = 'pendente'")->fetch_assoc()['total'];
+$stmt_docs = $mysqli->prepare("SELECT COUNT(*) as total FROM businesses WHERE status_documentos = 'pendente'");
+$stmt_docs->execute();
+$count_docs_sidebar = $stmt_docs->get_result()->fetch_assoc()['total'];
 $total_pendencias_sidebar += $count_docs_sidebar;
+$stmt_docs->close();
 
 // Usuários novos (últimos 30 dias)
-$count_users_sidebar = $mysqli->query("SELECT COUNT(*) as total FROM users u LEFT JOIN businesses b ON u.id = b.user_id WHERE u.type = 'company' AND (b.status_documentos IS NULL OR b.status_documentos = 'pendente') AND DATEDIFF(NOW(), u.created_at) <= 30")->fetch_assoc()['total'];
+$stmt_users = $mysqli->prepare("
+    SELECT COUNT(*) as total FROM users u 
+    LEFT JOIN businesses b ON u.id = b.user_id 
+    WHERE u.type = 'company' 
+    AND (b.status_documentos IS NULL OR b.status_documentos = 'pendente') 
+    AND DATEDIFF(NOW(), u.created_at) <= 30
+");
+$stmt_users->execute();
+$count_users_sidebar = $stmt_users->get_result()->fetch_assoc()['total'];
 $total_pendencias_sidebar += $count_users_sidebar;
+$stmt_users->close();
 
 // Alertas críticos não lidos
-$count_alerts_sidebar = $mysqli->query("SELECT COUNT(*) as total FROM notifications WHERE receiver_id = $adminId AND status = 'unread' AND category IN ('alert', 'security', 'system_error')")->fetch_assoc()['total'];
+$stmt_count_alerts = $mysqli->prepare("
+    SELECT COUNT(*) as total FROM notifications 
+    WHERE receiver_id = ? 
+    AND status = 'unread' 
+    AND category IN ('alert', 'security', 'system_error')
+");
+$stmt_count_alerts->bind_param("i", $adminId);
+$stmt_count_alerts->execute();
+$count_alerts_sidebar = $stmt_count_alerts->get_result()->fetch_assoc()['total'];
 $total_pendencias_sidebar += $count_alerts_sidebar;
+$stmt_count_alerts->close();
 
 
 /* ================= 4. LOGICAS DE PROCESSAMENTO (POST) ================= */
@@ -378,12 +399,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_counters') {
                             <div class="sub-icon"><i class="fa-solid fa-file-signature"></i></div>
                             <span>Logs de Auditoria</span>
                         </a>
-                        <a href="javascript:void(0)" class="sub-item" onclick="loadContent('modules/auditor/admin-auditoria', this)">
-                            <div class="sub-icon">
-                                <i class="fa-solid fa-user-shield"></i>
-                            </div>
-                            <span>Admin Auditor</span>
-                        </a>
                     </div>
                 </div>
             <?php endif; ?>
@@ -568,7 +583,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_counters') {
                         <div class="dropdown-item" onclick="loadContent('modules/pages/admin-perfil')">
                             <i class="fa-solid fa-user-gear"></i> Meus Dados
                         </div>
-                        <div class="dropdown-item" onclick="loadContent('system/settings')">
+                        <div class="dropdown-item" onclick="loadContent('system/settings?tab=security')">
                             <i class="fa-solid fa-key"></i> Segurança
                         </div>
                         <a href="../../registration/login/logout.php" class="dropdown-item" style="color: #ff4d4d; border-top: 1px solid rgba(255,255,255,0.05); text-decoration: none;">

@@ -1,10 +1,10 @@
 <?php
 /**
  * ================================================================================
- * VISIONGREEN DASHBOARD - CENTRO DE ANÁLISES
+ * VISIONGREEN DASHBOARD - CENTRO DE ANÁLISES (VERSÃO FINAL CORRIGIDA)
  * Módulo: modules/dashboard/analise.php
- * Descrição: Dashboard de análises + Visualização detalhada de empresas
- * Usa: dashboard-components.css
+ * 
+ * CORREÇÃO PRINCIPAL: Usar URLs web ao invés de caminhos de arquivo
  * ================================================================================
  */
 
@@ -43,6 +43,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
         } elseif ($action === 'rejeitar') {
             $motivo = $_POST['motivo'] ?? '';
             
+            if (strlen(trim($motivo)) < 10) {
+                throw new Exception('Motivo deve ter pelo menos 10 caracteres');
+            }
+            
             $stmt = $mysqli->prepare("UPDATE businesses SET status_documentos = 'rejeitado', motivo_rejeicao = ?, updated_at = NOW() WHERE user_id = ?");
             $stmt->bind_param("si", $motivo, $userId);
             $stmt->execute();
@@ -55,6 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             
             $mysqli->commit();
             echo json_encode(['success' => true, 'message' => '❌ Empresa rejeitada.']);
+        } else {
+            throw new Exception('Ação inválida');
         }
     } catch (Exception $e) {
         $mysqli->rollback();
@@ -402,7 +408,33 @@ if (!$empresa) {
     exit;
 }
 
-$uploadPath = "../../../../registration/uploads/business/";
+/* ================= CONFIGURAÇÃO DE CAMINHOS ================= */
+// CRÍTICO: Usar URL web, não caminho de arquivo do sistema
+// A pasta registration está na raiz do site, não dentro de pages/admin
+
+// Caminho físico (para verificar se arquivo existe)
+$uploadPathFisico = "../../../../registration/uploads/business/";
+
+// URL web (para exibir no navegador) - ESTA É A CORREÇÃO PRINCIPAL
+$uploadPathWeb = "/vsg/registration/uploads/business/";
+
+// Verificar se existe e pegar informações do arquivo
+$fileExists = false;
+$fileSize = 0;
+$ext = '';
+
+if (!empty($empresa['license_path'])) {
+    $caminhoFisico = $uploadPathFisico . $empresa['license_path'];
+    $fileExists = file_exists($caminhoFisico);
+    
+    if ($fileExists) {
+        $fileSize = filesize($caminhoFisico);
+        $ext = strtolower(pathinfo($empresa['license_path'], PATHINFO_EXTENSION));
+    }
+}
+
+// URL completa para o navegador acessar
+$fileURL = $uploadPathWeb . ($empresa['license_path'] ?? '');
 ?>
 
 <!-- HEADER -->
@@ -504,7 +536,7 @@ $uploadPath = "../../../../registration/uploads/business/";
             </div>
         </div>
 
-        <!-- DOCUMENTOS -->
+        <!-- DOCUMENTOS COM PREVIEW -->
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">
@@ -520,33 +552,138 @@ $uploadPath = "../../../../registration/uploads/business/";
                         Alvará Comercial / Licença
                     </h4>
                     
-                    <?php 
-                    $ext = strtolower(pathinfo($empresa['license_path'], PATHINFO_EXTENSION));
-                    $filePath = $uploadPath . $empresa['license_path'];
-                    ?>
+                    <!-- DEBUG INFO (pode remover em produção) -->
+                    <div style="background: var(--bg-elevated); padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 0.813rem; font-family: monospace;">
+                        <strong>🔍 Debug Info:</strong><br>
+                        Arquivo BD: <code><?= htmlspecialchars($empresa['license_path']) ?></code><br>
+                        Caminho Físico: <code><?= htmlspecialchars($caminhoFisico ?? 'N/A') ?></code><br>
+                        URL Web: <code><?= htmlspecialchars($fileURL) ?></code><br>
+                        Existe no servidor: <?= $fileExists ? '<span style="color: green;">✅ SIM</span>' : '<span style="color: red;">❌ NÃO</span>' ?><br>
+                        <?php if ($fileExists): ?>
+                        Tamanho: <?= number_format($fileSize / 1024, 2) ?> KB<br>
+                        Extensão: <?= strtoupper($ext) ?>
+                        <?php endif; ?>
+                    </div>
                     
-                    <?php if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])): ?>
-                        <img src="<?= $filePath ?>" alt="Alvará" style="max-width: 100%; max-height: 500px; border-radius: 8px; margin-bottom: 16px;">
-                    <?php elseif ($ext === 'pdf'): ?>
-                        <iframe src="<?= $filePath ?>" frameborder="0" style="width: 100%; height: 500px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px;"></iframe>
+                    <?php if ($fileExists): ?>
+                        <?php if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])): ?>
+                            <!-- PREVIEW DE IMAGEM -->
+                            <div style="position: relative; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; background: var(--bg-elevated);">
+                                <img 
+                                    src="<?= htmlspecialchars($fileURL) ?>" 
+                                    alt="Alvará" 
+                                    style="width: 100%; height: auto; display: block; cursor: pointer;"
+                                    onclick="abrirModalPreview('<?= htmlspecialchars($fileURL) ?>', 'imagem')"
+                                    onerror="mostrarErroImagem(this)"
+                                >
+                                <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 8px 12px; border-radius: 6px; font-size: 0.813rem; pointer-events: none;">
+                                    <i class="fa-solid fa-search-plus"></i> Clique para ampliar
+                                </div>
+                            </div>
+                            
+                        <?php elseif ($ext === 'pdf'): ?>
+                            <!-- PREVIEW DE PDF -->
+                            <div style="position: relative; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; background: var(--bg-elevated);">
+                                <object 
+                                    data="<?= htmlspecialchars($fileURL) ?>#toolbar=0&navpanes=0" 
+                                    type="application/pdf" 
+                                    style="width: 100%; height: 600px; display: block;"
+                                >
+                                    <embed 
+                                        src="<?= htmlspecialchars($fileURL) ?>" 
+                                        type="application/pdf" 
+                                        style="width: 100%; height: 600px;"
+                                    >
+                                        <div style="text-align: center; padding: 40px; background: white;">
+                                            <i class="fa-solid fa-file-pdf" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 16px;"></i>
+                                            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                                                Seu navegador não suporta visualização de PDF inline.
+                                            </p>
+                                            <a href="<?= htmlspecialchars($fileURL) ?>" target="_blank" class="btn btn-primary">
+                                                <i class="fa-solid fa-external-link"></i>
+                                                Abrir PDF em Nova Aba
+                                            </a>
+                                        </div>
+                                    </embed>
+                                </object>
+                                <button 
+                                    onclick="abrirModalPreview('<?= htmlspecialchars($fileURL) ?>', 'pdf')" 
+                                    class="btn btn-secondary" 
+                                    style="position: absolute; top: 10px; right: 10px; z-index: 10;"
+                                >
+                                    <i class="fa-solid fa-expand"></i> Tela Cheia
+                                </button>
+                            </div>
+                            
+                        <?php else: ?>
+                            <!-- OUTROS FORMATOS -->
+                            <div style="text-align: center; padding: 40px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; background: var(--bg-elevated);">
+                                <i class="fa-solid fa-file" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 16px;"></i>
+                                <p style="color: var(--text-secondary); margin-bottom: 8px;">
+                                    <strong>Arquivo anexado</strong>
+                                </p>
+                                <p style="color: var(--text-muted); font-size: 0.875rem;">
+                                    Tipo: <?= strtoupper($ext) ?> • Tamanho: <?= number_format($fileSize / 1024, 2) ?> KB
+                                </p>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <!-- BOTÕES DE AÇÃO -->
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <?php if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'])): ?>
+                            <button 
+                                onclick="abrirModalPreview('<?= htmlspecialchars($fileURL) ?>', '<?= in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']) ? 'imagem' : 'pdf' ?>')" 
+                                class="btn btn-secondary" 
+                                style="flex: 1;"
+                            >
+                                <i class="fa-solid fa-eye"></i>
+                                Ver em Tela Cheia
+                            </button>
+                            <?php endif; ?>
+                            
+                            <a 
+                                href="<?= htmlspecialchars($fileURL) ?>" 
+                                target="_blank" 
+                                class="btn btn-primary" 
+                                style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;"
+                            >
+                                <i class="fa-solid fa-external-link"></i>
+                                Abrir em Nova Aba
+                            </a>
+                            
+                            <a 
+                                href="<?= htmlspecialchars($fileURL) ?>" 
+                                download 
+                                class="btn btn-success" 
+                                style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;"
+                            >
+                                <i class="fa-solid fa-download"></i>
+                                Baixar Documento
+                            </a>
+                        </div>
+                        
                     <?php else: ?>
-                        <div style="text-align: center; padding: 40px;">
-                            <i class="fa-solid fa-file-pdf" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 16px;"></i>
-                            <p style="color: var(--text-secondary); margin-bottom: 16px;">Documento anexado</p>
+                        <!-- ARQUIVO NÃO ENCONTRADO -->
+                        <div class="alert error">
+                            <i class="fa-solid fa-exclamation-triangle"></i>
+                            <div>
+                                <strong>⚠️ Arquivo não encontrado no servidor</strong><br>
+                                O documento registrado no banco de dados não foi localizado no sistema de arquivos.<br>
+                                <small style="font-family: monospace; opacity: 0.8; display: block; margin-top: 8px;">
+                                    Caminho esperado: <?= htmlspecialchars($caminhoFisico) ?>
+                                </small>
+                            </div>
                         </div>
                     <?php endif; ?>
-                    
-                    <a href="<?= $filePath ?>" target="_blank" class="btn btn-primary" download>
-                        <i class="fa-solid fa-download"></i>
-                        Baixar Documento
-                    </a>
                 </div>
                 <?php else: ?>
+                <!-- NENHUM DOCUMENTO -->
                 <div class="empty-state">
                     <div class="empty-icon">
                         <i class="fa-solid fa-file-slash"></i>
                     </div>
                     <div class="empty-title">Nenhum documento anexado</div>
+                    <div class="empty-description">Esta empresa não enviou documentos</div>
                 </div>
                 <?php endif; ?>
             </div>
@@ -640,18 +777,37 @@ $uploadPath = "../../../../registration/uploads/business/";
     </div>
 </div>
 
+<!-- MODAL DE PREVIEW EM TELA CHEIA -->
+<div id="modalPreview" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; padding: 20px;">
+    <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 10px;">
+            <h3 style="color: white; margin: 0; font-size: 1.25rem;">
+                <i class="fa-solid fa-eye"></i> Visualização do Documento
+            </h3>
+            <button onclick="fecharModalPreview()" class="btn btn-danger" style="z-index: 10;">
+                <i class="fa-solid fa-times"></i> Fechar [ESC]
+            </button>
+        </div>
+        <div id="modalPreviewContent" style="flex: 1; display: flex; justify-content: center; align-items: center; overflow: auto;">
+            <!-- Conteúdo será inserido aqui via JS -->
+        </div>
+    </div>
+</div>
+
 <script>
 (function() {
     'use strict';
     
     const userId = <?= $userId ?>;
 
+    // Mostrar campo de motivo de rejeição
     window.mostrarRejeicao = function() {
         document.getElementById('motivoGroup').style.display = 'block';
         document.getElementById('btnConfirmarRejeicao').style.display = 'block';
         document.getElementById('motivoRejeicao').focus();
     };
 
+    // Aprovar empresa
     window.aprovarEmpresa = function() {
         if (!confirm('✅ Tem certeza que deseja APROVAR esta empresa?')) return;
         
@@ -659,23 +815,29 @@ $uploadPath = "../../../../registration/uploads/business/";
         formData.append('ajax_action', 'aprovar');
         formData.append('user_id', userId);
         
-        fetch(window.location.href.split('?')[0] + '?id=' + userId, {
+        fetch('modules/dashboard/analise.php', {
             method: 'POST',
             body: formData
         })
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error('Erro HTTP: ' + res.status);
+            return res.json();
+        })
         .then(data => {
-            alert(data.message);
             if (data.success) {
+                alert(data.message);
                 loadContent('modules/dashboard/analise');
+            } else {
+                alert('❌ Erro: ' + data.message);
             }
         })
         .catch(err => {
-            console.error(err);
-            alert('❌ Erro ao processar requisição');
+            console.error('Erro na requisição:', err);
+            alert('❌ Erro ao processar requisição. Verifique o console.');
         });
     };
 
+    // Rejeitar empresa
     window.rejeitarEmpresa = function() {
         const motivo = document.getElementById('motivoRejeicao').value.trim();
         
@@ -691,23 +853,90 @@ $uploadPath = "../../../../registration/uploads/business/";
         formData.append('user_id', userId);
         formData.append('motivo', motivo);
         
-        fetch(window.location.href.split('?')[0] + '?id=' + userId, {
+        fetch('modules/dashboard/analise.php', {
             method: 'POST',
             body: formData
         })
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error('Erro HTTP: ' + res.status);
+            return res.json();
+        })
         .then(data => {
-            alert(data.message);
             if (data.success) {
+                alert(data.message);
                 loadContent('modules/dashboard/analise');
+            } else {
+                alert('❌ Erro: ' + data.message);
             }
         })
         .catch(err => {
-            console.error(err);
-            alert('❌ Erro ao processar requisição');
+            console.error('Erro na requisição:', err);
+            alert('❌ Erro ao processar requisição. Verifique o console.');
         });
     };
     
-    console.log('✅ Análise de empresa carregada - ID:', userId);
+    // Abrir modal de preview
+    window.abrirModalPreview = function(fileurl, tipo) {
+        const modal = document.getElementById('modalPreview');
+        const content = document.getElementById('modalPreviewContent');
+        
+        content.innerHTML = '';
+        
+        if (tipo === 'imagem') {
+            const img = document.createElement('img');
+            img.src = fileurl;
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '100%';
+            img.style.objectFit = 'contain';
+            img.alt = 'Preview do documento';
+            content.appendChild(img);
+        } else if (tipo === 'pdf') {
+            const iframe = document.createElement('iframe');
+            iframe.src = fileurl;
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.background = 'white';
+            content.appendChild(iframe);
+        }
+        
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    };
+    
+    // Fechar modal
+    window.fecharModalPreview = function() {
+        const modal = document.getElementById('modalPreview');
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    };
+    
+    // Tratamento de erro de imagem
+    window.mostrarErroImagem = function(img) {
+        const parent = img.parentElement;
+        parent.innerHTML = `
+            <div style="text-align: center; padding: 60px; background: var(--bg-elevated);">
+                <i class="fa-solid fa-image-slash" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 20px;"></i>
+                <h4 style="color: var(--text-primary); margin-bottom: 12px;">Erro ao carregar imagem</h4>
+                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 20px;">
+                    O arquivo existe no servidor mas não pode ser exibido.<br>
+                    Possíveis causas: permissões, tipo de arquivo incompatível, ou arquivo corrompido.
+                </p>
+                <div style="background: #fee; border: 1px solid #fcc; padding: 12px; border-radius: 6px; text-align: left; font-family: monospace; font-size: 0.75rem; margin-top: 16px;">
+                    <strong>URL tentada:</strong><br>
+                    ${img.src}
+                </div>
+            </div>
+        `;
+    };
+    
+    // Fechar modal com tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            fecharModalPreview();
+        }
+    });
+    
+    console.log('✅ Sistema de análise carregado - User ID:', userId);
 })();
 </script>

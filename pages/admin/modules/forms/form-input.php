@@ -717,11 +717,11 @@ $companies = $mysqli->query("
         </div>
         <div class="header-actions">
             <?php if ($editId): ?>
-                <a href="javascript:loadContent('modules/dashboard/form-input')" class="btn btn-secondary">
+                <a href="javascript:loadContent('modules/forms/form-input')" class="btn btn-secondary">
                     <i class="fa-solid fa-arrow-left"></i> Voltar
                 </a>
             <?php else: ?>
-                <a href="javascript:loadContent('modules/dashboard/form-config')" class="btn btn-secondary">
+                <a href="javascript:loadContent('modules/forms/form-config')" class="btn btn-secondary">
                     <i class="fa-solid fa-gear"></i> Configurações
                 </a>
             <?php endif; ?>
@@ -875,7 +875,7 @@ $companies = $mysqli->query("
                             <i class="fa-solid fa-floppy-disk"></i>
                             <?= $editId ? 'Salvar Alterações' : 'Criar Empresa' ?>
                         </button>
-                        <a href="javascript:loadContent('modules/dashboard/form-input')" class="btn btn-secondary">Cancelar</a>
+                        <a href="javascript:loadContent('modules/forms/form-input')" class="btn btn-secondary">Cancelar</a>
                     </div>
                 </form>
             <?php else: ?>
@@ -905,7 +905,7 @@ $companies = $mysqli->query("
                                         <div class="company-email"><?= htmlspecialchars($comp['email']) ?></div>
                                     </div>
                                     <div class="company-actions">
-                                        <button class="action-btn edit" onclick="loadContent('modules/dashboard/form-input?action=create&edit=<?= $comp['id'] ?>')">
+                                        <button class="action-btn edit" onclick="loadContent('modules/forms/form-input?action=create&edit=<?= $comp['id'] ?>')">
                                             <i class="fa-solid fa-pen"></i> Editar
                                         </button>
                                         <form method="POST" style="display: inline;" onsubmit="return confirm('Deletar esta empresa?')">
@@ -988,7 +988,7 @@ $companies = $mysqli->query("
                     </span>
                 </div>
                 
-                <a href="javascript:loadContent('modules/dashboard/form-config')" class="btn btn-secondary" style="width: 100%; margin-top: 16px; justify-content: center;">
+                <a href="javascript:loadContent('modules/forms/form-config')" class="btn btn-secondary" style="width: 100%; margin-top: 16px; justify-content: center;">
                     <i class="fa-solid fa-gear"></i> Editar Configurações
                 </a>
             </div>
@@ -997,7 +997,7 @@ $companies = $mysqli->query("
                 <!-- AÇÕES RÁPIDAS -->
                 <div class="config-info" style="margin-top: 16px;">
                     <h4 class="config-title">⚡ Ações Rápidas</h4>
-                    <a href="javascript:loadContent('modules/dashboard/form-input?action=create')" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                    <a href="javascript:loadContent('modules/forms/form-input?action=create')" class="btn btn-primary" style="width: 100%; justify-content: center;">
                         <i class="fa-solid fa-plus"></i> Nova Empresa
                     </a>
                 </div>

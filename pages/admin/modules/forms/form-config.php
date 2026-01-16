@@ -682,7 +682,7 @@ body {
     <?php if ($DEBUG_MODE): ?>
         <div class="alert alert-warning">
             <i class="fa-solid fa-bug"></i>
-            <span>Modo DEBUG ativado. <a href="?debug=1" style="color:#f0c065;text-decoration:underline;">Ver detalhes</a></span>
+            <span>Modo DEBUG ativado. <a href="modules/forms/form-config.php?debug=1" style="color:#f0c065;text-decoration:underline;">Ver detalhes</a></span>
         </div>
     <?php endif; ?>
 
@@ -982,7 +982,7 @@ body {
     </form>
 
     <?php if ($DEBUG_MODE): ?>
-        <a href="?debug=1" class="debug-link">
+        <a href="modules/forms/form-config.php?debug=1" class="debug-link">
             <i class="fa-solid fa-bug"></i> Debug Info
         </a>
     <?php endif; ?>

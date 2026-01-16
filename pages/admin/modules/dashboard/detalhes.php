@@ -1,10 +1,9 @@
 <?php
 /**
  * ================================================================================
- * VISIONGREEN DASHBOARD - VISUALIZADOR UNIVERSAL DE DETALHES
+ * VISIONGREEN DASHBOARD - VISUALIZADOR UNIVERSAL DE DETALHES (CORRIGIDO)
  * Módulo: modules/dashboard/detalhes.php
- * Descrição: Sistema universal para visualizar qualquer tipo de registro
- * Suporta: empresas, usuários, documentos, alertas, auditorias, transações, etc.
+ * CORREÇÃO: Agora aceita user_id para buscar empresas
  * ================================================================================
  */
 
@@ -19,7 +18,7 @@ $adminName = $_SESSION['auth']['nome'] ?? 'Admin';
 $isSuperAdmin = ($adminRole === 'superadmin');
 
 /* ================= PARÂMETROS DA URL ================= */
-$type = $_GET['type'] ?? 'empresa'; // empresa, usuario, documento, alerta, auditoria, transacao
+$type = $_GET['type'] ?? 'empresa';
 $id = (int)($_GET['id'] ?? 0);
 
 if (!$id) {
@@ -30,19 +29,20 @@ if (!$id) {
     exit;
 }
 
-/* ================= CONFIGURAÇÃO DE TIPOS ================= */
+/* ================= CONFIGURAÇÃO DE TIPOS (CORRIGIDA) ================= */
 $typeConfig = [
     'empresa' => [
         'table' => 'businesses',
         'join' => 'INNER JOIN users u ON businesses.user_id = u.id',
-        'fields' => 'businesses.*, u.nome, u.email, u.telefone, u.created_at as user_created_at, u.type as user_type',
-        'condition' => 'businesses.id = ?',
+        'fields' => 'businesses.*, u.nome, u.email, u.telefone, u.created_at as user_created_at, u.type as user_type, u.id as user_id',
+        'condition' => 'businesses.user_id = ?', // CORREÇÃO: Busca por user_id
         'title_field' => 'nome',
         'icon' => 'fa-building',
         'color' => 'var(--accent)',
         'has_approval' => true,
         'has_documents' => true,
-        'status_field' => 'status_documentos'
+        'status_field' => 'status_documentos',
+        'update_condition' => 'user_id' // CORREÇÃO: Para UPDATE usar user_id
     ],
     'usuario' => [
         'table' => 'users',
@@ -54,7 +54,8 @@ $typeConfig = [
         'color' => '#58a6ff',
         'has_approval' => false,
         'has_documents' => false,
-        'status_field' => null
+        'status_field' => null,
+        'update_condition' => 'id'
     ],
     'documento' => [
         'table' => 'businesses',
@@ -66,7 +67,8 @@ $typeConfig = [
         'color' => 'var(--accent)',
         'has_approval' => true,
         'has_documents' => true,
-        'status_field' => 'status_documentos'
+        'status_field' => 'status_documentos',
+        'update_condition' => 'id'
     ],
     'alerta' => [
         'table' => 'notifications',
@@ -78,7 +80,8 @@ $typeConfig = [
         'color' => '#f85149',
         'has_approval' => false,
         'has_documents' => false,
-        'status_field' => 'status'
+        'status_field' => 'status',
+        'update_condition' => 'id'
     ],
     'auditoria' => [
         'table' => 'admin_audit_logs',
@@ -90,7 +93,8 @@ $typeConfig = [
         'color' => '#58a6ff',
         'has_approval' => false,
         'has_documents' => false,
-        'status_field' => null
+        'status_field' => null,
+        'update_condition' => 'id'
     ],
     'transacao' => [
         'table' => 'transactions',
@@ -102,7 +106,8 @@ $typeConfig = [
         'color' => '#3fb950',
         'has_approval' => false,
         'has_documents' => false,
-        'status_field' => 'status'
+        'status_field' => 'status',
+        'update_condition' => 'id'
     ]
 ];
 
@@ -118,12 +123,12 @@ $data = $stmt->get_result()->fetch_assoc();
 if (!$data) {
     echo '<div class="alert error">
         <i class="fa-solid fa-exclamation-triangle"></i>
-        <div><strong>Erro:</strong> Registro não encontrado</div>
+        <div><strong>Erro:</strong> Registro não encontrado (ID: ' . $id . ', Tipo: ' . htmlspecialchars($type) . ')</div>
     </div>';
     exit;
 }
 
-/* ================= PROCESSAR AÇÕES (POST) ================= */
+/* ================= PROCESSAR AÇÕES (POST) - CORRIGIDO ================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     $motivo = $_POST['motivo'] ?? '';
@@ -133,17 +138,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($config['has_approval'] && in_array($action, ['approve', 'reject'])) {
             $newStatus = $action === 'approve' ? 'aprovado' : 'rejeitado';
             
+            // CORREÇÃO: Usar update_condition do config
+            $updateField = $config['update_condition'];
+            $updateId = ($type === 'empresa') ? $data['user_id'] : $id;
+            
             if ($action === 'approve') {
-                $stmt = $mysqli->prepare("UPDATE {$config['table']} SET {$config['status_field']} = ?, motivo_rejeicao = NULL, updated_at = NOW() WHERE id = ?");
-                $stmt->bind_param("si", $newStatus, $id);
+                $stmt = $mysqli->prepare("UPDATE {$config['table']} SET {$config['status_field']} = ?, motivo_rejeicao = NULL, updated_at = NOW() WHERE $updateField = ?");
+                $stmt->bind_param("si", $newStatus, $updateId);
             } else {
-                $stmt = $mysqli->prepare("UPDATE {$config['table']} SET {$config['status_field']} = ?, motivo_rejeicao = ?, updated_at = NOW() WHERE id = ?");
-                $stmt->bind_param("ssi", $newStatus, $motivo, $id);
+                $stmt = $mysqli->prepare("UPDATE {$config['table']} SET {$config['status_field']} = ?, motivo_rejeicao = ?, updated_at = NOW() WHERE $updateField = ?");
+                $stmt->bind_param("ssi", $newStatus, $motivo, $updateId);
             }
             $stmt->execute();
             
             // Log de auditoria
-            $auditAction = "AUDIT_" . strtoupper($type) . "_" . strtoupper($action);
+            $auditAction = "AUDIT_" . strtoupper($type) . "_" . strtoupper($action) . "_" . $updateId;
             $ip = $_SERVER['REMOTE_ADDR'];
             $stmt = $mysqli->prepare("INSERT INTO admin_audit_logs (admin_id, action, ip_address, created_at) VALUES (?, ?, ?, NOW())");
             $stmt->bind_param("iss", $adminId, $auditAction, $ip);
@@ -151,9 +160,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             $msg = $action === 'approve' ? "✅ Registro aprovado com sucesso!" : "❌ Registro rejeitado.";
         } elseif ($action === 'delete') {
-            // Soft delete
-            $stmt = $mysqli->prepare("UPDATE {$config['table']} SET deleted_at = NOW() WHERE id = ?");
-            $stmt->bind_param("i", $id);
+            $updateField = $config['update_condition'];
+            $updateId = ($type === 'empresa') ? $data['user_id'] : $id;
+            
+            $stmt = $mysqli->prepare("UPDATE {$config['table']} SET deleted_at = NOW() WHERE $updateField = ?");
+            $stmt->bind_param("i", $updateId);
             $stmt->execute();
             
             $msg = "🗑️ Registro excluído com sucesso!";
@@ -163,8 +174,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         echo "<script>
             alert('$msg');
-            window.opener.postMessage({type: 'reload'}, '*');
-            setTimeout(() => window.close(), 1000);
+            if (window.opener) {
+                window.opener.postMessage({type: 'reload'}, '*');
+                setTimeout(() => window.close(), 1000);
+            } else {
+                window.location.reload();
+            }
         </script>";
         exit;
         
@@ -188,7 +203,7 @@ $sql_hist = "
     ORDER BY al.created_at DESC
     LIMIT 20
 ";
-$searchPattern = "%{$type}%";
+$searchPattern = "%{$type}%{$id}%";
 $stmt = $mysqli->prepare($sql_hist);
 $stmt->bind_param("s", $searchPattern);
 $stmt->execute();
@@ -256,6 +271,9 @@ if ($config['status_field'] && isset($data[$config['status_field']])) {
 
 /* ================= TÍTULO DA PÁGINA ================= */
 $pageTitle = $data[$config['title_field']] ?? 'Registro #' . $id;
+
+// CORREÇÃO: Caminho correto para documentos
+$uploadPathWeb = "/registration/uploads/business/";
 ?>
 
 <!DOCTYPE html>
@@ -283,6 +301,9 @@ $pageTitle = $data[$config['title_field']] ?? 'Registro #' . $id;
             <?= $statusBadge ?>
             <?php if ($diasRegistro > 0): ?>
                 • Criado há <?= round($diasRegistro) ?> dias
+            <?php endif; ?>
+            <?php if ($type === 'empresa'): ?>
+                • User ID: <?= $data['user_id'] ?>
             <?php endif; ?>
         </div>
     </div>
@@ -404,9 +425,9 @@ $pageTitle = $data[$config['title_field']] ?? 'Registro #' . $id;
                     <?php foreach ($historico as $h): ?>
                     <?php
                         $timelineClass = 'pending';
-                        if (strpos($h['action'], 'APROVADO') !== false || strpos($h['action'], 'COMPLETED') !== false) {
+                        if (strpos($h['action'], 'APROVADO') !== false || strpos($h['action'], 'COMPLETED') !== false || strpos($h['action'], 'APPROVE') !== false) {
                             $timelineClass = 'completed';
-                        } elseif (strpos($h['action'], 'REJEITADO') !== false || strpos($h['action'], 'FAILED') !== false) {
+                        } elseif (strpos($h['action'], 'REJEITADO') !== false || strpos($h['action'], 'FAILED') !== false || strpos($h['action'], 'REJECT') !== false) {
                             $timelineClass = 'rejected';
                         }
                     ?>
@@ -430,7 +451,7 @@ $pageTitle = $data[$config['title_field']] ?? 'Registro #' . $id;
     <!-- COLUNA DIREITA: DOCUMENTOS E AÇÕES -->
     <div>
         
-        <!-- VISUALIZAÇÃO DE DOCUMENTOS -->
+        <!-- VISUALIZAÇÃO DE DOCUMENTOS (CORRIGIDA) -->
         <?php if ($config['has_documents'] && !empty($data['license_path'])): ?>
         <div class="card mb-3">
             <div class="card-header">
@@ -439,29 +460,48 @@ $pageTitle = $data[$config['title_field']] ?? 'Registro #' . $id;
                     Documento Anexado
                 </h3>
             </div>
-            <div class="card-body" style="padding: 0;">
+            <div class="card-body" style="padding: 16px;">
                 <div class="document-preview">
                     <?php
-                        $filePath = '../../' . $data['license_path'];
+                        // CORREÇÃO: Usar URL web
+                        $fileURL = $uploadPathWeb . $data['license_path'];
                         $fileExt = strtolower(pathinfo($data['license_path'], PATHINFO_EXTENSION));
                         
                         if (in_array($fileExt, ['jpg', 'jpeg', 'png', 'gif', 'webp'])):
                     ?>
-                        <img src="<?= htmlspecialchars($filePath) ?>" alt="Documento" style="max-width: 100%; max-height: 500px; border-radius: 8px;">
+                        <img src="<?= htmlspecialchars($fileURL) ?>" alt="Documento" style="max-width: 100%; height: auto; border-radius: 8px; cursor: pointer;" onclick="window.open('<?= htmlspecialchars($fileURL) ?>', '_blank')">
                     <?php elseif ($fileExt === 'pdf'): ?>
-                        <iframe src="<?= htmlspecialchars($filePath) ?>" frameborder="0" style="width: 100%; height: 500px; border: 1px solid var(--border); border-radius: 8px;"></iframe>
+                        <object data="<?= htmlspecialchars($fileURL) ?>" type="application/pdf" style="width: 100%; height: 600px; border: 1px solid var(--border); border-radius: 8px;">
+                            <embed src="<?= htmlspecialchars($fileURL) ?>" type="application/pdf" style="width: 100%; height: 600px;">
+                                <p style="text-align: center; padding: 40px;">
+                                    Navegador não suporta PDFs inline.<br>
+                                    <a href="<?= htmlspecialchars($fileURL) ?>" target="_blank" class="btn btn-primary" style="margin-top: 16px;">
+                                        <i class="fa-solid fa-external-link"></i> Abrir em Nova Aba
+                                    </a>
+                                </p>
+                            </embed>
+                        </object>
                     <?php else: ?>
                         <div style="text-align: center; padding: 60px 20px;">
                             <i class="fa-solid fa-file" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 16px;"></i>
                             <p style="color: var(--text-secondary); margin-bottom: 16px;">
                                 Arquivo: <?= basename($data['license_path']) ?>
                             </p>
-                            <a href="<?= htmlspecialchars($filePath) ?>" class="btn btn-primary" download>
+                            <a href="<?= htmlspecialchars($fileURL) ?>" class="btn btn-primary" download>
                                 <i class="fa-solid fa-download"></i>
                                 Baixar Documento
                             </a>
                         </div>
                     <?php endif; ?>
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-top: 16px;">
+                    <a href="<?= htmlspecialchars($fileURL) ?>" target="_blank" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none;">
+                        <i class="fa-solid fa-external-link"></i> Nova Aba
+                    </a>
+                    <a href="<?= htmlspecialchars($fileURL) ?>" download class="btn btn-primary" style="flex: 1; text-align: center; text-decoration: none;">
+                        <i class="fa-solid fa-download"></i> Baixar
+                    </a>
                 </div>
             </div>
         </div>
@@ -642,10 +682,8 @@ $pageTitle = $data[$config['title_field']] ?? 'Registro #' . $id;
 
     function exportToPDF() {
         alert('🚧 Funcionalidade de exportação em desenvolvimento');
-        // Implementar exportação PDF futuramente
     }
 
-    // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && e.key === 'p') {
             e.preventDefault();

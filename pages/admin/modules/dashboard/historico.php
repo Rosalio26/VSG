@@ -1,10 +1,10 @@
 <?php
 /**
  * ================================================================================
- * VISIONGREEN DASHBOARD - HISTÓRICO DE ATIVIDADES (ROLE-PROTECTED)
+ * VISIONGREEN DASHBOARD - HISTÓRICO DE ATIVIDADES (CORRIGIDO)
  * Módulo: modules/dashboard/historico.php
  * Descrição: Timeline completa de logs com filtro por role
- * Proteção: Admin NÃO VÊ logs de SuperAdmins
+ * CORREÇÃO: Link para detalhes agora usa user_id correto
  * ================================================================================
  */
 
@@ -27,10 +27,8 @@ $where_conditions = [];
 
 // 🔐 PROTEÇÃO DE ROLE: Admin NÃO VÊ logs de SuperAdmins
 if ($isSuperAdmin) {
-    // SuperAdmin vê TUDO - sem restrições
     $where_conditions[] = "1=1";
 } else {
-    // Admin BLOQUEADO - não vê SuperAdmins
     $where_conditions[] = "(u.role = 'admin' OR u.role IS NULL OR al.admin_id = $adminId)";
     $where_conditions[] = "(u.role != 'superadmin' OR u.role IS NULL)";
 }
@@ -77,11 +75,11 @@ $sql_historico = "
 ";
 $result_historico = $mysqli->query($sql_historico);
 
-/* ================= BUSCAR HISTÓRICO DE EMPRESAS ================= */
+/* ================= BUSCAR HISTÓRICO DE EMPRESAS (CORRIGIDO) ================= */
 $periodo_safe = $filtro_periodo === 'all' ? '365' : (int)$filtro_periodo;
 $sql_businesses_history = "
     SELECT 
-        b.id,
+        b.id as business_id,
         b.user_id,
         u.nome as empresa_nome,
         b.status_documentos,
@@ -99,7 +97,6 @@ $result_business_history = $mysqli->query($sql_businesses_history);
 
 /* ================= LISTA DE ADMINS PARA FILTRO (ROLE-BASED) ================= */
 if ($isSuperAdmin) {
-    // SuperAdmin vê todos os admins (incluindo SuperAdmins)
     $sql_admins = "
         SELECT id, nome, role 
         FROM users 
@@ -110,7 +107,6 @@ if ($isSuperAdmin) {
             nome ASC
     ";
 } else {
-    // Admin só vê outros admins (não SuperAdmins)
     $sql_admins = "
         SELECT id, nome, role 
         FROM users 
@@ -401,7 +397,7 @@ $docs_rejeitados = $mysqli->query("
         </div>
     </div>
 
-    <!-- DOCUMENTOS PROCESSADOS -->
+    <!-- DOCUMENTOS PROCESSADOS (CORRIGIDO) -->
     <div class="card">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h3 class="card-title">
@@ -439,7 +435,8 @@ $docs_rejeitados = $mysqli->query("
                             </div>
                             <?php endif; ?>
                             
-                            <button class="btn btn-sm btn-ghost" style="margin-top: 8px;" onclick="loadContent('modules/dashboard/detalhes?type=empresa&id=<?= $biz['user_id'] ?>')">
+                            <!-- CORREÇÃO: Usar user_id em vez de business_id -->
+                            <button class="btn btn-sm btn-ghost" style="margin-top: 8px;" onclick="loadContent('modules/dashboard/analise?id=<?= $biz['user_id'] ?>')">
                                 <i class="fa-solid fa-eye"></i>
                                 Ver Detalhes
                             </button>
@@ -496,18 +493,16 @@ $docs_rejeitados = $mysqli->query("
         if (tipo !== 'all') params.push('tipo=' + tipo);
         if (admin !== 'all') params.push('admin=' + admin);
         
-        url += params.join('&') + '&_t=' + Date.now(); // Cache bust
+        url += params.join('&') + '&_t=' + Date.now();
         loadContent(url);
     };
 
     window.exportarHistoricoCSV = function() {
         const periodo = document.getElementById('filterPeriodo').value;
         
-        // Criar CSV
-        let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM para UTF-8
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
         csvContent += "ID,Tipo,Ação,Admin,IP,Data/Hora\n";
         
-        // Buscar dados da timeline
         const timeline = document.querySelectorAll('.timeline-item');
         let rowNum = 1;
         timeline.forEach(item => {
@@ -536,7 +531,6 @@ $docs_rejeitados = $mysqli->query("
     window.exportarHistoricoJSON = function() {
         const periodo = document.getElementById('filterPeriodo').value;
         
-        // Coletar dados
         const logs = [];
         document.querySelectorAll('.timeline-item').forEach((item, index) => {
             const title = item.querySelector('.timeline-title span')?.textContent.trim() || '';
