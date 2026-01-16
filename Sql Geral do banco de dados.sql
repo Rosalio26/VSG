@@ -136,26 +136,48 @@ COLLATE='utf8mb4_general_ci'
 ENGINE=InnoDB
 ;
 
-
 CREATE TABLE `products` (
 	`id` INT NOT NULL AUTO_INCREMENT,
-	`name` VARCHAR(100) NOT NULL COLLATE 'utf8mb4_0900_ai_ci',
-	`description` TEXT NULL DEFAULT NULL COLLATE 'utf8mb4_0900_ai_ci',
-	`category` ENUM('addon','service','consultation','training','other') NULL DEFAULT 'addon' COLLATE 'utf8mb4_0900_ai_ci',
-	`price` DECIMAL(10,2) NOT NULL,
-	`currency` VARCHAR(3) NULL DEFAULT 'MZN' COLLATE 'utf8mb4_0900_ai_ci',
-	`is_recurring` TINYINT(1) NULL DEFAULT '0',
-	`billing_cycle` ENUM('monthly','yearly','one_time') NULL DEFAULT 'one_time' COLLATE 'utf8mb4_0900_ai_ci',
-	`stock_quantity` INT NULL DEFAULT NULL,
-	`is_active` TINYINT(1) NULL DEFAULT '1',
+	`user_id` BIGINT UNSIGNED NULL DEFAULT NULL COMMENT 'Empresa dona do produto',
+	`name` VARCHAR(150) NOT NULL COMMENT 'Nome do produto' COLLATE 'utf8mb4_unicode_ci',
+	`description` TEXT NULL DEFAULT NULL COMMENT 'Descrição detalhada' COLLATE 'utf8mb4_unicode_ci',
+	`image_path` VARCHAR(255) NULL DEFAULT NULL COMMENT 'Caminho da imagem' COLLATE 'utf8mb4_unicode_ci',
+	`category` ENUM('addon','service','consultation','training','other') NULL DEFAULT 'addon' COMMENT 'Tipo de produto/negócio' COLLATE 'utf8mb4_unicode_ci',
+	`eco_category` ENUM('recyclable','reusable','biodegradable','sustainable','organic','zero_waste','energy_efficient','not_eco','unknown') NULL DEFAULT 'unknown' COMMENT 'Classificação ecológica' COLLATE 'utf8mb4_unicode_ci',
+	`price` DECIMAL(10,2) NOT NULL COMMENT 'Preço do produto',
+	`currency` VARCHAR(3) NULL DEFAULT 'MZN' COMMENT 'Moeda' COLLATE 'utf8mb4_unicode_ci',
+	`is_recurring` TINYINT(1) NULL DEFAULT '0' COMMENT 'Se é recorrente',
+	`billing_cycle` ENUM('monthly','yearly','one_time') NULL DEFAULT 'one_time' COMMENT 'Ciclo de cobrança' COLLATE 'utf8mb4_unicode_ci',
+	`stock_quantity` INT NULL DEFAULT NULL COMMENT 'Quantidade em estoque (NULL = ilimitado)',
+	`eco_verified` TINYINT(1) NULL DEFAULT '0' COMMENT '0=pendente, 1=aprovado, 2=rejeitado',
+	`eco_score` DECIMAL(3,2) NULL DEFAULT NULL COMMENT 'Score ecológico 0.00-10.00',
+	`eco_certifications` JSON NULL DEFAULT NULL COMMENT 'Certificações ambientais',
+	`carbon_footprint` VARCHAR(50) NULL DEFAULT NULL COMMENT 'Pegada de carbono' COLLATE 'utf8mb4_unicode_ci',
+	`materials_used` TEXT NULL DEFAULT NULL COMMENT 'Materiais utilizados' COLLATE 'utf8mb4_unicode_ci',
+	`recyclability_index` DECIMAL(3,2) NULL DEFAULT NULL COMMENT 'Índice de reciclabilidade 0-10',
+	`eco_benefits` TEXT NULL DEFAULT NULL COMMENT 'Benefícios ecológicos' COLLATE 'utf8mb4_unicode_ci',
+	`verification_notes` TEXT NULL DEFAULT NULL COMMENT 'Notas da verificação' COLLATE 'utf8mb4_unicode_ci',
+	`verified_at` TIMESTAMP NULL DEFAULT NULL COMMENT 'Data da verificação',
+	`verified_by` ENUM('ai','admin','both') NULL DEFAULT NULL COMMENT 'Verificado por' COLLATE 'utf8mb4_unicode_ci',
+	`rejection_reason` TEXT NULL DEFAULT NULL COMMENT 'Motivo da rejeição' COLLATE 'utf8mb4_unicode_ci',
+	`is_active` TINYINT(1) NULL DEFAULT '1' COMMENT 'Se está ativo',
 	`created_at` TIMESTAMP NULL DEFAULT (CURRENT_TIMESTAMP),
 	`updated_at` TIMESTAMP NULL DEFAULT (CURRENT_TIMESTAMP) ON UPDATE CURRENT_TIMESTAMP,
-	PRIMARY KEY (`id`) USING BTREE
+	PRIMARY KEY (`id`) USING BTREE,
+	INDEX `idx_user_id` (`user_id`) USING BTREE,
+	INDEX `idx_category` (`category`) USING BTREE,
+	INDEX `idx_eco_category` (`eco_category`) USING BTREE,
+	INDEX `idx_eco_verified` (`eco_verified`) USING BTREE,
+	INDEX `idx_eco_score` (`eco_score`) USING BTREE,
+	INDEX `idx_is_active` (`is_active`) USING BTREE,
+	INDEX `idx_created_at` (`created_at`) USING BTREE,
+	CONSTRAINT `fk_products_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE CASCADE ON DELETE CASCADE
 )
-COLLATE='utf8mb4_0900_ai_ci'
+COLLATE='utf8mb4_unicode_ci'
 ENGINE=InnoDB
-AUTO_INCREMENT=16
+AUTO_INCREMENT=3
 ;
+
 
 
 CREATE TABLE `product_purchases` (

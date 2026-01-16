@@ -1,0 +1,7 @@
+18:46:09 - === INÍCIO EXCLUIR FUNCIONÁRIO ===
+17:46:09 - Parâmetros - {"user_id":6,"funcionario_id":2}
+17:46:09 - Verificando proprietário
+17:46:09 - Funcionário encontrado - {"nome":"RestPoll"}
+17:46:09 - Executando soft delete
+17:46:09 - Funcionário excluído com sucesso
+17:46:09 - === FIM EXCLUIR FUNCIONÁRIO (SUCESSO) ===

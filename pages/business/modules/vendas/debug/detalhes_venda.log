@@ -1,0 +1,10 @@
+18:07:24 - === INÍCIO DETALHES VENDA ===
+17:07:24 - Venda ID - {"venda_id":1}
+17:07:24 - Buscando detalhes completos
+17:07:24 - Venda encontrada - {"invoice":null,"cliente":"Ana Julia"}
+17:07:24 - === FIM DETALHES VENDA (SUCESSO) ===
+18:53:34 - === INÍCIO DETALHES VENDA ===
+17:53:34 - Venda ID - {"venda_id":1}
+17:53:34 - Buscando detalhes completos
+17:53:34 - Venda encontrada - {"invoice":null,"cliente":"Ana Julia"}
+17:53:34 - === FIM DETALHES VENDA (SUCESSO) ===

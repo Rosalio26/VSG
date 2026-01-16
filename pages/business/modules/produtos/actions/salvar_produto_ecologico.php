@@ -1,194 +1,222 @@
 <?php
 /**
  * ================================================================================
- * VISIONGREEN - SALVAR PRODUTO ECOLÓGICO
- * Arquivo: company/modules/produtos/actions/salvar_produto_ecologico.php
- * Descrição: Salva produto após verificação e faz upload da imagem
+ * VISIONGREEN - SALVAR PRODUTO ECOLÓGICO (VERSÃO CORRIGIDA)
+ * Arquivo: company/modules/produtos/actions/salvar_produto_ecologico.php  
  * ================================================================================
  */
 
-header('Content-Type: application/json');
+// Habilitar log de erros em arquivo
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../../../../logs/product_save_errors.log');
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+// Limpar buffers
+while (ob_get_level()) {
+    ob_end_clean();
 }
+ob_start();
 
-if (!isset($_SESSION['auth']['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Sessão expirada']);
-    exit;
-}
+header('Content-Type: application/json; charset=utf-8');
 
-$userId = (int)$_SESSION['auth']['user_id'];
-
-// Conectar ao banco
-$db_paths = [
-    __DIR__ . '/../../../../../registration/includes/db.php',
-    dirname(dirname(dirname(dirname(__FILE__)))) . '/registration/includes/db.php'
-];
-
-$db_connected = false;
-foreach ($db_paths as $path) {
-    if (file_exists($path)) {
-        require_once $path;
-        $db_connected = true;
-        break;
+function logDebug($message, $data = null) {
+    $log = date('Y-m-d H:i:s') . ' - ' . $message;
+    if ($data !== null) {
+        $log .= ' - ' . json_encode($data);
     }
+    error_log($log);
 }
 
-if (!$db_connected || !isset($mysqli)) {
-    echo json_encode(['success' => false, 'message' => 'Erro de conexão']);
+function logToFile($message) {
+    $log = date('H:i:s') . ' - ' . $message . "\n";
+    file_put_contents(__DIR__ . '/debug.log', $log, FILE_APPEND);
+}
+
+function sendJsonResponse($data) {
+    if (ob_get_length()) ob_clean();
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
+
+logToFile('=== INÍCIO ===');
 
 try {
-    // Validar campos obrigatórios
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    if (!isset($_SESSION['auth']['user_id'])) {
+        logToFile('ERRO: Sem autenticação');
+        sendJsonResponse(['success' => false, 'message' => 'Sessão expirada']);
+    }
+
+    $userId = (int)$_SESSION['auth']['user_id'];
+
+    // Conectar ao banco
+    $db_paths = [
+        __DIR__ . '/../../../../../registration/includes/db.php',
+        __DIR__ . '/../../../../registration/includes/db.php',
+        dirname(dirname(dirname(dirname(__FILE__)))) . '/registration/includes/db.php'
+    ];
+
+    $db_connected = false;
+    foreach ($db_paths as $path) {
+        if (file_exists($path)) {
+            require_once $path;
+            if (isset($mysqli)) {
+                $db_connected = true;
+                break;
+            }
+        }
+    }
+
+    if (!$db_connected || !isset($mysqli)) {
+        logToFile('ERRO: DB não conectado');
+        sendJsonResponse(['success' => false, 'message' => 'Erro de conexão com o banco de dados']);
+    }
+
+    mysqli_report(MYSQLI_REPORT_OFF);
+
+    // ==================== VALIDAR DADOS ====================
     $name = trim($_POST['name'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $category = $_POST['category'] ?? '';
+    $eco_category = $_POST['eco_category'] ?? '';
     $price = floatval($_POST['price'] ?? 0);
     
-    if (empty($name) || empty($description) || empty($category) || $price <= 0) {
-        throw new Exception('Campos obrigatórios não preenchidos');
+    if (empty($name) || empty($description) || empty($category) || empty($eco_category) || $price <= 0) {
+        throw new Exception('Preencha todos os campos obrigatórios corretamente.');
     }
-    
+
     // ==================== UPLOAD DE IMAGEM ====================
     $image_path = null;
-    
     if (isset($_FILES['product_image']) && $_FILES['product_image']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = __DIR__ . '/../../../../uploads/products/';
         
-        // Criar diretório se não existir
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0755, true);
         }
         
         $file = $_FILES['product_image'];
         $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $allowed_ext = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
         
-        // Validar extensão
-        $allowed_ext = ['jpg', 'jpeg', 'png', 'webp'];
         if (!in_array($file_ext, $allowed_ext)) {
-            throw new Exception('Formato de imagem não permitido');
+            throw new Exception('Formato de imagem não permitido.');
         }
         
-        // Validar tamanho (5MB)
-        if ($file['size'] > 5 * 1024 * 1024) {
-            throw new Exception('Imagem muito grande (máx. 5MB)');
-        }
-        
-        // Gerar nome único
         $file_name = 'product_' . $userId . '_' . time() . '_' . uniqid() . '.' . $file_ext;
-        $file_path = $upload_dir . $file_name;
+        $full_path = $upload_dir . $file_name;
         
-        // Mover arquivo
-        if (move_uploaded_file($file['tmp_name'], $file_path)) {
+        if (move_uploaded_file($file['tmp_name'], $full_path)) {
             $image_path = 'products/' . $file_name;
-        } else {
-            throw new Exception('Erro ao fazer upload da imagem');
         }
     }
     
-    // ==================== PREPARAR DADOS ====================
+    // ==================== PREPARAR DADOS ADICIONAIS ====================
     $currency = $_POST['currency'] ?? 'MZN';
-    $stock_quantity = !empty($_POST['stock_quantity']) ? intval($_POST['stock_quantity']) : NULL;
-    $product_weight = !empty($_POST['product_weight']) ? floatval($_POST['product_weight']) : NULL;
+    $stock_quantity = !empty($_POST['stock_quantity']) ? intval($_POST['stock_quantity']) : null;
     
-    // Características sustentáveis
-    $biodegradable = isset($_POST['biodegradable']) ? 1 : 0;
-    $renewable_materials = isset($_POST['renewable_materials']) ? 1 : 0;
-    $water_efficient = isset($_POST['water_efficient']) ? 1 : 0;
-    $energy_efficient = isset($_POST['energy_efficient']) ? 1 : 0;
+    $materials = [];
+    if (isset($_POST['biodegradable'])) $materials[] = 'biodegradável';
+    if (isset($_POST['renewable_materials'])) $materials[] = 'materiais renováveis';
+    if (isset($_POST['water_efficient'])) $materials[] = 'eficiente em água';
+    if (isset($_POST['energy_efficient'])) $materials[] = 'eficiente em energia';
+    $materials_text = !empty($materials) ? implode(', ', $materials) : null;
     
-    // Métricas
-    $recyclable_percentage = !empty($_POST['recyclable_percentage']) ? intval($_POST['recyclable_percentage']) : NULL;
-    $carbon_footprint = !empty($_POST['carbon_footprint']) ? floatval($_POST['carbon_footprint']) : NULL;
-    $eco_certification = !empty($_POST['eco_certification']) ? $_POST['eco_certification'] : NULL;
+    $recyclable_percentage = !empty($_POST['recyclable_percentage']) ? intval($_POST['recyclable_percentage']) : null;
+    $recyclability_index = $recyclable_percentage !== null ? ($recyclable_percentage / 10) : null;
     
-    // Informações adicionais
-    $environmental_impact = trim($_POST['environmental_impact'] ?? '');
-    $manufacturer = trim($_POST['manufacturer'] ?? '');
-    $origin_country = trim($_POST['origin_country'] ?? '');
-    $warranty_months = !empty($_POST['warranty_months']) ? intval($_POST['warranty_months']) : NULL;
-    $dimensions = trim($_POST['dimensions'] ?? '');
+    $carbon_footprint_value = !empty($_POST['carbon_footprint']) ? floatval($_POST['carbon_footprint']) : null;
+    $carbon_footprint = $carbon_footprint_value !== null ? $carbon_footprint_value . ' kg CO2' : null;
     
-    // ==================== INSERIR NO BANCO ====================
-    $stmt = $mysqli->prepare("
+    $environmental_impact = trim($_POST['environmental_impact'] ?? ''); // Mapeado para eco_benefits
+    $eco_certification = !empty($_POST['eco_certification']) ? $_POST['eco_certification'] : null;
+    
+    $eco_certifications_json = null;
+    if (!empty($eco_certification)) {
+        $eco_certifications_json = json_encode([
+            'certifications' => [
+                ['code' => $eco_certification, 'verified' => false, 'added_at' => date('Y-m-d H:i:s')]
+            ]
+        ]);
+    }
+    
+    // ==================== INSERIR NO BANCO (CORRIGIDO) ====================
+    // 14 placeholders (?) para as colunas dinâmicas. eco_verified(0), is_active(1) e created_at(NOW()) são fixos.
+    $sql = "
         INSERT INTO products (
-            user_id, name, description, product_image, category, price, currency,
-            stock_quantity, product_weight, dimensions,
-            eco_certification, carbon_footprint, recyclable_percentage,
-            biodegradable, renewable_materials, water_efficient, energy_efficient,
-            environmental_impact, manufacturer, origin_country, warranty_months,
-            verification_status, is_active, created_at
+            user_id, name, description, image_path,
+            category, eco_category, price, currency, stock_quantity,
+            eco_verified, eco_certifications, carbon_footprint, 
+            materials_used, recyclability_index, eco_benefits, 
+            is_active, created_at
         ) VALUES (
-            ?, ?, ?, ?, ?, ?, ?,
-            ?, ?, ?,
-            ?, ?, ?,
             ?, ?, ?, ?,
-            ?, ?, ?, ?,
-            'pending', 1, NOW()
+            ?, ?, ?, ?, ?,
+            0, ?, ?, 
+            ?, ?, ?, 
+            1, NOW()
         )
-    ");
+    ";
+    
+    logToFile('Preparando statement...');
+    $stmt = $mysqli->prepare($sql);
+    
+    if (!$stmt) {
+        throw new Exception('Erro ao preparar query: ' . $mysqli->error);
+    }
+
+    // String de tipos: 14 caracteres para 14 placeholders
+    $types = "issssssdississ"; 
     
     $stmt->bind_param(
-        "issssdsissdiiiiisssi",
-        $userId,
-        $name,
-        $description,
-        $image_path,
-        $category,
-        $price,
-        $currency,
-        $stock_quantity,
-        $product_weight,
-        $dimensions,
-        $eco_certification,
-        $carbon_footprint,
-        $recyclable_percentage,
-        $biodegradable,
-        $renewable_materials,
-        $water_efficient,
-        $energy_efficient,
-        $environmental_impact,
-        $manufacturer,
-        $origin_country,
-        $warranty_months
+        $types,
+        $userId,                 // 1 (i)
+        $name,                   // 2 (s)
+        $description,            // 3 (s)
+        $image_path,             // 4 (s)
+        $category,               // 5 (s)
+        $eco_category,           // 6 (s)
+        $price,                  // 7 (d)
+        $currency,               // 8 (s)
+        $stock_quantity,         // 9 (i)
+        $eco_certifications_json,// 10 (s)
+        $carbon_footprint,       // 11 (s)
+        $materials_text,         // 12 (s)
+        $recyclability_index,    // 13 (d ou i, s resolve)
+        $environmental_impact    // 14 (s) -> eco_benefits
     );
     
+    logToFile('Executando query...');
+    
     if (!$stmt->execute()) {
-        throw new Exception('Erro ao salvar produto: ' . $stmt->error);
+        throw new Exception('Erro ao executar salvamento: ' . $stmt->error);
     }
     
     $product_id = $mysqli->insert_id;
     $stmt->close();
     
-    // ==================== REGISTRAR HISTÓRICO ====================
-    $history_stmt = $mysqli->prepare("
-        INSERT INTO product_verification_history 
-        (product_id, user_id, status, notes, created_at)
-        VALUES (?, ?, 'submitted', 'Produto enviado para verificação', NOW())
-    ");
+    logToFile('Produto salvo! ID: ' . $product_id);
     
-    $history_stmt->bind_param("ii", $product_id, $userId);
-    $history_stmt->execute();
-    $history_stmt->close();
-    
-    // ==================== RESPOSTA DE SUCESSO ====================
-    echo json_encode([
+    sendJsonResponse([
         'success' => true,
-        'message' => 'Produto cadastrado com sucesso! Aguardando verificação final.',
-        'product_id' => $product_id,
-        'status' => 'pending'
+        'message' => 'Produto cadastrado com sucesso!',
+        'product_id' => $product_id
     ]);
     
 } catch (Exception $e) {
-    // Deletar imagem se foi feito upload
-    if (isset($file_path) && file_exists($file_path)) {
-        unlink($file_path);
+    logToFile('ERRO: ' . $e->getMessage());
+    
+    if (isset($full_path) && file_exists($full_path)) {
+        @unlink($full_path);
     }
     
-    echo json_encode([
+    sendJsonResponse([
         'success' => false,
         'message' => $e->getMessage()
     ]);
 }
+
+logToFile('=== FIM ===');

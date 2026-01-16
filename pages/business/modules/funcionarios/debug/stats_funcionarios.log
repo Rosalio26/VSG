@@ -1,0 +1,72 @@
+18:44:47 - === INÍCIO STATS FUNCIONÁRIOS ===
+17:44:47 - User ID - {"user_id":6}
+17:44:47 - Calculando total
+17:44:47 - Total - {"total":1}
+17:44:47 - Calculando ativos
+17:44:47 - Ativos - {"ativos":1}
+17:44:47 - Calculando inativos
+17:44:47 - Inativos - {"inativos":0}
+17:44:47 - Calculando departamentos
+17:44:47 - Departamentos - {"departamentos":1}
+17:44:47 - Stats calculadas - {"success":true,"total":1,"ativos":1,"inativos":0,"departamentos":1}
+17:44:47 - === FIM STATS FUNCIONÁRIOS (SUCESSO) ===
+18:44:54 - === INÍCIO STATS FUNCIONÁRIOS ===
+17:44:54 - User ID - {"user_id":6}
+17:44:54 - Calculando total
+17:44:54 - Total - {"total":1}
+17:44:54 - Calculando ativos
+17:44:54 - Ativos - {"ativos":1}
+17:44:54 - Calculando inativos
+17:44:54 - Inativos - {"inativos":0}
+17:44:54 - Calculando departamentos
+17:44:54 - Departamentos - {"departamentos":1}
+17:44:54 - Stats calculadas - {"success":true,"total":1,"ativos":1,"inativos":0,"departamentos":1}
+17:44:54 - === FIM STATS FUNCIONÁRIOS (SUCESSO) ===
+18:45:47 - === INÍCIO STATS FUNCIONÁRIOS ===
+17:45:48 - User ID - {"user_id":6}
+17:45:48 - Calculando total
+17:45:48 - Total - {"total":1}
+17:45:48 - Calculando ativos
+17:45:48 - Ativos - {"ativos":1}
+17:45:48 - Calculando inativos
+17:45:48 - Inativos - {"inativos":0}
+17:45:48 - Calculando departamentos
+17:45:48 - Departamentos - {"departamentos":1}
+17:45:48 - Stats calculadas - {"success":true,"total":1,"ativos":1,"inativos":0,"departamentos":1}
+17:45:48 - === FIM STATS FUNCIONÁRIOS (SUCESSO) ===
+18:46:12 - === INÍCIO STATS FUNCIONÁRIOS ===
+17:46:12 - User ID - {"user_id":6}
+17:46:12 - Calculando total
+17:46:12 - Total - {"total":0}
+17:46:12 - Calculando ativos
+17:46:12 - Ativos - {"ativos":0}
+17:46:12 - Calculando inativos
+17:46:12 - Inativos - {"inativos":0}
+17:46:12 - Calculando departamentos
+17:46:12 - Departamentos - {"departamentos":0}
+17:46:12 - Stats calculadas - {"success":true,"total":0,"ativos":0,"inativos":0,"departamentos":0}
+17:46:12 - === FIM STATS FUNCIONÁRIOS (SUCESSO) ===
+18:53:40 - === INÍCIO STATS FUNCIONÁRIOS ===
+17:53:40 - User ID - {"user_id":6}
+17:53:40 - Calculando total
+17:53:40 - Total - {"total":0}
+17:53:40 - Calculando ativos
+17:53:40 - Ativos - {"ativos":0}
+17:53:40 - Calculando inativos
+17:53:40 - Inativos - {"inativos":0}
+17:53:40 - Calculando departamentos
+17:53:40 - Departamentos - {"departamentos":0}
+17:53:40 - Stats calculadas - {"success":true,"total":0,"ativos":0,"inativos":0,"departamentos":0}
+17:53:40 - === FIM STATS FUNCIONÁRIOS (SUCESSO) ===
+18:59:11 - === INÍCIO STATS FUNCIONÁRIOS ===
+17:59:11 - User ID - {"user_id":6}
+17:59:11 - Calculando total
+17:59:11 - Total - {"total":0}
+17:59:11 - Calculando ativos
+17:59:11 - Ativos - {"ativos":0}
+17:59:11 - Calculando inativos
+17:59:11 - Inativos - {"inativos":0}
+17:59:11 - Calculando departamentos
+17:59:11 - Departamentos - {"departamentos":0}
+17:59:11 - Stats calculadas - {"success":true,"total":0,"ativos":0,"inativos":0,"departamentos":0}
+17:59:11 - === FIM STATS FUNCIONÁRIOS (SUCESSO) ===

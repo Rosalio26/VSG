@@ -1,0 +1,108 @@
+17:58:41 - === INÍCIO ===
+16:58:41 - Parâmetros - {"user_id":6,"periodo":30,"status":"","produto_id":"","search":""}
+16:58:41 - Preparando query
+16:58:41 - Executando query
+16:58:41 - Vendas encontradas - {"count":2}
+16:58:41 - === FIM (SUCESSO) ===
+17:58:43 - === INÍCIO ===
+16:58:43 - Parâmetros - {"user_id":6,"periodo":30,"status":"","produto_id":"","search":""}
+16:58:43 - Preparando query
+16:58:43 - Executando query
+16:58:43 - Vendas encontradas - {"count":2}
+16:58:43 - === FIM (SUCESSO) ===
+18:00:53 - === INÍCIO ===
+17:00:53 - Parâmetros - {"user_id":6,"periodo":30,"status":"","produto_id":"","search":""}
+17:00:53 - Preparando query
+17:00:53 - Executando query
+17:00:54 - Vendas encontradas - {"count":2}
+17:00:54 - === FIM (SUCESSO) ===
+18:00:56 - === INÍCIO ===
+17:00:56 - Parâmetros - {"user_id":6,"periodo":30,"status":"","produto_id":"","search":""}
+17:00:56 - Preparando query
+17:00:56 - Executando query
+17:00:56 - Vendas encontradas - {"count":2}
+17:00:56 - === FIM (SUCESSO) ===
+18:01:47 - === INÍCIO ===
+17:01:47 - Parâmetros - {"user_id":6,"periodo":7,"status":"pending","produto_id":"1","search":"poll"}
+17:01:47 - Filtro status - {"status":"pending"}
+17:01:47 - Filtro produto - {"produto_id":"1"}
+17:01:47 - Filtro busca - {"search":"poll"}
+17:01:47 - Preparando query
+17:01:47 - Executando query
+17:01:47 - Vendas encontradas - {"count":0}
+17:01:47 - === FIM (SUCESSO) ===
+18:01:58 - === INÍCIO ===
+17:01:58 - Parâmetros - {"user_id":6,"periodo":365,"status":"","produto_id":"","search":"poll"}
+17:01:58 - Filtro busca - {"search":"poll"}
+17:01:58 - Preparando query
+17:01:58 - Executando query
+17:01:58 - Vendas encontradas - {"count":0}
+17:01:58 - === FIM (SUCESSO) ===
+18:02:07 - === INÍCIO ===
+17:02:07 - Parâmetros - {"user_id":6,"periodo":365,"status":"","produto_id":"","search":"ana"}
+17:02:07 - Filtro busca - {"search":"ana"}
+17:02:07 - Preparando query
+17:02:07 - Executando query
+17:02:07 - Vendas encontradas - {"count":1}
+17:02:07 - === FIM (SUCESSO) ===
+18:07:20 - === INÍCIO ===
+17:07:20 - Parâmetros - {"user_id":6,"periodo":30,"status":"","produto_id":"","search":""}
+17:07:20 - Preparando query
+17:07:20 - Executando query
+17:07:20 - Vendas encontradas - {"count":2}
+17:07:20 - === FIM (SUCESSO) ===
+18:07:42 - === INÍCIO ===
+17:07:42 - Parâmetros - {"user_id":6,"periodo":30,"status":"","produto_id":"","search":"ana"}
+17:07:42 - Filtro busca - {"search":"ana"}
+17:07:42 - Preparando query
+17:07:42 - Executando query
+17:07:42 - Vendas encontradas - {"count":1}
+17:07:42 - === FIM (SUCESSO) ===
+18:07:46 - === INÍCIO ===
+17:07:46 - Parâmetros - {"user_id":6,"periodo":30,"status":"","produto_id":"","search":""}
+17:07:46 - Preparando query
+17:07:46 - Executando query
+17:07:46 - Vendas encontradas - {"count":2}
+17:07:46 - === FIM (SUCESSO) ===
+18:42:11 - === INÍCIO ===
+17:42:11 - Parâmetros - {"user_id":6,"periodo":30,"status":"","produto_id":"","search":""}
+17:42:11 - Preparando query
+17:42:11 - Executando query
+17:42:11 - Vendas encontradas - {"count":2}
+17:42:11 - === FIM (SUCESSO) ===
+18:42:25 - === INÍCIO ===
+17:42:25 - Parâmetros - {"user_id":6,"periodo":30,"status":"","produto_id":"","search":""}
+17:42:25 - Preparando query
+17:42:25 - Executando query
+17:42:25 - Vendas encontradas - {"count":2}
+17:42:25 - === FIM (SUCESSO) ===
+18:44:23 - === INÍCIO ===
+17:44:23 - Parâmetros - {"user_id":6,"periodo":30,"status":"","produto_id":"","search":""}
+17:44:23 - Preparando query
+17:44:23 - Executando query
+17:44:23 - Vendas encontradas - {"count":2}
+17:44:23 - === FIM (SUCESSO) ===
+18:44:30 - === INÍCIO ===
+17:44:30 - Parâmetros - {"user_id":6,"periodo":30,"status":"","produto_id":"","search":""}
+17:44:30 - Preparando query
+17:44:31 - Executando query
+17:44:31 - Vendas encontradas - {"count":2}
+17:44:31 - === FIM (SUCESSO) ===
+18:44:56 - === INÍCIO ===
+17:44:57 - Parâmetros - {"user_id":6,"periodo":30,"status":"","produto_id":"","search":""}
+17:44:57 - Preparando query
+17:44:57 - Executando query
+17:44:57 - Vendas encontradas - {"count":2}
+17:44:57 - === FIM (SUCESSO) ===
+18:53:08 - === INÍCIO ===
+17:53:08 - Parâmetros - {"user_id":6,"periodo":30,"status":"","produto_id":"","search":""}
+17:53:08 - Preparando query
+17:53:08 - Executando query
+17:53:08 - Vendas encontradas - {"count":2}
+17:53:08 - === FIM (SUCESSO) ===
+18:59:09 - === INÍCIO ===
+17:59:09 - Parâmetros - {"user_id":6,"periodo":30,"status":"","produto_id":"","search":""}
+17:59:09 - Preparando query
+17:59:09 - Executando query
+17:59:09 - Vendas encontradas - {"count":2}
+17:59:09 - === FIM (SUCESSO) ===

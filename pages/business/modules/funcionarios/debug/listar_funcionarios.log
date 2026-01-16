@@ -1,0 +1,42 @@
+18:44:47 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+17:44:47 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+17:44:47 - Preparando query
+17:44:47 - Executando query
+17:44:47 - Funcionários encontrados - {"count":1}
+17:44:47 - Departamentos encontrados - {"count":1}
+17:44:47 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+18:44:54 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+17:44:54 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+17:44:54 - Preparando query
+17:44:54 - Executando query
+17:44:54 - Funcionários encontrados - {"count":1}
+17:44:54 - Departamentos encontrados - {"count":1}
+17:44:54 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+18:45:47 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+17:45:48 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+17:45:48 - Preparando query
+17:45:48 - Executando query
+17:45:48 - Funcionários encontrados - {"count":1}
+17:45:48 - Departamentos encontrados - {"count":1}
+17:45:48 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+18:46:12 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+17:46:12 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+17:46:12 - Preparando query
+17:46:12 - Executando query
+17:46:12 - Funcionários encontrados - {"count":0}
+17:46:12 - Departamentos encontrados - {"count":1}
+17:46:12 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+18:53:40 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+17:53:40 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+17:53:40 - Preparando query
+17:53:40 - Executando query
+17:53:40 - Funcionários encontrados - {"count":0}
+17:53:40 - Departamentos encontrados - {"count":1}
+17:53:40 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+18:59:11 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+17:59:11 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+17:59:11 - Preparando query
+17:59:11 - Executando query
+17:59:11 - Funcionários encontrados - {"count":0}
+17:59:11 - Departamentos encontrados - {"count":1}
+17:59:11 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===

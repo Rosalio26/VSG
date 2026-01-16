@@ -19,7 +19,7 @@ if (!isset($_SESSION['auth']['user_id'])) {
 $userId = (int)$_SESSION['auth']['user_id'];
 
 $db_paths = [
-    __DIR__ . '/../../../../registration/includes/db.php',
+    __DIR__ . '/../../../registration/includes/db.php',
     __DIR__ . '/../../../../registration/includes/db.php',
     dirname(dirname(dirname(__FILE__))) . '/registration/includes/db.php'
 ];
@@ -456,6 +456,247 @@ textarea.form-control {
         flex-direction: column;
     }
 }
+
+/* ==================== Validação Inline ==================== */
+.form-control.error {
+    border-color: var(--gh-accent-red);
+    background: rgba(218, 54, 51, 0.05);
+}
+
+.form-control.error:focus {
+    border-color: var(--gh-accent-red);
+    box-shadow: 0 0 0 3px rgba(218, 54, 51, 0.15);
+}
+
+.form-control.success {
+    border-color: var(--gh-accent-green-bright);
+}
+
+.field-error {
+    display: none;
+    margin-top: 6px;
+    padding: 8px 12px;
+    background: rgba(218, 54, 51, 0.1);
+    border: 1px solid rgba(218, 54, 51, 0.3);
+    border-radius: 6px;
+    font-size: 12px;
+    color: #ff7b72;
+    animation: slideIn 0.2s ease;
+}
+
+.field-error.show {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.field-error i {
+    flex-shrink: 0;
+}
+
+/* ==================== Modal de Erro Frontal ==================== */
+.error-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    background: var(--gh-bg-secondary);
+    border: 1px solid var(--gh-accent-red);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(218, 54, 51, 0.3), 0 0 0 1000px rgba(1, 4, 9, 0.8);
+    z-index: 10000;
+    animation: modalSlideIn 0.3s ease;
+    overflow: hidden;
+}
+
+.error-modal.show {
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -45%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.error-modal-header {
+    padding: 20px 24px;
+    background: rgba(218, 54, 51, 0.1);
+    border-bottom: 1px solid rgba(218, 54, 51, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.error-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #ff7b72;
+}
+
+.error-modal-title i {
+    font-size: 24px;
+}
+
+.error-modal-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--gh-text);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s ease;
+}
+
+.error-modal-close:hover {
+    background: rgba(218, 54, 51, 0.2);
+    color: #ff7b72;
+}
+
+.error-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.error-section {
+    margin-bottom: 24px;
+}
+
+.error-section:last-child {
+    margin-bottom: 0;
+}
+
+.error-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gh-text);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.error-section-title i {
+    color: var(--gh-text-secondary);
+}
+
+.error-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.error-item {
+    padding: 12px 16px;
+    background: var(--gh-bg-primary);
+    border: 1px solid var(--gh-border);
+    border-left: 3px solid var(--gh-accent-red);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.error-item:hover {
+    background: var(--gh-bg-tertiary);
+    border-color: var(--gh-accent-red);
+}
+
+.error-item-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gh-accent-red);
+}
+
+.error-item-content {
+    flex: 1;
+}
+
+.error-item-field {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gh-text);
+    margin-bottom: 4px;
+}
+
+.error-item-message {
+    font-size: 12px;
+    color: var(--gh-text-secondary);
+}
+
+.error-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--gh-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.warning-section {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 6px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.warning-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffc107;
+    margin-bottom: 12px;
+}
+
+.warning-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.warning-item {
+    padding: 8px 12px;
+    background: rgba(255, 193, 7, 0.05);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: var(--gh-text-secondary);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.warning-item i {
+    color: #ffc107;
+    margin-top: 2px;
+}
 </style>
 
 <div class="add-product-container">
@@ -490,6 +731,10 @@ textarea.form-control {
                 <div class="form-group">
                     <label class="form-label required">Nome do Produto</label>
                     <input type="text" name="name" id="name" class="form-control" required placeholder="Ex: Garrafa Reutilizável Bamboo">
+                    <div class="field-error" id="name-error">
+                        <i class="fa-solid fa-exclamation-circle"></i>
+                        <span></span>
+                    </div>
                     <small class="form-help">Nome claro e descritivo</small>
                 </div>
 
@@ -503,6 +748,10 @@ textarea.form-control {
                         <option value="training">📚 Treinamento</option>
                         <option value="other">📋 Outro</option>
                     </select>
+                    <div class="field-error" id="category-error">
+                        <i class="fa-solid fa-exclamation-circle"></i>
+                        <span></span>
+                    </div>
                 </div>
             </div>
 
@@ -518,12 +767,20 @@ textarea.form-control {
                     <option value="zero_waste">🗑️ Zero Desperdício - Não gera resíduos</option>
                     <option value="energy_efficient">⚡ Eficiente Energeticamente - Economiza energia</option>
                 </select>
+                <div class="field-error" id="eco_category-error">
+                    <i class="fa-solid fa-exclamation-circle"></i>
+                    <span></span>
+                </div>
                 <small class="form-help">Esta categoria será verificada pela nossa IA</small>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">Descrição Detalhada</label>
                 <textarea name="description" id="description" class="form-control" required placeholder="Descreva o produto, seus benefícios ambientais e como contribui para a sustentabilidade..."></textarea>
+                <div class="field-error" id="description-error">
+                    <i class="fa-solid fa-exclamation-circle"></i>
+                    <span></span>
+                </div>
                 <small class="form-help">Inclua informações sobre materiais, processo de fabricação e impacto ambiental</small>
             </div>
 
@@ -531,6 +788,10 @@ textarea.form-control {
                 <div class="form-group">
                     <label class="form-label required">Preço</label>
                     <input type="number" step="0.01" name="price" id="price" class="form-control" required placeholder="0.00">
+                    <div class="field-error" id="price-error">
+                        <i class="fa-solid fa-exclamation-circle"></i>
+                        <span></span>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -701,6 +962,28 @@ textarea.form-control {
     </form>
 </div>
 
+<!-- Modal de Erro Frontal -->
+<div class="error-modal" id="errorModal">
+    <div class="error-modal-header">
+        <div class="error-modal-title">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>Problemas de Validação</span>
+        </div>
+        <button class="error-modal-close" onclick="closeErrorModal()">
+            <i class="fa-solid fa-times"></i>
+        </button>
+    </div>
+    <div class="error-modal-body" id="errorModalBody">
+        <!-- Conteúdo será inserido dinamicamente -->
+    </div>
+    <div class="error-modal-footer">
+        <button class="btn btn-primary" onclick="closeErrorModal()">
+            <i class="fa-solid fa-check"></i>
+            Entendi, vou corrigir
+        </button>
+    </div>
+</div>
+
 <!-- Loading Overlay -->
 <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-content">
@@ -718,6 +1001,248 @@ textarea.form-control {
 
     let autosaveTimeout;
     const saveIndicator = document.getElementById('saveIndicator');
+
+    // ==================== VALIDAÇÃO INLINE ====================
+    
+    const validationRules = {
+        name: {
+            required: true,
+            minLength: 3,
+            message: 'Nome deve ter pelo menos 3 caracteres'
+        },
+        category: {
+            required: true,
+            message: 'Selecione o tipo de produto'
+        },
+        eco_category: {
+            required: true,
+            message: 'Selecione a categoria ecológica'
+        },
+        description: {
+            required: true,
+            minLength: 50,
+            message: 'Descrição deve ter pelo menos 50 caracteres'
+        },
+        price: {
+            required: true,
+            min: 0.01,
+            message: 'Preço deve ser maior que zero'
+        }
+    };
+
+    // Mostrar erro inline no campo
+    function showFieldError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        const errorDiv = document.getElementById(`${fieldId}-error`);
+        
+        if (field && errorDiv) {
+            field.classList.add('error');
+            field.classList.remove('success');
+            errorDiv.querySelector('span').textContent = message;
+            errorDiv.classList.add('show');
+        }
+    }
+
+    // Limpar erro inline do campo
+    function clearFieldError(fieldId) {
+        const field = document.getElementById(fieldId);
+        const errorDiv = document.getElementById(`${fieldId}-error`);
+        
+        if (field && errorDiv) {
+            field.classList.remove('error');
+            field.classList.add('success');
+            errorDiv.classList.remove('show');
+        }
+    }
+
+    // Validar campo individual
+    function validateField(fieldId) {
+        const field = document.getElementById(fieldId);
+        const rules = validationRules[fieldId];
+        
+        if (!field || !rules) return true;
+
+        const value = field.value.trim();
+
+        // Required
+        if (rules.required && !value) {
+            showFieldError(fieldId, rules.message || 'Campo obrigatório');
+            return false;
+        }
+
+        // Min length
+        if (rules.minLength && value.length < rules.minLength) {
+            showFieldError(fieldId, rules.message || `Mínimo ${rules.minLength} caracteres`);
+            return false;
+        }
+
+        // Min value
+        if (rules.min !== undefined && parseFloat(value) < rules.min) {
+            showFieldError(fieldId, rules.message || `Valor mínimo: ${rules.min}`);
+            return false;
+        }
+
+        // Se passou, limpar erro
+        clearFieldError(fieldId);
+        return true;
+    }
+
+    // Validar todos os campos
+    function validateAllFields() {
+        const errors = [];
+        const warnings = [];
+
+        // Validar campos obrigatórios
+        Object.keys(validationRules).forEach(fieldId => {
+            if (!validateField(fieldId)) {
+                const field = document.getElementById(fieldId);
+                const label = field?.closest('.form-group')?.querySelector('.form-label')?.textContent.replace(' *', '');
+                errors.push({
+                    field: fieldId,
+                    label: label || fieldId,
+                    message: validationRules[fieldId].message
+                });
+            }
+        });
+
+        // Validar imagem
+        const imageFile = document.getElementById('productImage').files[0];
+        if (!imageFile) {
+            errors.push({
+                field: 'productImage',
+                label: 'Imagem do Produto',
+                message: 'Por favor, adicione uma imagem do produto'
+            });
+        }
+
+        // Warnings (não bloqueiam, mas alertam)
+        const description = document.getElementById('description').value.trim();
+        const ecoKeywords = ['sustentável', 'ecológico', 'reciclado', 'biodegradável', 'orgânico', 'renovável'];
+        const hasEcoKeyword = ecoKeywords.some(keyword => description.toLowerCase().includes(keyword));
+        
+        if (!hasEcoKeyword) {
+            warnings.push({
+                message: 'Descrição não menciona termos de sustentabilidade. Adicione palavras como "sustentável", "ecológico", "reciclado" para melhor pontuação.'
+            });
+        }
+
+        const recyclable = document.getElementById('recyclable_percentage').value;
+        if (!recyclable || recyclable == 0) {
+            warnings.push({
+                message: 'Informe o percentual reciclável para aumentar o score ecológico'
+            });
+        }
+
+        return { errors, warnings };
+    }
+
+    // Mostrar modal de erro
+    function showErrorModal(errors, warnings) {
+        const modal = document.getElementById('errorModal');
+        const body = document.getElementById('errorModalBody');
+        
+        let html = '';
+
+        // Seção de erros
+        if (errors.length > 0) {
+            html += `
+                <div class="error-section">
+                    <div class="error-section-title">
+                        <i class="fa-solid fa-exclamation-circle"></i>
+                        <span>Campos Obrigatórios (${errors.length})</span>
+                    </div>
+                    <ul class="error-list">
+            `;
+
+            errors.forEach(error => {
+                html += `
+                    <li class="error-item" onclick="focusField('${error.field}')">
+                        <div class="error-item-icon">
+                            <i class="fa-solid fa-exclamation-circle"></i>
+                        </div>
+                        <div class="error-item-content">
+                            <div class="error-item-field">${error.label}</div>
+                            <div class="error-item-message">${error.message}</div>
+                        </div>
+                        <i class="fa-solid fa-arrow-right" style="color: var(--gh-text-secondary);"></i>
+                    </li>
+                `;
+            });
+
+            html += `
+                    </ul>
+                </div>
+            `;
+        }
+
+        // Seção de avisos
+        if (warnings.length > 0) {
+            html += `
+                <div class="warning-section">
+                    <div class="warning-section-title">
+                        <i class="fa-solid fa-lightbulb"></i>
+                        <span>Sugestões para Melhor Score</span>
+                    </div>
+                    <ul class="warning-list">
+            `;
+
+            warnings.forEach(warning => {
+                html += `
+                    <li class="warning-item">
+                        <i class="fa-solid fa-info-circle"></i>
+                        <span>${warning.message}</span>
+                    </li>
+                `;
+            });
+
+            html += `
+                    </ul>
+                </div>
+            `;
+        }
+
+        body.innerHTML = html;
+        modal.classList.add('show');
+    }
+
+    // Fechar modal de erro
+    window.closeErrorModal = function() {
+        document.getElementById('errorModal').classList.remove('show');
+    };
+
+    // Focar no campo com erro
+    window.focusField = function(fieldId) {
+        closeErrorModal();
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => {
+                field.focus();
+            }, 300);
+        }
+    };
+
+    // Validação em tempo real
+    function setupRealtimeValidation() {
+        Object.keys(validationRules).forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+
+            // Validar ao perder foco
+            field.addEventListener('blur', () => {
+                if (field.value.trim()) {
+                    validateField(fieldId);
+                }
+            });
+
+            // Limpar erro ao começar a digitar
+            field.addEventListener('input', () => {
+                if (field.classList.contains('error')) {
+                    clearFieldError(fieldId);
+                }
+            });
+        });
+    }
 
     // Campos para salvar
     const fields = [
@@ -859,19 +1384,16 @@ textarea.form-control {
 
     // Verificar produto
     window.verifyProduct = async function() {
+        // Validar todos os campos primeiro
+        const { errors, warnings } = validateAllFields();
+
+        if (errors.length > 0) {
+            showErrorModal(errors, warnings);
+            return;
+        }
+
         const form = document.getElementById('ecoProductForm');
         const formData = new FormData(form);
-
-        // Validar campos obrigatórios
-        if (!formData.get('name') || !formData.get('description') || !formData.get('category') || !formData.get('eco_category') || !formData.get('price')) {
-            showAlert('error', 'Por favor, preencha todos os campos obrigatórios');
-            return;
-        }
-
-        if (!formData.get('product_image') || formData.get('product_image').size === 0) {
-            showAlert('error', 'Por favor, adicione uma imagem do produto');
-            return;
-        }
 
         const loadingOverlay = document.getElementById('loadingOverlay');
         const verificationPanel = document.getElementById('verificationPanel');
@@ -879,7 +1401,14 @@ textarea.form-control {
         loadingOverlay.classList.add('show');
 
         try {
-            const response = await fetch('modules/produtos/actions/verificar_produto.php', {
+            // Construir URL correta
+            const currentPath = window.location.pathname;
+            const basePath = currentPath.substring(0, currentPath.indexOf('/pages/business/'));
+            const apiUrl = basePath + '/pages/business/modules/produtos/actions/verificar_produto.php';
+            
+            console.log('Verificando em:', apiUrl);
+
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 body: formData
             });
@@ -923,6 +1452,9 @@ textarea.form-control {
                 `;
                 document.getElementById('submitBtn').disabled = false;
                 showAlert('success', 'Produto verificado e aprovado! Você pode enviá-lo agora.');
+                
+                // Scroll suave até o botão de enviar
+                document.getElementById('submitBtn').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             } else {
                 document.getElementById('verificationResult').innerHTML = `
                     <div style="background: rgba(218, 54, 51, 0.15); border: 1px solid rgba(218, 54, 51, 0.4); border-radius: 6px; padding: 16px;">
@@ -954,12 +1486,36 @@ textarea.form-control {
         loadingOverlay.classList.add('show');
 
         try {
-            const response = await fetch('actions/salvar_produto_ecologico.php', {
+            // Construir URL correta baseada na localização atual
+            const currentPath = window.location.pathname;
+            const basePath = currentPath.substring(0, currentPath.indexOf('/pages/business/'));
+            const apiUrl = basePath + '/pages/business/modules/produtos/actions/salvar_produto_ecologico.php';
+            
+            console.log('Enviando para:', apiUrl);
+
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 body: formData
             });
 
-            const result = await response.json();
+            // Verificar se response é ok
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Pegar texto primeiro para debug
+            const text = await response.text();
+            console.log('Resposta do servidor:', text);
+
+            // Tentar fazer parse
+            let result;
+            try {
+                result = JSON.parse(text);
+            } catch (parseError) {
+                console.error('Erro ao fazer parse do JSON:', parseError);
+                console.error('Texto recebido:', text);
+                throw new Error('Resposta inválida do servidor. Verifique o console para detalhes.');
+            }
 
             loadingOverlay.classList.remove('show');
 
@@ -967,7 +1523,7 @@ textarea.form-control {
                 // Limpar localStorage após sucesso
                 localStorage.removeItem(STORAGE_KEY);
                 
-                showAlert('success', 'Produto cadastrado com sucesso! Redirecionando...');
+                showAlert('success', result.message || 'Produto cadastrado com sucesso!');
                 setTimeout(() => {
                     if (typeof loadContent === 'function') {
                         loadContent('modules/produtos/produtos');
@@ -980,6 +1536,7 @@ textarea.form-control {
             }
         } catch (error) {
             loadingOverlay.classList.remove('show');
+            console.error('Erro completo:', error);
             showAlert('error', 'Erro: ' + error.message);
         }
     });
@@ -1004,7 +1561,8 @@ textarea.form-control {
     // Inicializar
     loadSavedData();
     setupAutosave();
+    setupRealtimeValidation();
 
-    console.log('✅ Formulário de Produto Ecológico carregado com auto-save');
+    console.log('✅ Formulário de Produto Ecológico carregado com auto-save e validação');
 })();
 </script>

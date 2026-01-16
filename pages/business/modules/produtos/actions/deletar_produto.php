@@ -1,8 +1,7 @@
 <?php
 /**
  * ================================================================================
- * VISIONGREEN - ACTION: DELETAR PRODUTO
- * Arquivo: company/modules/produtos/actions/deletar_produto.php
+ * VISIONGREEN - ACTION: DELETAR PRODUTO (SOFT DELETE)
  * ================================================================================
  */
 
@@ -19,6 +18,7 @@ if (!isset($_SESSION['auth']['user_id'])) {
 
 $userId = (int)$_SESSION['auth']['user_id'];
 
+// Incluir banco de dados (usando seu padrão de paths)
 $db_paths = [
     __DIR__ . '/../../../../../registration/includes/db.php',
     dirname(dirname(dirname(dirname(__FILE__)))) . '/registration/includes/db.php'
@@ -38,31 +38,26 @@ if (!$db_connected || !isset($mysqli)) {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'Método inválido']);
-    exit;
-}
-
 try {
     if (empty($_POST['id'])) {
-        echo json_encode(['success' => false, 'message' => 'ID não fornecido']);
-        exit;
+        throw new Exception('ID não fornecido');
     }
     
     $id = intval($_POST['id']);
     
-    // Deletar apenas produtos da própria empresa
-    $stmt = $mysqli->prepare("DELETE FROM products WHERE id = ? AND user_id = ?");
+    // Em vez de DELETE, usamos UPDATE para desativar o produto
+    // Preserva integridade referencial com product_purchases
+    $stmt = $mysqli->prepare("UPDATE products SET is_active = 0, deleted_at = NOW() WHERE id = ? AND user_id = ?");
     $stmt->bind_param("ii", $id, $userId);
     
     if ($stmt->execute()) {
         if ($stmt->affected_rows > 0) {
-            echo json_encode(['success' => true, 'message' => 'Produto deletado!']);
+            echo json_encode(['success' => true, 'message' => 'Produto removido do catálogo!']);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Produto não encontrado']);
+            echo json_encode(['success' => false, 'message' => 'Produto não encontrado ou já removido']);
         }
     } else {
-        echo json_encode(['success' => false, 'message' => 'Erro: ' . $mysqli->error]);
+        throw new Exception($mysqli->error);
     }
     
 } catch (Exception $e) {
