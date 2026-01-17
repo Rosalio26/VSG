@@ -1,6 +1,7 @@
 <?php
 /**
- * LISTAR FUNCIONÁRIOS
+ * LISTAR FUNCIONÁRIOS - COM FIX DE COLLATION
+ * Usa COLLATE utf8mb4_unicode_ci no JOIN para evitar erro de collation
  */
 
 header('Content-Type: application/json');
@@ -34,57 +35,77 @@ if (!isset($_SESSION['auth']['user_id'])) {
 
 require_once __DIR__ . '/../../../../../registration/includes/db.php';
 
-$userId = (int)$_GET['user_id'];
+$empresaId = (int)$_GET['user_id'];
 $status = $_GET['status'] ?? '';
 $departamento = $_GET['departamento'] ?? '';
 $search = $_GET['search'] ?? '';
 
 logDebug('Parâmetros', [
-    'user_id' => $userId,
+    'empresa_id' => $empresaId,
     'status' => $status,
     'departamento' => $departamento,
     'search' => $search
 ]);
 
 try {
+    // FIX COLLATION: Usar COLLATE utf8mb4_unicode_ci no JOIN
     $sql = "
         SELECT 
-            id, nome, email, telefone, cargo, departamento,
-            data_admissao, salario, status, foto_path,
-            documento, tipo_documento, created_at
-        FROM employees
-        WHERE user_id = ?
-        AND is_active = 1
+            e.id,
+            e.nome,
+            e.email_company,
+            e.telefone,
+            e.cargo,
+            e.departamento,
+            e.data_admissao,
+            e.salario,
+            e.status,
+            e.foto_path,
+            e.documento,
+            e.tipo_documento,
+            e.created_at,
+            e.pode_acessar_sistema,
+            u.email as email_pessoal,
+            u.id as user_id
+        FROM employees e
+        LEFT JOIN users u ON (
+            u.email COLLATE utf8mb4_unicode_ci = e.email_company COLLATE utf8mb4_unicode_ci 
+            OR 
+            u.email_corporativo COLLATE utf8mb4_unicode_ci = e.email_company COLLATE utf8mb4_unicode_ci
+        )
+        WHERE e.user_id = ?
+        AND e.is_active = 1
     ";
     
-    $params = [$userId];
+    $params = [$empresaId];
     $types = 'i';
     
     if ($status) {
-        $sql .= " AND status = ?";
+        $sql .= " AND e.status = ?";
         $params[] = $status;
         $types .= 's';
         logDebug('Filtro status', ['status' => $status]);
     }
     
     if ($departamento) {
-        $sql .= " AND departamento = ?";
+        $sql .= " AND e.departamento = ?";
         $params[] = $departamento;
         $types .= 's';
         logDebug('Filtro departamento', ['departamento' => $departamento]);
     }
     
     if ($search) {
-        $sql .= " AND (nome LIKE ? OR email LIKE ? OR cargo LIKE ?)";
+        $sql .= " AND (e.nome LIKE ? OR u.email LIKE ? OR e.email_company LIKE ? OR e.cargo LIKE ?)";
         $searchTerm = "%$search%";
         $params[] = $searchTerm;
         $params[] = $searchTerm;
         $params[] = $searchTerm;
-        $types .= 'sss';
+        $params[] = $searchTerm;
+        $types .= 'ssss';
         logDebug('Filtro busca', ['search' => $search]);
     }
     
-    $sql .= " ORDER BY nome ASC";
+    $sql .= " ORDER BY e.nome ASC";
     
     logDebug('Preparando query');
     $stmt = $mysqli->prepare($sql);
@@ -101,6 +122,9 @@ try {
     
     $funcionarios = [];
     while ($row = $result->fetch_assoc()) {
+        // Adicionar email pessoal ao resultado
+        $row['email'] = $row['email_pessoal'];
+        unset($row['email_pessoal']);
         $funcionarios[] = $row;
     }
     
@@ -115,7 +139,7 @@ try {
         AND departamento != ''
         ORDER BY departamento ASC
     ");
-    $stmt2->bind_param('i', $userId);
+    $stmt2->bind_param('i', $empresaId);
     $stmt2->execute();
     $result2 = $stmt2->get_result();
     

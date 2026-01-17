@@ -1,6 +1,8 @@
 <?php
 /**
- * EDITAR FUNCIONÁRIO
+ * EDITAR FUNCIONÁRIO - NOVA ESTRUTURA
+ * Atualiza users (email pessoal, telefone, nome) + employees (dados profissionais)
+ * Email corporativo NÃO pode ser alterado
  */
 
 header('Content-Type: application/json');
@@ -36,11 +38,10 @@ require_once __DIR__ . '/../../../../../registration/includes/db.php';
 
 $input = json_decode(file_get_contents('php://input'), true);
 
-$funcionarioId = (int)$input['id'];
-// IMPORTANTE: Usar user_id da SESSÃO, não do input
-$userId = (int)$_SESSION['auth']['user_id'];
+$employeeId = (int)$input['id']; // ID na tabela employees
+$empresaId = (int)$_SESSION['auth']['user_id'];
 $nome = trim($input['nome'] ?? '');
-$email = trim($input['email'] ?? '');
+$email = trim($input['email'] ?? ''); // Email PESSOAL
 $telefone = trim($input['telefone'] ?? '');
 $cargo = trim($input['cargo'] ?? '');
 $departamento = trim($input['departamento'] ?? '');
@@ -53,8 +54,8 @@ $endereco = trim($input['endereco'] ?? '');
 $observacoes = trim($input['observacoes'] ?? '');
 
 logDebug('Dados recebidos', [
-    'id' => $funcionarioId,
-    'user_id' => $userId,
+    'employee_id' => $employeeId,
+    'empresa_id' => $empresaId,
     'nome' => $nome,
     'email' => $email
 ]);
@@ -87,92 +88,131 @@ try {
     
     logDebug('Validações OK');
     
-    // Verificar se funcionário pertence à empresa
-    logDebug('Verificando proprietário');
+    // Buscar dados atuais do funcionário (incluindo user_id da tabela users)
+    logDebug('Buscando dados atuais');
     $stmt = $mysqli->prepare("
-        SELECT id
-        FROM employees
-        WHERE id = ?
-        AND user_id = ?
-        AND is_active = 1
+        SELECT e.id, e.email_company, e.user_id as employee_user_id,
+               u.id as real_user_id, u.email as current_email
+        FROM employees e
+        LEFT JOIN users u ON u.email = e.email_company OR u.email_corporativo = e.email_company
+        WHERE e.id = ?
+        AND e.user_id = ?
+        AND e.is_active = 1
     ");
-    $stmt->bind_param('ii', $funcionarioId, $userId);
+    $stmt->bind_param('ii', $employeeId, $empresaId);
     $stmt->execute();
+    $result = $stmt->get_result();
     
-    if ($stmt->get_result()->num_rows === 0) {
+    if ($result->num_rows === 0) {
         logDebug('ERRO: Funcionário não encontrado');
         throw new Exception('Funcionário não encontrado');
     }
     
-    // Verificar email duplicado (exceto o próprio)
-    logDebug('Verificando email duplicado');
-    $stmt = $mysqli->prepare("
-        SELECT id
-        FROM employees
-        WHERE user_id = ?
-        AND email = ?
-        AND id != ?
-        AND is_active = 1
-    ");
-    $stmt->bind_param('isi', $userId, $email, $funcionarioId);
-    $stmt->execute();
+    $funcionario = $result->fetch_assoc();
+    $userIdToUpdate = $funcionario['real_user_id'];
+    $emailCorporativo = $funcionario['email_company'];
     
-    if ($stmt->get_result()->num_rows > 0) {
-        logDebug('ERRO: Email já cadastrado');
-        throw new Exception('Email já cadastrado para outro funcionário');
-    }
-    
-    // Atualizar funcionário
-    logDebug('Atualizando funcionário');
-    $stmt = $mysqli->prepare("
-        UPDATE employees SET
-            nome = ?,
-            email = ?,
-            telefone = ?,
-            cargo = ?,
-            departamento = ?,
-            data_admissao = ?,
-            salario = ?,
-            status = ?,
-            tipo_documento = ?,
-            documento = ?,
-            endereco = ?,
-            observacoes = ?,
-            updated_at = NOW()
-        WHERE id = ?
-        AND user_id = ?
-    ");
-    
-    $stmt->bind_param(
-        'ssssssdsssssii',
-        $nome,
-        $email,
-        $telefone,
-        $cargo,
-        $departamento,
-        $data_admissao,
-        $salario,
-        $status,
-        $tipo_documento,
-        $documento,
-        $endereco,
-        $observacoes,
-        $funcionarioId,
-        $userId
-    );
-    
-    if (!$stmt->execute()) {
-        logDebug('ERRO ao executar', ['error' => $stmt->error]);
-        throw new Exception('Erro ao atualizar funcionário');
-    }
-    
-    logDebug('Funcionário atualizado com sucesso');
-    logDebug('=== FIM EDITAR FUNCIONÁRIO (SUCESSO) ===');
-    
-    echo json_encode([
-        'success' => true,
-        'message' => 'Funcionário atualizado com sucesso'
+    logDebug('Funcionário encontrado', [
+        'user_id' => $userIdToUpdate,
+        'email_company' => $emailCorporativo
     ]);
+    
+    // Verificar se email pessoal mudou e se já existe em outro usuário
+    if ($email !== $funcionario['current_email']) {
+        logDebug('Email mudou, verificando duplicidade');
+        $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1");
+        $stmt->bind_param('si', $email, $userIdToUpdate);
+        $stmt->execute();
+        
+        if ($stmt->get_result()->num_rows > 0) {
+            logDebug('ERRO: Email já cadastrado');
+            throw new Exception('Este email já está cadastrado no sistema');
+        }
+    }
+    
+    // Iniciar transação
+    $mysqli->begin_transaction();
+    
+    try {
+        // 1. ATUALIZAR USUÁRIO (users)
+        logDebug('Atualizando usuário');
+        $stmt = $mysqli->prepare("
+            UPDATE users SET
+                nome = ?,
+                email = ?,
+                telefone = ?,
+                updated_at = NOW()
+            WHERE id = ?
+        ");
+        
+        $stmt->bind_param('sssi', $nome, $email, $telefone, $userIdToUpdate);
+        
+        if (!$stmt->execute()) {
+            throw new Exception('Erro ao atualizar usuário: ' . $stmt->error);
+        }
+        
+        logDebug('Usuário atualizado');
+        
+        // 2. ATUALIZAR DADOS PROFISSIONAIS (employees)
+        logDebug('Atualizando dados profissionais');
+        $stmt = $mysqli->prepare("
+            UPDATE employees SET
+                nome = ?,
+                telefone = ?,
+                cargo = ?,
+                departamento = ?,
+                data_admissao = ?,
+                salario = ?,
+                status = ?,
+                tipo_documento = ?,
+                documento = ?,
+                endereco = ?,
+                observacoes = ?,
+                updated_at = NOW()
+            WHERE id = ?
+            AND user_id = ?
+        ");
+        
+        $stmt->bind_param(
+            'sssssdsssssii',
+            $nome,
+            $telefone,
+            $cargo,
+            $departamento,
+            $data_admissao,
+            $salario,
+            $status,
+            $tipo_documento,
+            $documento,
+            $endereco,
+            $observacoes,
+            $employeeId,
+            $empresaId
+        );
+        
+        if (!$stmt->execute()) {
+            throw new Exception('Erro ao atualizar dados profissionais: ' . $stmt->error);
+        }
+        
+        logDebug('Dados profissionais atualizados');
+        
+        // Commit da transação
+        $mysqli->commit();
+        
+        logDebug('Funcionário atualizado com sucesso');
+        logDebug('=== FIM EDITAR FUNCIONÁRIO (SUCESSO) ===');
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Funcionário atualizado com sucesso',
+            'email_company' => $emailCorporativo
+        ]);
+        
+    } catch (Exception $e) {
+        // Rollback em caso de erro
+        $mysqli->rollback();
+        throw $e;
+    }
     
 } catch (Exception $e) {
     logDebug('ERRO', ['message' => $e->getMessage(), 'line' => $e->getLine()]);

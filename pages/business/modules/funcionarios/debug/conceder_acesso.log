@@ -1,0 +1,163 @@
+05:35:45 - === INÍCIO CONCEDER ACESSO ===
+04:35:45 - Dados recebidos - {"employee_id":3,"user_id":6,"permissions":["mensagens","produtos","vendas","relatorios"]}
+04:35:45 - Verificando proprietário
+04:35:45 - Funcionário encontrado - {"nome":"RestPoll"}
+04:35:45 - Token gerado - {"expira_em":"2026-01-24 04:35:45"}
+04:35:45 - Adicionando permissões
+04:35:45 - Permissão adicionada - {"modulo":"mensagens"}
+04:35:45 - Permissão adicionada - {"modulo":"produtos"}
+04:35:45 - Permissão adicionada - {"modulo":"vendas"}
+04:35:45 - Permissão adicionada - {"modulo":"relatorios"}
+04:35:45 - Link gerado - {"link":"http:\/\/localhost\/pages\/business\/employee\/primeiro_acesso.php?token=3d8d09cf351879777a1dceeff3f4261403311b9676dde7bb963f45805d4e7ca6"}
+04:35:45 - Acesso concedido com sucesso
+04:35:45 - === FIM CONCEDER ACESSO (SUCESSO) ===
+05:39:40 - === INÍCIO CONCEDER ACESSO ===
+04:39:40 - Dados recebidos - {"employee_id":1,"user_id":6,"permissions":["mensagens","produtos","vendas","relatorios"]}
+04:39:40 - Verificando proprietário
+04:39:40 - Funcionário encontrado - {"nome":"RestPoll"}
+04:39:40 - Token gerado - {"expira_em":"2026-01-24 04:39:40"}
+04:39:40 - Adicionando permissões
+04:39:40 - Permissão adicionada - {"modulo":"mensagens"}
+04:39:41 - Permissão adicionada - {"modulo":"produtos"}
+04:39:41 - Permissão adicionada - {"modulo":"vendas"}
+04:39:41 - Permissão adicionada - {"modulo":"relatorios"}
+04:39:41 - Link gerado - {"link":"http:\/\/localhost\/pages\/business\/employee\/primeiro_acesso.php?token=c5906fb7af11c533049547adb14765c4816b38d24f8a6b2cc91431bcb3da5102"}
+04:39:41 - Acesso concedido com sucesso
+04:39:41 - === FIM CONCEDER ACESSO (SUCESSO) ===
+06:07:14 - === INÍCIO CONCEDER ACESSO ===
+05:07:14 - Dados recebidos - {"employee_id":1,"user_id":6,"permissions":["mensagens","produtos","vendas","relatorios"]}
+05:07:14 - Verificando proprietário e buscando dados
+05:07:14 - Funcionário encontrado - {"nome":"Rest poll","empresa":"Asumo"}
+05:07:14 - Token gerado - {"expira_em":"2026-01-24 05:07:14"}
+05:07:14 - Adicionando permissões
+05:07:14 - Permissão adicionada - {"modulo":"mensagens"}
+05:07:14 - Permissão adicionada - {"modulo":"produtos"}
+05:07:14 - Permissão adicionada - {"modulo":"vendas"}
+05:07:14 - Permissão adicionada - {"modulo":"relatorios"}
+05:07:14 - Link gerado - {"link":"http:\/\/localhost\/pages\/business\/employee\/primeiro_acesso.php?token=37b1f5670e40a55037b203fccbd8daff6049977b25c81f3691778c4c8afbf387"}
+05:07:14 - Enviando email
+06:07:24 - === INÍCIO CONCEDER ACESSO ===
+05:07:31 - Email enviado com sucesso
+05:07:31 - Acesso concedido com sucesso
+05:07:31 - === FIM CONCEDER ACESSO (SUCESSO) ===
+05:07:31 - Dados recebidos - {"employee_id":1,"user_id":6,"permissions":["mensagens","produtos","vendas","relatorios"]}
+05:07:31 - Verificando proprietário e buscando dados
+05:07:31 - Funcionário encontrado - {"nome":"Rest poll","empresa":"Asumo"}
+05:07:31 - Token gerado - {"expira_em":"2026-01-24 05:07:31"}
+05:07:31 - Adicionando permissões
+05:07:31 - Permissão adicionada - {"modulo":"mensagens"}
+05:07:31 - Permissão adicionada - {"modulo":"produtos"}
+05:07:31 - Permissão adicionada - {"modulo":"vendas"}
+05:07:31 - Permissão adicionada - {"modulo":"relatorios"}
+05:07:31 - Link gerado - {"link":"http:\/\/localhost\/pages\/business\/employee\/primeiro_acesso.php?token=f2fef7991dd767e5541e3d2729fcdb6136dca0874d5e8e9bd1bbb0ed0c5f3e85"}
+05:07:31 - Enviando email
+05:07:38 - Email enviado com sucesso
+05:07:38 - Acesso concedido com sucesso
+05:07:38 - === FIM CONCEDER ACESSO (SUCESSO) ===
+06:11:32 - === INÍCIO CONCEDER ACESSO ===
+05:11:32 - Dados recebidos - {"employee_id":1,"user_id":6,"permissions":["mensagens","produtos","vendas","relatorios"]}
+05:11:32 - Verificando proprietário e buscando dados
+05:11:32 - Funcionário encontrado - {"nome":"Rest poll","empresa":"Asumo"}
+05:11:32 - Token gerado - {"expira_em":"2026-01-24 05:11:32"}
+05:11:32 - Adicionando permissões
+05:11:32 - Permissão adicionada - {"modulo":"mensagens"}
+05:11:32 - Permissão adicionada - {"modulo":"produtos"}
+05:11:32 - Permissão adicionada - {"modulo":"vendas"}
+05:11:32 - Permissão adicionada - {"modulo":"relatorios"}
+05:11:32 - Link gerado - {"link":"http:\/\/localhost\/vsg\/pages\/business\/employee\/primeiro_acesso.php?token=e485220b6d77b82be81200ee2470c6735b86c4f3732e617b0497d8e687c6f70f"}
+05:11:32 - Enviando email
+05:11:40 - Email enviado com sucesso
+05:11:40 - Acesso concedido com sucesso
+05:11:40 - === FIM CONCEDER ACESSO (SUCESSO) ===
+09:25:48 - === INÍCIO CONCEDER ACESSO ===
+08:25:48 - Dados recebidos - {"employee_id":1,"user_id":6,"permissions":["mensagens","produtos","vendas","relatorios"]}
+08:25:48 - Verificando proprietário e buscando dados
+08:25:48 - ERRO - {"message":"Unknown column 'e.email' in 'field list'","line":54}
+08:25:48 - === FIM CONCEDER ACESSO (ERRO) ===
+09:32:20 - === INÍCIO CONCEDER ACESSO ===
+08:32:20 - Dados recebidos - {"employee_id":1,"user_id":6,"permissions":["mensagens","produtos","vendas","relatorios"]}
+08:32:20 - Verificando proprietário e buscando dados
+08:32:20 - ERRO: Email pessoal não encontrado em users
+08:32:20 - ERRO - {"message":"Email pessoal do funcionário não encontrado. Verifique se o registro em users está correto.","line":88}
+08:32:20 - === FIM CONCEDER ACESSO (ERRO) ===
+09:32:35 - === INÍCIO CONCEDER ACESSO ===
+08:32:35 - Dados recebidos - {"employee_id":1,"user_id":6,"permissions":["mensagens","produtos","vendas","relatorios"]}
+08:32:35 - Verificando proprietário e buscando dados
+08:32:35 - ERRO: Email pessoal não encontrado em users
+08:32:35 - ERRO - {"message":"Email pessoal do funcionário não encontrado. Verifique se o registro em users está correto.","line":88}
+08:32:35 - === FIM CONCEDER ACESSO (ERRO) ===
+09:37:06 - === INÍCIO CONCEDER ACESSO ===
+08:37:07 - Dados recebidos - {"employee_id":1,"user_id":6,"permissions":["mensagens","produtos","vendas","relatorios"]}
+08:37:07 - Verificando proprietário e buscando dados
+08:37:07 - ERRO: Email pessoal não encontrado em users
+08:37:07 - ERRO - {"message":"Email pessoal do funcionário não encontrado. Verifique se o registro em users está correto.","line":88}
+08:37:07 - === FIM CONCEDER ACESSO (ERRO) ===
+09:37:47 - === INÍCIO CONCEDER ACESSO ===
+08:37:47 - Dados recebidos - {"employee_id":1,"user_id":6,"permissions":["mensagens","produtos","vendas","relatorios"]}
+08:37:47 - Buscando dados do funcionário
+08:37:47 - Funcionário encontrado (employees) - {"nome":"Rest poll","email_company":"restpoll@asumo.vsg.com","empresa":"Asumo"}
+08:37:47 - Buscando email pessoal em users
+08:37:47 - ERRO: Email pessoal não encontrado em users
+08:37:47 - ERRO - {"message":"Email pessoal do funcionário não encontrado em users. Verifique se o funcionário foi cadastrado corretamente.","line":106}
+08:37:47 - === FIM CONCEDER ACESSO (ERRO) ===
+09:42:21 - === INÍCIO CONCEDER ACESSO ===
+08:42:21 - Dados recebidos - {"employee_id":1,"user_id":6,"permissions":["mensagens","produtos","vendas","relatorios"]}
+08:42:21 - Buscando dados do funcionário
+08:42:21 - Funcionário encontrado - {"nome":"Rest poll","email_company":"restpoll@asumo.vsg.com","user_employee_id":null,"empresa":"Asumo"}
+08:42:21 - ERRO: user_employee_id não encontrado
+08:42:22 - ERRO - {"message":"Funcionário não possui registro em users. Recadastre o funcionário.","line":90}
+08:42:22 - === FIM CONCEDER ACESSO (ERRO) ===
+09:43:40 - === INÍCIO CONCEDER ACESSO ===
+08:43:40 - Dados recebidos - {"employee_id":1,"user_id":6,"permissions":["mensagens","produtos","vendas","relatorios"]}
+08:43:40 - Buscando dados do funcionário
+08:43:40 - Funcionário encontrado - {"nome":"Rest poll","email_company":"restpoll@asumo.vsg.com","user_employee_id":9,"empresa":"Asumo"}
+08:43:40 - Buscando email pessoal em users
+08:43:40 - Email pessoal encontrado - {"email_pessoal":"vemros7@gmail.com"}
+08:43:40 - Token gerado - {"expira_em":"2026-01-24 08:43:40"}
+08:43:40 - Atualizando email_corporativo em users
+08:43:40 - Adicionando permissões
+08:43:40 - Permissão adicionada - {"modulo":"mensagens"}
+08:43:40 - Permissão adicionada - {"modulo":"produtos"}
+08:43:40 - Permissão adicionada - {"modulo":"vendas"}
+08:43:40 - Permissão adicionada - {"modulo":"relatorios"}
+08:43:40 - Link gerado - {"link":"http:\/\/localhost\/vsg\/pages\/business\/employee\/primeiro_acesso.php?token=ce6c8a7799d40f6a14a1e2d9e00cbea4c25e84be05067c814c092633b2cd5b44"}
+08:43:40 - Enviando email - {"destino":"vemros7@gmail.com","email_login":"restpoll@asumo.vsg.com"}
+08:43:45 - Email enviado com sucesso
+08:43:45 - Acesso concedido com sucesso
+08:43:45 - === FIM CONCEDER ACESSO (SUCESSO) ===
+09:59:33 - === INÍCIO CONCEDER ACESSO ===
+08:59:33 - Dados recebidos - {"employee_id":1,"user_id":6,"permissions":["mensagens","produtos","vendas","relatorios"]}
+08:59:33 - Buscando dados do funcionário
+08:59:33 - Funcionário encontrado - {"nome":"Rest poll","email_company":"restpoll@asumo.vsg.com","user_employee_id":9,"empresa":"Asumo"}
+08:59:33 - Buscando email pessoal em users
+08:59:33 - Email pessoal encontrado - {"email_pessoal":"vemros7@gmail.com"}
+08:59:33 - Token gerado - {"expira_em":"2026-01-24 08:59:33"}
+08:59:33 - Atualizando email_corporativo em users
+08:59:33 - Adicionando permissões
+08:59:33 - Permissão adicionada - {"modulo":"mensagens"}
+08:59:33 - Permissão adicionada - {"modulo":"produtos"}
+08:59:33 - Permissão adicionada - {"modulo":"vendas"}
+08:59:33 - Permissão adicionada - {"modulo":"relatorios"}
+08:59:33 - Link gerado - {"link":"http:\/\/localhost\/vsg\/pages\/business\/employee\/primeiro_acesso.php?token=89268a3c774c4883d5a2f9b38b9a99c036333d5cee644a1ab632b51f2171ac6a"}
+08:59:33 - Enviando email - {"destino":"vemros7@gmail.com","email_login":"restpoll@asumo.vsg.com"}
+08:59:43 - Email enviado com sucesso
+08:59:43 - Acesso concedido com sucesso
+08:59:43 - === FIM CONCEDER ACESSO (SUCESSO) ===
+10:22:07 - === INÍCIO CONCEDER ACESSO ===
+09:22:07 - Dados recebidos - {"employee_id":1,"user_id":6,"permissions":["mensagens","produtos","vendas","relatorios"]}
+09:22:07 - Buscando dados do funcionário
+09:22:07 - Funcionário encontrado - {"nome":"Rest poll","email_company":"restpoll@asumo.vsg.com","user_employee_id":10,"empresa":"Asumo"}
+09:22:07 - Buscando email pessoal em users
+09:22:07 - Email pessoal encontrado - {"email_pessoal":"vemros7@gmail.com"}
+09:22:07 - Token gerado - {"expira_em":"2026-01-24 09:22:07"}
+09:22:07 - Atualizando email_corporativo em users
+09:22:07 - Adicionando permissões
+09:22:07 - Permissão adicionada - {"modulo":"mensagens"}
+09:22:07 - Permissão adicionada - {"modulo":"produtos"}
+09:22:07 - Permissão adicionada - {"modulo":"vendas"}
+09:22:07 - Permissão adicionada - {"modulo":"relatorios"}
+09:22:07 - Link gerado - {"link":"http:\/\/localhost\/vsg\/pages\/business\/employee\/primeiro_acesso.php?token=aca9250cf8050e53c60ad0197e200def2a95ba25ab71b606d294b5462adf5743"}
+09:22:07 - Enviando email - {"destino":"vemros7@gmail.com","email_login":"restpoll@asumo.vsg.com"}
+09:22:14 - Email enviado com sucesso
+09:22:14 - Acesso concedido com sucesso
+09:22:14 - === FIM CONCEDER ACESSO (SUCESSO) ===

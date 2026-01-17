@@ -106,3 +106,9 @@
 17:59:09 - Executando query
 17:59:09 - Vendas encontradas - {"count":2}
 17:59:09 - === FIM (SUCESSO) ===
+06:16:16 - === INÍCIO ===
+05:16:16 - Parâmetros - {"user_id":5,"periodo":30,"status":"","produto_id":"","search":""}
+05:16:16 - Preparando query
+05:16:16 - Executando query
+05:16:16 - Vendas encontradas - {"count":0}
+05:16:16 - === FIM (SUCESSO) ===

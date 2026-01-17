@@ -40,3 +40,463 @@
 17:59:11 - Funcionários encontrados - {"count":0}
 17:59:11 - Departamentos encontrados - {"count":1}
 17:59:11 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:03:55 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:03:55 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:03:55 - Preparando query
+04:03:55 - Executando query
+04:03:55 - Funcionários encontrados - {"count":0}
+04:03:55 - Departamentos encontrados - {"count":1}
+04:03:55 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:18:48 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:18:48 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:18:48 - Preparando query
+04:18:48 - Executando query
+04:18:48 - Funcionários encontrados - {"count":0}
+04:18:48 - Departamentos encontrados - {"count":1}
+04:18:48 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:31:02 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:31:02 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:31:02 - Preparando query
+04:31:02 - Executando query
+04:31:02 - Funcionários encontrados - {"count":0}
+04:31:02 - Departamentos encontrados - {"count":1}
+04:31:02 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:32:07 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:32:07 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:32:07 - Preparando query
+04:32:07 - Executando query
+04:32:07 - Funcionários encontrados - {"count":1}
+04:32:07 - Departamentos encontrados - {"count":1}
+04:32:07 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:32:13 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:32:13 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:32:13 - Preparando query
+04:32:13 - Executando query
+04:32:13 - Funcionários encontrados - {"count":1}
+04:32:13 - Departamentos encontrados - {"count":1}
+04:32:13 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:32:19 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:32:19 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:32:19 - Preparando query
+04:32:19 - Executando query
+04:32:19 - Funcionários encontrados - {"count":1}
+04:32:19 - Departamentos encontrados - {"count":1}
+04:32:19 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:33:06 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:33:06 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:33:06 - Preparando query
+04:33:06 - Executando query
+04:33:06 - Funcionários encontrados - {"count":1}
+04:33:06 - Departamentos encontrados - {"count":1}
+04:33:06 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:33:07 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:33:07 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:33:07 - Preparando query
+04:33:07 - Executando query
+04:33:07 - Funcionários encontrados - {"count":1}
+04:33:07 - Departamentos encontrados - {"count":1}
+04:33:07 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:35:25 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:35:25 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:35:25 - Preparando query
+04:35:25 - Executando query
+04:35:25 - Funcionários encontrados - {"count":1}
+04:35:25 - Departamentos encontrados - {"count":1}
+04:35:25 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:35:31 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:35:31 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:35:31 - Preparando query
+04:35:31 - Executando query
+04:35:31 - Funcionários encontrados - {"count":1}
+04:35:31 - Departamentos encontrados - {"count":1}
+04:35:31 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:35:55 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:35:55 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:35:55 - Preparando query
+04:35:55 - Executando query
+04:35:55 - Funcionários encontrados - {"count":1}
+04:35:55 - Departamentos encontrados - {"count":1}
+04:35:55 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:36:27 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:36:27 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:36:27 - Preparando query
+04:36:27 - Executando query
+04:36:27 - Funcionários encontrados - {"count":1}
+04:36:27 - Departamentos encontrados - {"count":1}
+04:36:27 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:36:51 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:36:51 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:36:51 - Preparando query
+04:36:51 - Executando query
+04:36:51 - Funcionários encontrados - {"count":1}
+04:36:51 - Departamentos encontrados - {"count":1}
+04:36:51 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:38:45 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:38:45 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:38:45 - Preparando query
+04:38:45 - Executando query
+04:38:45 - Funcionários encontrados - {"count":0}
+04:38:45 - Departamentos encontrados - {"count":0}
+04:38:45 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:39:35 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:39:35 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:39:35 - Preparando query
+04:39:35 - Executando query
+04:39:35 - Funcionários encontrados - {"count":1}
+04:39:35 - Departamentos encontrados - {"count":1}
+04:39:35 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:39:43 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:39:43 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:39:43 - Preparando query
+04:39:43 - Executando query
+04:39:43 - Funcionários encontrados - {"count":1}
+04:39:43 - Departamentos encontrados - {"count":1}
+04:39:43 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:57:09 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:57:09 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:57:09 - Preparando query
+04:57:09 - Executando query
+04:57:09 - Funcionários encontrados - {"count":1}
+04:57:09 - Departamentos encontrados - {"count":1}
+04:57:09 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:58:02 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:58:02 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:58:02 - Preparando query
+04:58:02 - Executando query
+04:58:02 - Funcionários encontrados - {"count":0}
+04:58:02 - Departamentos encontrados - {"count":1}
+04:58:02 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+05:58:07 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+04:58:07 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+04:58:07 - Preparando query
+04:58:07 - Executando query
+04:58:07 - Funcionários encontrados - {"count":0}
+04:58:07 - Departamentos encontrados - {"count":1}
+04:58:07 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+06:04:15 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+05:04:15 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+05:04:15 - Preparando query
+05:04:15 - Executando query
+05:04:15 - Funcionários encontrados - {"count":0}
+05:04:15 - Departamentos encontrados - {"count":1}
+05:04:15 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+06:05:13 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+05:05:13 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+05:05:13 - Preparando query
+05:05:13 - Executando query
+05:05:13 - Funcionários encontrados - {"count":0}
+05:05:13 - Departamentos encontrados - {"count":1}
+05:05:13 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+06:06:13 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+05:06:13 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+05:06:13 - Preparando query
+05:06:13 - Executando query
+05:06:13 - Funcionários encontrados - {"count":0}
+05:06:13 - Departamentos encontrados - {"count":0}
+05:06:13 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+06:07:06 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+05:07:06 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+05:07:06 - Preparando query
+05:07:06 - Executando query
+05:07:06 - Funcionários encontrados - {"count":1}
+05:07:06 - Departamentos encontrados - {"count":1}
+05:07:06 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+06:08:13 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+05:08:13 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+05:08:13 - Preparando query
+05:08:13 - Executando query
+05:08:13 - Funcionários encontrados - {"count":1}
+05:08:13 - Departamentos encontrados - {"count":1}
+05:08:13 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+06:08:17 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+05:08:18 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+05:08:18 - Preparando query
+05:08:18 - Executando query
+05:08:18 - Funcionários encontrados - {"count":1}
+05:08:18 - Departamentos encontrados - {"count":1}
+05:08:18 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+06:10:12 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+05:10:12 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+05:10:12 - Preparando query
+05:10:12 - Executando query
+05:10:12 - Funcionários encontrados - {"count":1}
+05:10:12 - Departamentos encontrados - {"count":1}
+05:10:12 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+06:10:35 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+05:10:35 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+05:10:35 - Preparando query
+05:10:35 - Executando query
+05:10:35 - Funcionários encontrados - {"count":0}
+05:10:35 - Departamentos encontrados - {"count":0}
+05:10:35 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+06:11:24 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+05:11:24 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+05:11:24 - Preparando query
+05:11:24 - Executando query
+05:11:24 - Funcionários encontrados - {"count":1}
+05:11:24 - Departamentos encontrados - {"count":1}
+05:11:24 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+06:11:47 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+05:11:47 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+05:11:47 - Preparando query
+05:11:47 - Executando query
+05:11:47 - Funcionários encontrados - {"count":1}
+05:11:47 - Departamentos encontrados - {"count":1}
+05:11:47 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+06:18:28 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+05:18:28 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+05:18:28 - Preparando query
+05:18:28 - Executando query
+05:18:28 - Funcionários encontrados - {"count":1}
+05:18:28 - Departamentos encontrados - {"count":1}
+05:18:28 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+06:21:42 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+05:21:43 - Parâmetros - {"user_id":6,"status":"","departamento":"","search":""}
+05:21:43 - Preparando query
+05:21:43 - Executando query
+05:21:43 - Funcionários encontrados - {"count":1}
+05:21:43 - Departamentos encontrados - {"count":1}
+05:21:43 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:21:22 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:21:22 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:21:22 - Preparando query
+08:21:22 - ERRO - {"message":"Illegal mix of collations (utf8mb4_general_ci,IMPLICIT) and (utf8mb4_unicode_ci,IMPLICIT) for operation '='","line":106}
+08:21:22 - === FIM LISTAR FUNCIONÁRIOS (ERRO) ===
+09:23:40 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:23:40 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:23:40 - Preparando query
+08:23:40 - Executando query
+08:23:40 - Funcionários encontrados - {"count":0}
+08:23:40 - Departamentos encontrados - {"count":0}
+08:23:40 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:24:37 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:24:37 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:24:37 - Preparando query
+08:24:37 - Executando query
+08:24:37 - Funcionários encontrados - {"count":1}
+08:24:37 - Departamentos encontrados - {"count":1}
+08:24:37 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:29:48 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:29:48 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:29:48 - Preparando query
+08:29:48 - Executando query
+08:29:48 - Funcionários encontrados - {"count":1}
+08:29:48 - Departamentos encontrados - {"count":1}
+08:29:48 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:32:15 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:32:15 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:32:15 - Preparando query
+08:32:15 - Executando query
+08:32:15 - Funcionários encontrados - {"count":1}
+08:32:15 - Departamentos encontrados - {"count":1}
+08:32:15 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:35:42 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:35:42 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:35:42 - Preparando query
+08:35:42 - Executando query
+08:35:42 - Funcionários encontrados - {"count":0}
+08:35:42 - Departamentos encontrados - {"count":0}
+08:35:42 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:36:17 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:36:17 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:36:17 - Preparando query
+08:36:17 - Executando query
+08:36:17 - Funcionários encontrados - {"count":0}
+08:36:17 - Departamentos encontrados - {"count":0}
+08:36:17 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:37:03 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:37:03 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:37:03 - Preparando query
+08:37:03 - Executando query
+08:37:03 - Funcionários encontrados - {"count":1}
+08:37:03 - Departamentos encontrados - {"count":1}
+08:37:03 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:37:41 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:37:41 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:37:41 - Preparando query
+08:37:41 - Executando query
+08:37:41 - Funcionários encontrados - {"count":1}
+08:37:41 - Departamentos encontrados - {"count":1}
+08:37:41 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:42:18 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:42:18 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:42:18 - Preparando query
+08:42:18 - Executando query
+08:42:18 - Funcionários encontrados - {"count":1}
+08:42:18 - Departamentos encontrados - {"count":1}
+08:42:18 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:42:48 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:42:48 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:42:48 - Preparando query
+08:42:48 - Executando query
+08:42:48 - Funcionários encontrados - {"count":0}
+08:42:48 - Departamentos encontrados - {"count":0}
+08:42:48 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:42:49 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:42:49 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:42:49 - Preparando query
+08:42:49 - Executando query
+08:42:49 - Funcionários encontrados - {"count":0}
+08:42:49 - Departamentos encontrados - {"count":0}
+08:42:49 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:43:36 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:43:36 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:43:36 - Preparando query
+08:43:36 - Executando query
+08:43:36 - Funcionários encontrados - {"count":1}
+08:43:36 - Departamentos encontrados - {"count":1}
+08:43:36 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:53:18 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:53:19 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:53:19 - Preparando query
+08:53:19 - Executando query
+08:53:19 - Funcionários encontrados - {"count":1}
+08:53:19 - Departamentos encontrados - {"count":1}
+08:53:19 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:55:14 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:55:14 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:55:14 - Preparando query
+08:55:14 - Executando query
+08:55:14 - Funcionários encontrados - {"count":1}
+08:55:14 - Departamentos encontrados - {"count":1}
+08:55:14 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:55:38 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:55:38 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:55:38 - Preparando query
+08:55:38 - Executando query
+08:55:38 - Funcionários encontrados - {"count":1}
+08:55:38 - Departamentos encontrados - {"count":1}
+08:55:38 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:58:12 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:58:12 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:58:12 - Preparando query
+08:58:12 - Executando query
+08:58:12 - Funcionários encontrados - {"count":1}
+08:58:12 - Departamentos encontrados - {"count":1}
+08:58:12 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:58:13 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:58:13 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:58:13 - Preparando query
+08:58:13 - Executando query
+08:58:13 - Funcionários encontrados - {"count":1}
+08:58:13 - Departamentos encontrados - {"count":1}
+08:58:13 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:58:14 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:58:14 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:58:14 - Preparando query
+08:58:14 - Executando query
+08:58:14 - Funcionários encontrados - {"count":1}
+08:58:14 - Departamentos encontrados - {"count":1}
+08:58:14 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:58:28 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:58:28 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:58:28 - Preparando query
+08:58:28 - Executando query
+08:58:28 - Funcionários encontrados - {"count":1}
+08:58:28 - Departamentos encontrados - {"count":1}
+08:58:28 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:58:28 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:58:28 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:58:28 - Preparando query
+08:58:28 - Executando query
+08:58:28 - Funcionários encontrados - {"count":1}
+08:58:28 - Departamentos encontrados - {"count":1}
+08:58:28 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:59:02 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:59:02 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:59:02 - Preparando query
+08:59:02 - Executando query
+08:59:02 - Funcionários encontrados - {"count":1}
+08:59:02 - Departamentos encontrados - {"count":1}
+08:59:02 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:59:04 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:59:04 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:59:04 - Preparando query
+08:59:04 - Executando query
+08:59:04 - Funcionários encontrados - {"count":1}
+08:59:04 - Departamentos encontrados - {"count":1}
+08:59:04 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:59:28 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:59:28 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:59:28 - Preparando query
+08:59:28 - Executando query
+08:59:28 - Funcionários encontrados - {"count":1}
+08:59:28 - Departamentos encontrados - {"count":1}
+08:59:28 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+09:59:55 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+08:59:55 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+08:59:55 - Preparando query
+08:59:55 - Executando query
+08:59:55 - Funcionários encontrados - {"count":1}
+08:59:55 - Departamentos encontrados - {"count":1}
+08:59:55 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+10:00:02 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+09:00:02 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+09:00:02 - Preparando query
+09:00:02 - Executando query
+09:00:02 - Funcionários encontrados - {"count":1}
+09:00:02 - Departamentos encontrados - {"count":1}
+09:00:02 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+10:02:41 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+09:02:41 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+09:02:41 - Preparando query
+09:02:41 - Executando query
+09:02:41 - Funcionários encontrados - {"count":1}
+09:02:41 - Departamentos encontrados - {"count":1}
+09:02:41 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+10:02:42 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+09:02:42 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+09:02:42 - Preparando query
+09:02:42 - Executando query
+09:02:42 - Funcionários encontrados - {"count":1}
+09:02:42 - Departamentos encontrados - {"count":1}
+09:02:42 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+10:02:42 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+09:02:42 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+09:02:42 - Preparando query
+09:02:42 - Executando query
+09:02:42 - Funcionários encontrados - {"count":1}
+09:02:42 - Departamentos encontrados - {"count":1}
+09:02:42 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+10:02:49 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+09:02:49 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+09:02:49 - Preparando query
+09:02:49 - Executando query
+09:02:49 - Funcionários encontrados - {"count":1}
+09:02:49 - Departamentos encontrados - {"count":1}
+09:02:49 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+10:02:50 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+09:02:50 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+09:02:50 - Preparando query
+09:02:50 - Executando query
+09:02:50 - Funcionários encontrados - {"count":1}
+09:02:50 - Departamentos encontrados - {"count":1}
+09:02:50 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+10:20:47 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+09:20:48 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+09:20:48 - Preparando query
+09:20:48 - Executando query
+09:20:48 - Funcionários encontrados - {"count":0}
+09:20:48 - Departamentos encontrados - {"count":0}
+09:20:48 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+10:20:50 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+09:20:50 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+09:20:50 - Preparando query
+09:20:50 - Executando query
+09:20:50 - Funcionários encontrados - {"count":0}
+09:20:50 - Departamentos encontrados - {"count":0}
+09:20:50 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+10:21:54 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+09:21:54 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+09:21:54 - Preparando query
+09:21:54 - Executando query
+09:21:54 - Funcionários encontrados - {"count":1}
+09:21:54 - Departamentos encontrados - {"count":1}
+09:21:54 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+10:22:20 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+09:22:20 - Parâmetros - {"empresa_id":6,"status":"","departamento":"","search":""}
+09:22:20 - Preparando query
+09:22:20 - Executando query
+09:22:20 - Funcionários encontrados - {"count":1}
+09:22:20 - Departamentos encontrados - {"count":1}
+09:22:20 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===

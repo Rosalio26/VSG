@@ -1,0 +1,90 @@
+05:32:03 - === INÍCIO CADASTRAR FUNCIONÁRIO ===
+04:32:03 - Dados recebidos - {"user_id":6,"nome":"RestPoll","email":"vemros@gmail.com","cargo":"Gerente"}
+04:32:03 - Validações OK
+04:32:03 - Verificando email duplicado
+04:32:03 - Inserindo funcionário
+04:32:04 - Funcionário cadastrado - {"id":3}
+04:32:04 - === FIM CADASTRAR FUNCIONÁRIO (SUCESSO) ===
+05:39:33 - === INÍCIO CADASTRAR FUNCIONÁRIO ===
+04:39:33 - Dados recebidos - {"user_id":6,"nome":"RestPoll","email":"vemros7@gmail.com","cargo":"Gerente"}
+04:39:33 - Validações OK
+04:39:33 - Verificando email duplicado
+04:39:33 - Inserindo funcionário
+04:39:33 - Funcionário cadastrado - {"id":1}
+04:39:33 - === FIM CADASTRAR FUNCIONÁRIO (SUCESSO) ===
+06:05:01 - === INÍCIO CADASTRAR FUNCIONÁRIO ===
+05:05:01 - Dados recebidos - {"user_id":6,"nome":"RestPoll","email":"vemros7@gmail.com","cargo":"Gerente"}
+05:05:01 - Validações OK
+05:05:01 - Verificando email duplicado
+05:05:01 - Inserindo funcionário
+05:05:02 - ERRO - {"message":"Duplicate entry '6-vemros7@gmail.com' for key 'employees.unique_email'","line":133}
+05:05:02 - === FIM CADASTRAR FUNCIONÁRIO (ERRO) ===
+06:07:04 - === INÍCIO CADASTRAR FUNCIONÁRIO ===
+05:07:04 - Dados recebidos - {"user_id":6,"nome":"Rest poll","email":"vemros7@gmail.com","cargo":"Gerente"}
+05:07:04 - Validações OK
+05:07:04 - Verificando email duplicado
+05:07:04 - Inserindo funcionário
+05:07:04 - Funcionário cadastrado - {"id":1}
+05:07:04 - === FIM CADASTRAR FUNCIONÁRIO (SUCESSO) ===
+06:11:21 - === INÍCIO CADASTRAR FUNCIONÁRIO ===
+05:11:21 - Dados recebidos - {"user_id":6,"nome":"Rest poll","email":"vemros7@gmail.com","cargo":"Gerente"}
+05:11:21 - Validações OK
+05:11:21 - Verificando email duplicado
+05:11:21 - Inserindo funcionário
+05:11:21 - Funcionário cadastrado - {"id":1}
+05:11:21 - === FIM CADASTRAR FUNCIONÁRIO (SUCESSO) ===
+09:24:33 - === INÍCIO CADASTRAR FUNCIONÁRIO ===
+08:24:33 - Dados recebidos - {"empresa_id":6,"nome":"Rest poll","email":"vemros7@gmail.com","cargo":"Gerente"}
+08:24:33 - Validações básicas OK
+08:24:33 - Verificando email pessoal em users
+08:24:33 - Buscando nome da empresa
+08:24:33 - Empresa encontrada - {"nome":"Asumo"}
+08:24:33 - Gerando email corporativo
+08:24:33 - Email corporativo gerado - {"email_company":"restpoll@asumo.vsg.com"}
+08:24:33 - Criando usuário employee
+08:24:33 - Usuário criado - {"user_id":7}
+08:24:33 - Criando dados profissionais
+08:24:33 - Dados profissionais criados - {"employee_id":1}
+08:24:33 - Funcionário cadastrado com sucesso - {"user_id":7,"employee_id":1,"email_pessoal":"vemros7@gmail.com","email_corporativo":"restpoll@asumo.vsg.com"}
+08:24:33 - === FIM CADASTRAR FUNCIONÁRIO (SUCESSO) ===
+09:37:00 - === INÍCIO CADASTRAR FUNCIONÁRIO ===
+08:37:00 - Dados recebidos - {"empresa_id":6,"nome":"Rest poll","email":"vemros7@gmail.com","cargo":"Gerente"}
+08:37:00 - Validações básicas OK
+08:37:00 - Verificando email pessoal em users
+08:37:00 - Buscando nome da empresa
+08:37:00 - Empresa encontrada - {"nome":"Asumo"}
+08:37:00 - Gerando email corporativo
+08:37:00 - Email corporativo gerado - {"email_company":"restpoll@asumo.vsg.com"}
+08:37:00 - Criando usuário employee
+08:37:00 - Usuário criado - {"user_id":8}
+08:37:00 - Criando dados profissionais
+08:37:00 - Dados profissionais criados - {"employee_id":1}
+08:37:00 - Funcionário cadastrado com sucesso - {"user_id":8,"employee_id":1,"email_pessoal":"vemros7@gmail.com","email_corporativo":"restpoll@asumo.vsg.com"}
+08:37:00 - === FIM CADASTRAR FUNCIONÁRIO (SUCESSO) ===
+09:43:33 - === INÍCIO CADASTRAR FUNCIONÁRIO ===
+08:43:33 - Dados recebidos - {"empresa_id":6,"nome":"Rest poll","email":"vemros7@gmail.com","cargo":"Gerente"}
+08:43:33 - Validações OK
+08:43:33 - Empresa encontrada - {"nome":"Asumo"}
+08:43:33 - Email corporativo gerado - {"email_company":"restpoll@asumo.vsg.com"}
+08:43:33 - Criando usuário employee
+08:43:34 - Usuário criado - {"user_employee_id":9}
+08:43:34 - Criando dados profissionais
+08:43:34 - Dados profissionais criados - {"employee_id":1}
+08:43:34 - Funcionário cadastrado com sucesso - {"user_employee_id":9,"employee_id":1,"email_pessoal":"vemros7@gmail.com","email_corporativo":"restpoll@asumo.vsg.com"}
+08:43:34 - === FIM CADASTRAR FUNCIONÁRIO (SUCESSO) ===
+10:21:39 - === INÍCIO CADASTRAR FUNCIONÁRIO ===
+09:21:40 - Dados recebidos - {"empresa_id":6,"nome":"Rest poll","email":"vemros7@gmail.com","cargo":"Gerente"}
+09:21:40 - Validações OK
+09:21:40 - Empresa encontrada - {"nome":"Asumo"}
+09:21:40 - Email corporativo gerado - {"email_company":"restpoll@asumo.vsg.com"}
+09:21:40 - Criando usuário employee
+10:21:40 - === INÍCIO CADASTRAR FUNCIONÁRIO ===
+09:21:40 - Usuário criado - {"user_employee_id":10}
+09:21:40 - Criando dados profissionais
+09:21:40 - Dados profissionais criados - {"employee_id":1}
+09:21:40 - Funcionário cadastrado com sucesso - {"user_employee_id":10,"employee_id":1,"email_pessoal":"vemros7@gmail.com","email_corporativo":"restpoll@asumo.vsg.com"}
+09:21:40 - === FIM CADASTRAR FUNCIONÁRIO (SUCESSO) ===
+09:21:41 - Dados recebidos - {"empresa_id":6,"nome":"Rest poll","email":"vemros7@gmail.com","cargo":"Gerente"}
+09:21:41 - Validações OK
+09:21:41 - ERRO - {"message":"Este email já está cadastrado no sistema","line":129}
+09:21:41 - === FIM CADASTRAR FUNCIONÁRIO (ERRO) ===

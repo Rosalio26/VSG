@@ -38,8 +38,97 @@ CREATE TABLE `users` (
 )
 COLLATE='utf8mb4_general_ci'
 ENGINE=InnoDB
-AUTO_INCREMENT=4
+AUTO_INCREMENT=7
 ;
+
+
+
+CREATE TABLE `employees` (
+	`id` INT NOT NULL AUTO_INCREMENT,
+	`user_id` BIGINT UNSIGNED NOT NULL COMMENT 'ID da empresa',
+	`nome` VARCHAR(100) NOT NULL COMMENT 'Nome completo' COLLATE 'utf8mb4_unicode_ci',
+	`email` VARCHAR(150) NOT NULL COMMENT 'Email' COLLATE 'utf8mb4_unicode_ci',
+	`telefone` VARCHAR(20) NOT NULL COMMENT 'Telefone' COLLATE 'utf8mb4_unicode_ci',
+	`cargo` VARCHAR(100) NOT NULL COMMENT 'Cargo/Função' COLLATE 'utf8mb4_unicode_ci',
+	`departamento` VARCHAR(100) NULL DEFAULT NULL COMMENT 'Departamento' COLLATE 'utf8mb4_unicode_ci',
+	`data_admissao` DATE NOT NULL COMMENT 'Data de admissão',
+	`salario` DECIMAL(10,2) NULL DEFAULT NULL COMMENT 'Salário',
+	`status` ENUM('ativo','inativo','ferias','afastado') NOT NULL DEFAULT 'ativo' COLLATE 'utf8mb4_unicode_ci',
+	`foto_path` VARCHAR(255) NULL DEFAULT NULL COMMENT 'Caminho da foto' COLLATE 'utf8mb4_unicode_ci',
+	`documento` VARCHAR(50) NULL DEFAULT NULL COMMENT 'Nº do documento' COLLATE 'utf8mb4_unicode_ci',
+	`tipo_documento` ENUM('bi','passaporte','dire','nuit') NULL DEFAULT 'bi' COLLATE 'utf8mb4_unicode_ci',
+	`endereco` TEXT NULL DEFAULT NULL COMMENT 'Endereço completo' COLLATE 'utf8mb4_unicode_ci',
+	`observacoes` TEXT NULL DEFAULT NULL COMMENT 'Observações' COLLATE 'utf8mb4_unicode_ci',
+	`password_hash` VARCHAR(255) NULL DEFAULT NULL COMMENT 'Hash da senha' COLLATE 'utf8mb4_unicode_ci',
+	`pode_acessar_sistema` TINYINT(1) NOT NULL DEFAULT '0' COMMENT 'Se pode fazer login',
+	`primeiro_acesso` TINYINT(1) NOT NULL DEFAULT '1' COMMENT 'Se é primeiro acesso',
+	`ultimo_login` DATETIME NULL DEFAULT NULL COMMENT 'Data do último login',
+	`token_primeiro_acesso` VARCHAR(64) NULL DEFAULT NULL COMMENT 'Token para definir senha' COLLATE 'utf8mb4_unicode_ci',
+	`token_expira_em` DATETIME NULL DEFAULT NULL COMMENT 'Expiração do token',
+	`is_active` TINYINT(1) NOT NULL DEFAULT '1' COMMENT 'Se está ativo',
+	`created_at` TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+	`updated_at` TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP) ON UPDATE CURRENT_TIMESTAMP,
+	PRIMARY KEY (`id`) USING BTREE,
+	UNIQUE INDEX `unique_email` (`user_id`, `email`) USING BTREE,
+	INDEX `idx_user_id` (`user_id`) USING BTREE,
+	INDEX `idx_status` (`status`) USING BTREE,
+	INDEX `idx_cargo` (`cargo`) USING BTREE,
+	INDEX `idx_is_active` (`is_active`) USING BTREE,
+	INDEX `idx_data_admissao` (`data_admissao`) USING BTREE,
+	INDEX `idx_departamento` (`departamento`) USING BTREE,
+	INDEX `idx_email_login` (`email`, `pode_acessar_sistema`) USING BTREE,
+	INDEX `idx_token` (`token_primeiro_acesso`) USING BTREE,
+	CONSTRAINT `fk_employees_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE CASCADE ON DELETE CASCADE
+)
+COLLATE='utf8mb4_unicode_ci'
+ENGINE=InnoDB
+AUTO_INCREMENT=2
+;
+
+
+
+CREATE TABLE `employee_access_logs` (
+	`id` INT NOT NULL AUTO_INCREMENT,
+	`employee_id` INT NOT NULL,
+	`action` VARCHAR(100) NOT NULL COMMENT 'Ação realizada' COLLATE 'utf8mb4_unicode_ci',
+	`module` VARCHAR(50) NULL DEFAULT NULL COMMENT 'Módulo acessado' COLLATE 'utf8mb4_unicode_ci',
+	`ip_address` VARCHAR(45) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+	`user_agent` TEXT NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+	`created_at` TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+	PRIMARY KEY (`id`) USING BTREE,
+	INDEX `idx_employee_id` (`employee_id`) USING BTREE,
+	INDEX `idx_action` (`action`) USING BTREE,
+	INDEX `idx_created_at` (`created_at`) USING BTREE,
+	CONSTRAINT `fk_access_logs_employee` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON UPDATE CASCADE ON DELETE CASCADE
+)
+COLLATE='utf8mb4_unicode_ci'
+ENGINE=InnoDB
+AUTO_INCREMENT=3
+;
+
+
+CREATE TABLE `employee_permissions` (
+	`id` INT NOT NULL AUTO_INCREMENT,
+	`employee_id` INT NOT NULL COMMENT 'ID do funcionário',
+	`module` ENUM('mensagens','produtos','vendas','relatorios') NOT NULL COMMENT 'Módulo permitido' COLLATE 'utf8mb4_unicode_ci',
+	`can_view` TINYINT(1) NOT NULL DEFAULT '1' COMMENT 'Pode visualizar',
+	`can_edit` TINYINT(1) NOT NULL DEFAULT '0' COMMENT 'Pode editar',
+	`can_delete` TINYINT(1) NOT NULL DEFAULT '0' COMMENT 'Pode deletar',
+	`can_create` TINYINT(1) NOT NULL DEFAULT '0' COMMENT 'Pode criar',
+	`created_at` TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+	`updated_at` TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP) ON UPDATE CURRENT_TIMESTAMP,
+	PRIMARY KEY (`id`) USING BTREE,
+	UNIQUE INDEX `unique_employee_module` (`employee_id`, `module`) USING BTREE,
+	INDEX `idx_employee_id` (`employee_id`) USING BTREE,
+	INDEX `idx_module` (`module`) USING BTREE,
+	CONSTRAINT `fk_permissions_employee` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON UPDATE CASCADE ON DELETE CASCADE
+)
+COLLATE='utf8mb4_unicode_ci'
+ENGINE=InnoDB
+AUTO_INCREMENT=5
+;
+
+
 
 
 CREATE TABLE `user_subscriptions` (

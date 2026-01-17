@@ -5,23 +5,34 @@ use PHPMailer\PHPMailer\Exception;
 require_once __DIR__ . '/../vendor/autoload.php';
 
 /**
- * MAILER VISIONGREEN - VERSÃO COM EMAIL CORPORATIVO
+ * MAILER VISIONGREEN - VERSÃO REFORÇADA COM SEGURANÇA
+ * 
+ * Envia emails seguros com templates profissionais
+ * Apenas tipos de mensagem autorizados são permitidos
+ * Sistema anti-spam e validação rigorosa
  */
 
+/**
+ * Configuração de tipos de email autorizados
+ * SEGURANÇA: Apenas estes tipos podem ser enviados
+ */
 define('AUTHORIZED_EMAIL_TYPES', [
-    'email_verification',
-    'password_rotation',
-    'password_manual',
-    'password_recovery',
-    'secure_id_code',
-    'account_blocked',
-    'account_approved',
-    'business_rejected',
-    'admin_alert',
-    'welcome_message',
-    'employee_access'
+    'email_verification',     // Código 2FA de verificação de email
+    'password_rotation',      // Nova senha de rotação automática
+    'password_manual',        // Nova senha gerada manualmente
+    'password_recovery',      // Recuperação de senha esquecida
+    'secure_id_code',         // Código Secure ID (V-S-G)
+    'account_blocked',        // Notificação de conta bloqueada
+    'account_approved',       // Conta aprovada após auditoria
+    'business_rejected',      // Documentos de empresa rejeitados
+    'admin_alert',            // Alerta administrativo crítico
+    'welcome_message'         // Mensagem de boas-vindas
 ]);
 
+/**
+ * Templates de conteúdo para cada tipo de email
+ * Estrutura: 'tipo' => ['subject' => '...', 'title' => '...', 'message' => '...']
+ */
 function getEmailTemplate($type, $code, $nome, $extraData = []) {
     $templates = [
         'email_verification' => [
@@ -102,34 +113,39 @@ function getEmailTemplate($type, $code, $nome, $extraData = []) {
             'message' => 'Sua conta foi criada com sucesso! Suas credenciais de acesso:',
             'validity' => 'N/A',
             'footer_note' => 'Guarde suas credenciais em local seguro.'
-        ],
-        
-        'employee_access' => [
-            'subject' => '🎉 Acesso Concedido ao VisionGreen',
-            'title' => '🔑 Bem-vindo à Equipe!',
-            'message' => 'Você recebeu acesso ao sistema VisionGreen da empresa <strong>' . ($extraData['empresa'] ?? 'sua empresa') . '</strong>.',
-            'validity' => '7 dias',
-            'footer_note' => 'Se você não esperava este email, entre em contato com seu gestor.'
         ]
     ];
     
     return $templates[$type] ?? null;
 }
 
+/**
+ * Função principal de envio de email
+ * 
+ * @param string $emailDestino Email do destinatário
+ * @param string $nomeDestino Nome do destinatário
+ * @param string $conteudo Código ou mensagem a ser enviada
+ * @param string $tipo Tipo de email (deve estar em AUTHORIZED_EMAIL_TYPES)
+ * @param array $extraData Dados extras (role, motivo, etc)
+ * @return bool True se enviou, False se falhou
+ */
 function enviarEmailVisionGreen($emailDestino, $nomeDestino, $conteudo, $tipo = 'auto', $extraData = []) {
     
     // ========== VALIDAÇÕES DE SEGURANÇA ==========
     
+    // 1. Validar email
     if (!filter_var($emailDestino, FILTER_VALIDATE_EMAIL)) {
         error_log("MAILER SECURITY: Email inválido: $emailDestino");
         return false;
     }
     
+    // 2. Validar nome (anti-injection)
     if (empty($nomeDestino) || strlen($nomeDestino) > 100 || preg_match('/<script|javascript:|on\w+=/i', $nomeDestino)) {
         error_log("MAILER SECURITY: Nome suspeito: $nomeDestino");
         return false;
     }
     
+    // 3. Detecção automática de tipo (backward compatibility)
     if ($tipo === 'auto') {
         if (is_numeric($conteudo) && strlen($conteudo) <= 6) {
             $tipo = 'email_verification';
@@ -138,17 +154,20 @@ function enviarEmailVisionGreen($emailDestino, $nomeDestino, $conteudo, $tipo = 
         }
     }
     
+    // 4. SEGURANÇA: Verificar se o tipo é autorizado
     if (!in_array($tipo, AUTHORIZED_EMAIL_TYPES)) {
         error_log("MAILER SECURITY: Tipo não autorizado: $tipo - Email bloqueado!");
         return false;
     }
     
+    // 5. Obter template
     $template = getEmailTemplate($tipo, $conteudo, $nomeDestino, $extraData);
     if (!$template) {
         error_log("MAILER ERROR: Template não encontrado para tipo: $tipo");
         return false;
     }
     
+    // 6. Sanitizar conteúdo
     $conteudo = htmlspecialchars($conteudo, ENT_QUOTES, 'UTF-8');
     
     // ========== CONFIGURAÇÃO DO PHPMailer ==========
@@ -166,8 +185,11 @@ function enviarEmailVisionGreen($emailDestino, $nomeDestino, $conteudo, $tipo = 
         $mail->Port       = 587;
         $mail->CharSet    = 'UTF-8';
 
+        // Remetente e destinatário
         $mail->setFrom('eanixr@gmail.com', 'VisionGreen Security');
         $mail->addAddress($emailDestino, $nomeDestino);
+
+        // Assunto e corpo
         $mail->isHTML(true);
         $mail->Subject = $template['subject'];
         
@@ -179,55 +201,15 @@ function enviarEmailVisionGreen($emailDestino, $nomeDestino, $conteudo, $tipo = 
         $texto_principal = "#1f2937";
         $texto_secundario = "#4b5563";
         
+        // Determina a cor do código baseado no tipo
         $codeColor = match($tipo) {
             'email_verification' => '#4ade80',
             'password_rotation', 'password_manual' => '#00ff88',
             'password_recovery' => '#ffcc00',
             'secure_id_code' => '#4da3ff',
             'account_blocked' => '#ff4d4d',
-            'employee_access' => '#00ff88',
             default => '#4ade80'
         };
-        
-        // Template especial para employee_access
-        $contentBlock = '';
-        if ($tipo === 'employee_access') {
-            $linkAcesso = $extraData['link_acesso'] ?? '';
-            $emailLogin = $extraData['email_login'] ?? '';
-            
-            $contentBlock = "
-                <!-- INFORMAÇÃO DO EMAIL DE LOGIN -->
-                <div style='background-color: #fff7ed; border: 2px solid #fb923c; padding: 20px; border-radius: 8px; margin: 20px 0;'>
-                    <p style='color: #7c2d12; font-size: 14px; margin: 0 0 10px; font-weight: bold;'>
-                        📧 Email para Login no Sistema
-                    </p>
-                    <div style='background-color: #ffffff; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 16px; font-weight: bold; color: #0066cc; text-align: center; word-break: break-all;'>
-                        {$emailLogin}
-                    </div>
-                    <p style='color: #7c2d12; font-size: 12px; margin: 10px 0 0; line-height: 1.4;'>
-                        ⚠️ <strong>IMPORTANTE:</strong> Use este email corporativo para fazer login no sistema, não seu email pessoal.
-                    </p>
-                </div>
-                
-                <!-- BOTÃO DE AÇÃO -->
-                <div style='background-color: {$preto_card}; padding: 25px; border-radius: 8px; margin: 20px 0;'>
-                    <a href='{$linkAcesso}' style='display: block; background: {$codeColor}; color: #000; padding: 15px 30px; text-align: center; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;'>
-                        🔑 Definir Minha Senha
-                    </a>
-                </div>
-                
-                <p style='color: {$texto_secundario}; font-size: 12px; margin-top: 10px; word-break: break-all;'>
-                    Ou copie este link: <br><code style='background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 11px;'>{$linkAcesso}</code>
-                </p>
-            ";
-        } else {
-            $contentBlock = "
-                <!-- CÓDIGO/SENHA -->
-                <div style='background-color: {$preto_card}; color: {$codeColor}; padding: 25px; font-size: 32px; font-weight: bold; border-radius: 8px; display: inline-block; letter-spacing: 5px; font-family: monospace; word-break: break-all;'>
-                    {$conteudo}
-                </div>
-            ";
-        }
         
         $mail->Body = "
         <div style='margin: 0; padding: 0; background-color: {$bg_page}; width: 100%; font-family: \"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif;'>
@@ -252,13 +234,16 @@ function enviarEmailVisionGreen($emailDestino, $nomeDestino, $conteudo, $tipo = 
                                         {$template['message']}
                                     </p>
                                     
-                                    {$contentBlock}
+                                    <!-- CÓDIGO/SENHA -->
+                                    <div style='background-color: {$preto_card}; color: {$codeColor}; padding: 25px; font-size: 32px; font-weight: bold; border-radius: 8px; display: inline-block; letter-spacing: 5px; font-family: monospace; word-break: break-all;'>
+                                        {$conteudo}
+                                    </div>
                                     
                                     <!-- INFORMAÇÕES ADICIONAIS -->
                                     <div style='background-color: #f9fafb; border-left: 4px solid {$verde_vision}; padding: 20px; margin-top: 30px; border-radius: 8px; text-align: left;'>
                                         <p style='color: {$texto_secundario}; font-size: 14px; margin: 0 0 10px; line-height: 1.5;'>
                                             <strong style='color: {$texto_principal};'>⏰ Validade:</strong> {$template['validity']}<br>
-                                            <strong style='color: {$texto_principal};'>📧 Email pessoal:</strong> {$emailDestino}<br>
+                                            <strong style='color: {$texto_principal};'>📧 Email:</strong> {$emailDestino}<br>
                                             <strong style='color: {$texto_principal};'>🕐 Enviado:</strong> " . date('d/m/Y H:i:s') . "
                                         </p>
                                     </div>
@@ -286,8 +271,12 @@ function enviarEmailVisionGreen($emailDestino, $nomeDestino, $conteudo, $tipo = 
             </table>
         </div>";
 
+        // Envia o email
         $mail->send();
+        
+        // Log de sucesso
         error_log("MAILER SUCCESS: Email '$tipo' enviado para $emailDestino");
+        
         return true;
         
     } catch (Exception $e) {
@@ -295,4 +284,27 @@ function enviarEmailVisionGreen($emailDestino, $nomeDestino, $conteudo, $tipo = 
         return false;
     }
 }
+
+/**
+ * EXEMPLOS DE USO:
+ * 
+ * // 1. Código 2FA de verificação (6 dígitos)
+ * enviarEmailVisionGreen('user@email.com', 'João Silva', '123456', 'email_verification');
+ * 
+ * // 2. Nova senha de rotação automática
+ * enviarEmailVisionGreen('admin@email.com', 'Maria Admin', 'Xk8#mP2@vL', 'password_rotation', ['role' => 'superadmin']);
+ * 
+ * // 3. Nova senha manual
+ * enviarEmailVisionGreen('admin@email.com', 'João Admin', 'Bq9!nR5@wT', 'password_manual', ['role' => 'admin']);
+ * 
+ * // 4. Recuperação de senha
+ * enviarEmailVisionGreen('user@email.com', 'Pedro User', '987654', 'password_recovery');
+ * 
+ * // 5. Secure ID
+ * enviarEmailVisionGreen('admin@email.com', 'Ana Admin', '12345', 'secure_id_code');
+ * 
+ * // 6. Auto-detecção (backward compatibility)
+ * enviarEmailVisionGreen('user@email.com', 'João Silva', '123456'); // Detecta como email_verification
+ * enviarEmailVisionGreen('admin@email.com', 'Maria Admin', 'Xk8#mP2@vL'); // Detecta como password_rotation
+ */
 ?>

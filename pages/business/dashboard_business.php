@@ -1,30 +1,84 @@
 <?php
 /**
  * ================================================================================
- * VISIONGREEN - COMPANY DASHBOARD
- * Arquivo: company/index.php
- * Descrição: Dashboard principal para empresas (MEI, LTDA, S.A)
- * Tema: GitHub Dark (igual ao dashboard admin)
+ * VISIONGREEN - BUSINESS DASHBOARD (COM SUPORTE A FUNCIONÁRIOS)
+ * Arquivo: pages/business/index.php
+ * Descrição: Dashboard unificado para GESTORES e FUNCIONÁRIOS
  * ================================================================================
  */
-
-define('REQUIRED_TYPE', 'company');
-define('REQUIRE_APPROVED_DOCS', false);
 
 session_start();
 require_once '../../registration/includes/db.php';
 require_once '../../registration/includes/security.php';
-require_once '../../registration/middleware/middleware_auth.php';
 
-/* ================= VALIDAÇÃO DE SEGURANÇA ================= */
-if (empty($_SESSION['auth']['user_id'])) {
+/* ================= DETECTAR TIPO DE USUÁRIO ================= */
+$isEmployee = false;
+$isManager = false;
+$employeeData = null;
+$userId = null;
+
+// VERIFICAR SE É FUNCIONÁRIO
+if (isset($_SESSION['employee_auth']['employee_id'])) {
+    $isEmployee = true;
+    $employeeId = (int)$_SESSION['employee_auth']['employee_id'];
+    
+    // Buscar dados do funcionário
+    $stmt = $mysqli->prepare("
+        SELECT e.*, 
+               u.id as company_id, 
+               u.nome as empresa_nome,
+               u.public_id as empresa_public_id,
+               b.logo_path as empresa_logo
+        FROM employees e
+        INNER JOIN users u ON e.user_id = u.id
+        LEFT JOIN businesses b ON u.id = b.user_id
+        WHERE e.id = ? 
+        AND e.is_active = 1 
+        AND e.pode_acessar_sistema = 1
+    ");
+    $stmt->bind_param('i', $employeeId);
+    $stmt->execute();
+    $employeeData = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    
+    if (!$employeeData) {
+        header("Location: employee/login_funcionario.php?error=session_expired");
+        exit;
+    }
+    
+    $userId = $employeeData['company_id']; // ID da empresa
+    
+    // Buscar permissões do funcionário
+    $stmt = $mysqli->prepare("
+        SELECT module, can_view, can_edit, can_create, can_delete
+        FROM employee_permissions
+        WHERE employee_id = ?
+    ");
+    $stmt->bind_param('i', $employeeId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $employeePermissions = [];
+    while ($row = $result->fetch_assoc()) {
+        $employeePermissions[$row['module']] = $row;
+    }
+    $stmt->close();
+    
+    // Atualizar último login
+    $mysqli->query("UPDATE employees SET ultimo_login = NOW() WHERE id = $employeeId");
+    
+} elseif (isset($_SESSION['auth']['user_id'])) {
+    // VERIFICAR SE É GESTOR/EMPRESA
+    $isManager = true;
+    $userId = (int)$_SESSION['auth']['user_id'];
+    
+} else {
+    // NÃO AUTENTICADO
     header("Location: ../../registration/login/login.php");
     exit;
 }
 
-$userId = (int) $_SESSION['auth']['user_id'];
-
-/* ================= BUSCAR DADOS DO USUÁRIO ================= */
+/* ================= BUSCAR DADOS DA EMPRESA ================= */
 $stmt = $mysqli->prepare("
     SELECT u.*, 
            b.id as business_id, 
@@ -40,77 +94,78 @@ $stmt = $mysqli->prepare("
            b.city
     FROM users u 
     LEFT JOIN businesses b ON u.id = b.user_id 
-    WHERE u.id = ? LIMIT 1
+    WHERE u.id = ? 
+    LIMIT 1
 ");
-
-if (!$stmt) {
-    die("Erro na preparação: " . $mysqli->error);
-}
-
 $stmt->bind_param('i', $userId);
 $stmt->execute();
-$user = $stmt->get_result()->fetch_assoc();
+$company = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-if (!$user) {
+if (!$company) {
     header("Location: ../../registration/login/login.php");
     exit;
 }
 
-/* ================= VALIDAR LOCKDOWN ================= */
-if ($user['is_in_lockdown']) {
+/* ================= DEFINIR DADOS DE EXIBIÇÃO ================= */
+if ($isEmployee) {
+    $displayName = $employeeData['nome'];
+    $displayEmail = $employeeData['email'];
+    $displayCargo = $employeeData['cargo'];
+    $displayAvatar = "https://ui-avatars.com/api/?name=" . urlencode($employeeData['nome']) . "&background=4da3ff&color=fff&bold=true";
+} else {
+    $displayName = $company['nome'];
+    $displayEmail = $company['email'];
+    $displayCargo = 'Gestor';
+    $displayAvatar = "https://ui-avatars.com/api/?name=" . urlencode($company['nome']) . "&background=00ff88&color=000&bold=true";
+}
+
+/* ================= VALIDAR LOCKDOWN (APENAS GESTORES) ================= */
+if ($isManager && $company['is_in_lockdown']) {
     header("Location: process/blocked.php");
     exit;
 }
 
 /* ================= DADOS BÁSICOS ================= */
-$statusDoc = $user['status_documentos'] ?? 'pendente';
-$updatedAt = $user['updated_at'];
+$statusDoc = $company['status_documentos'] ?? 'pendente';
+$updatedAt = $company['updated_at'];
 $uploadBase = "../../registration/uploads/business/";
 
-/* ================= BUSCAR ASSINATURA ATIVA ================= */
-$stmt = $mysqli->prepare("
-    SELECT sp.*, 
-           us.id as subscription_id,
-           us.status as sub_status, 
-           us.start_date, 
-           us.end_date, 
-           us.next_billing_date, 
-           us.auto_renew, 
-           us.mrr,
-           DATEDIFF(us.end_date, NOW()) as dias_restantes
-    FROM user_subscriptions us
-    INNER JOIN subscription_plans sp ON us.plan_id = sp.id
-    WHERE us.user_id = ? AND us.status IN ('active', 'trial')
-    ORDER BY us.created_at DESC
-    LIMIT 1
-");
-
-if ($stmt) {
+/* ================= BUSCAR ASSINATURA (APENAS GESTORES) ================= */
+$subscription = null;
+if ($isManager) {
+    $stmt = $mysqli->prepare("
+        SELECT sp.*, 
+               us.id as subscription_id,
+               us.status as sub_status, 
+               us.start_date, 
+               us.end_date, 
+               us.next_billing_date, 
+               us.auto_renew, 
+               us.mrr,
+               DATEDIFF(us.end_date, NOW()) as dias_restantes
+        FROM user_subscriptions us
+        INNER JOIN subscription_plans sp ON us.plan_id = sp.id
+        WHERE us.user_id = ? 
+        AND us.status IN ('active', 'trial')
+        ORDER BY us.created_at DESC
+        LIMIT 1
+    ");
     $stmt->bind_param('i', $userId);
     $stmt->execute();
     $subscription = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-} else {
-    $subscription = null;
 }
 
 /* ================= CALCULAR ESTATÍSTICAS ================= */
 $stats = [
     'vendas_mes' => 0,
     'vendas_total' => 0,
-    'transacoes_mes' => 0,
-    'transacoes_total' => 0,
-    'produtos_comprados' => 0,
-    'produtos_pendentes' => 0,
     'mensagens_nao_lidas' => 0,
-    'mensagens_total' => 0,
-    'dias_ativo' => 0,
-    'taxa_conversao' => 0,
-    'ticket_medio' => 0
+    'produtos_pendentes' => 0
 ];
 
-// Vendas este mês
+// Vendas do mês
 $result = $mysqli->query("
     SELECT COALESCE(SUM(amount), 0) as total 
     FROM transactions 
@@ -136,40 +191,15 @@ if ($result) {
     $result->close();
 }
 
-// Transações este mês
+// Mensagens não lidas
 $result = $mysqli->query("
     SELECT COUNT(*) as total 
-    FROM transactions 
-    WHERE user_id = '$userId' 
-    AND MONTH(transaction_date) = MONTH(NOW()) 
-    AND YEAR(transaction_date) = YEAR(NOW())
+    FROM notifications 
+    WHERE receiver_id = '$userId' 
+    AND status = 'unread'
 ");
 if ($result) {
-    $stats['transacoes_mes'] = (int)$result->fetch_assoc()['total'];
-    $result->close();
-}
-
-// Total de transações
-$result = $mysqli->query("
-    SELECT COUNT(*) as total 
-    FROM transactions 
-    WHERE user_id = '$userId' 
-    AND status = 'completed'
-");
-if ($result) {
-    $stats['transacoes_total'] = (int)$result->fetch_assoc()['total'];
-    $result->close();
-}
-
-// Produtos comprados
-$result = $mysqli->query("
-    SELECT COUNT(*) as total 
-    FROM product_purchases 
-    WHERE user_id = '$userId' 
-    AND status = 'completed'
-");
-if ($result) {
-    $stats['produtos_comprados'] = (int)$result->fetch_assoc()['total'];
+    $stats['mensagens_nao_lidas'] = (int)$result->fetch_assoc()['total'];
     $result->close();
 }
 
@@ -185,57 +215,64 @@ if ($result) {
     $result->close();
 }
 
-// Mensagens não lidas
-$result = $mysqli->query("
-    SELECT COUNT(*) as total 
-    FROM notifications 
-    WHERE receiver_id = '$userId' 
-    AND status = 'unread'
-");
-if ($result) {
-    $stats['mensagens_nao_lidas'] = (int)$result->fetch_assoc()['total'];
-    $result->close();
+/* ================= CONFIGURAÇÃO DE PERMISSÕES ================= */
+if ($isEmployee) {
+    // FUNCIONÁRIO: Permissões limitadas
+    $minhaConfig = [
+        'label' => 'Funcionário - ' . $employeeData['cargo'],
+        'color' => '#4da3ff',
+        'features' => array_keys($employeePermissions)
+    ];
+    
+} else {
+    // GESTOR: Permissões baseadas no tipo de negócio
+    $tipoBus = strtolower($company['business_type'] ?? 'mei');
+    $permissoes = [
+        'mei'  => [
+            'label' => 'Individual (MEI)', 
+            'color' => '#8b949e', 
+            'features' => ['dashboard', 'produtos', 'vendas', 'configuracoes']
+        ],
+        'ltda' => [
+            'label' => 'Limitada (LTDA)', 
+            'color' => '#4da3ff', 
+            'features' => ['dashboard', 'produtos', 'vendas', 'funcionarios', 'assinatura', 'mensagens', 'configuracoes']
+        ],
+        'sa'   => [
+            'label' => 'Anônima (S.A)', 
+            'color' => '#00ff88', 
+            'features' => ['dashboard', 'produtos', 'vendas', 'funcionarios', 'assinatura', 'mensagens', 'relatorios', 'configuracoes']
+        ]
+    ];
+    $minhaConfig = $permissoes[$tipoBus] ?? $permissoes['mei'];
 }
 
-// Total de mensagens
-$result = $mysqli->query("
-    SELECT COUNT(*) as total 
-    FROM notifications 
-    WHERE receiver_id = '$userId'
-");
-if ($result) {
-    $stats['mensagens_total'] = (int)$result->fetch_assoc()['total'];
-    $result->close();
+function canAccess($feature, $config) {
+    return in_array($feature, $config['features']);
 }
 
-// Dias ativo
-$result = $mysqli->query("
-    SELECT DATEDIFF(NOW(), created_at) as dias 
-    FROM users 
-    WHERE id = '$userId'
-");
-if ($result) {
-    $stats['dias_ativo'] = (int)$result->fetch_assoc()['dias'];
-    $result->close();
+/* ================= BADGES DE VERIFICAÇÃO ================= */
+if ($isEmployee) {
+    $verifClass = 'verif-employee';
+    $verifIcon = 'fa-user-tie';
+    $verifText = 'FUNCIONÁRIO';
+} else {
+    $verifConfig = [
+        'aprovado' => ['class' => 'verif-checked', 'icon' => 'fa-check-circle', 'text' => 'VERIFICADO'],
+        'rejeitado' => ['class' => 'verif-rejected', 'icon' => 'fa-exclamation-triangle', 'text' => 'REJEITADO'],
+        'pendente' => ['class' => 'verif-pending', 'icon' => 'fa-clock', 'text' => 'A VERIFICAR']
+    ];
+    
+    $verifClass = $verifConfig[$statusDoc]['class'] ?? 'verif-pending';
+    $verifIcon = $verifConfig[$statusDoc]['icon'] ?? 'fa-clock';
+    $verifText = $verifConfig[$statusDoc]['text'] ?? 'A VERIFICAR';
 }
 
-// Calcular taxa de conversão e ticket médio
-$stats['taxa_conversao'] = $stats['transacoes_total'] > 0 ? round(($stats['transacoes_total'] / max($stats['mensagens_total'], 1)) * 100, 1) : 0;
-$stats['ticket_medio'] = $stats['transacoes_total'] > 0 ? round($stats['vendas_total'] / $stats['transacoes_total'], 2) : 0;
-
-/* ================= BUSCAR HEALTH SCORE ================= */
-$healthScore = null;
-$result = $mysqli->query("SELECT * FROM company_health_score WHERE user_id = '$userId'");
-if ($result && $result->num_rows > 0) {
-    $healthScore = $result->fetch_assoc();
-    $result->close();
-}
-
-/* ================= LÓGICA DE PRAZO 48H ================= */
-$deadlineTimestamp = 0;
+/* ================= ALERTA DE REJEIÇÃO (APENAS GESTORES) ================= */
 $showRejectionAlert = false;
+$deadlineTimestamp = 0;
 
-if ($statusDoc === 'rejeitado') {
+if ($isManager && $statusDoc === 'rejeitado') {
     $showRejectionAlert = true;
     try {
         $dataRejeicao = new DateTime($updatedAt);
@@ -246,62 +283,6 @@ if ($statusDoc === 'rejeitado') {
         error_log("Erro ao calcular deadline: " . $e->getMessage());
     }
 }
-
-/* ================= LÓGICA DE INTERFACE ================= */
-$verifConfig = [
-    'aprovado' => [
-        'class' => 'verif-checked',
-        'icon' => 'fa-check-circle',
-        'text' => 'VERIFICADO',
-        'label' => 'Aprovada',
-        'color' => '#00ff88'
-    ],
-    'rejeitado' => [
-        'class' => 'verif-rejected',
-        'icon' => 'fa-exclamation-triangle',
-        'text' => 'REJEITADO',
-        'label' => 'Rejeitada',
-        'color' => '#ff4d4d'
-    ],
-    'pendente' => [
-        'class' => 'verif-pending',
-        'icon' => 'fa-clock',
-        'text' => 'A VERIFICAR',
-        'label' => 'Pendente',
-        'color' => '#ffc107'
-    ]
-];
-
-$verifClass = $verifConfig[$statusDoc]['class'] ?? $verifConfig['pendente']['class'];
-$verifIcon = $verifConfig[$statusDoc]['icon'] ?? $verifConfig['pendente']['icon'];
-$verifText = $verifConfig[$statusDoc]['text'] ?? $verifConfig['pendente']['text'];
-$statusLabel = $verifConfig[$statusDoc]['label'] ?? $verifConfig['pendente']['label'];
-$statusColor = $verifConfig[$statusDoc]['color'] ?? $verifConfig['pendente']['color'];
-
-/* ================= CONFIGURAÇÃO DE PERMISSÕES ================= */
-$tipoBus = strtolower($user['business_type'] ?? 'mei');
-$permissoes = [
-    'mei'  => [
-        'label' => 'Individual (MEI)', 
-        'color' => '#8b949e', 
-        'features' => ['dashboard', 'produtos', 'vendas', 'configuracoes']
-    ],
-    'ltda' => [
-        'label' => 'Limitada (LTDA)', 
-        'color' => '#4da3ff', 
-        'features' => ['dashboard', 'produtos', 'vendas', 'funcionarios', 'assinatura', 'mensagens', 'configuracoes']
-    ],
-    'sa'   => [
-        'label' => 'Anônima (S.A)', 
-        'color' => '#00ff88', 
-        'features' => ['dashboard', 'produtos', 'vendas', 'funcionarios', 'assinatura', 'mensagens', 'relatorios', 'configuracoes']
-    ]
-];
-$minhaConfig = $permissoes[$tipoBus] ?? $permissoes['mei'];
-
-function canAccess($feature, $config) {
-    return in_array($feature, $config['features']);
-}
 ?>
 
 <!DOCTYPE html>
@@ -309,7 +290,7 @@ function canAccess($feature, $config) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VisionGreen | <?= htmlspecialchars($user['nome']) ?></title>
+    <title>VisionGreen | <?= htmlspecialchars($displayName) ?></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -351,7 +332,8 @@ function canAccess($feature, $config) {
         #masterBody.sidebar-is-collapsed .logo-text,
         #masterBody.sidebar-is-collapsed .nav-item span,
         #masterBody.sidebar-is-collapsed .nav-label,
-        #masterBody.sidebar-is-collapsed .notification-badge {
+        #masterBody.sidebar-is-collapsed .notification-badge,
+        #masterBody.sidebar-is-collapsed .company-details {
             display: none;
         }
 
@@ -468,6 +450,12 @@ function canAccess($feature, $config) {
             color: #ff4d4d;
             border: 1px solid rgba(255, 77, 77, 0.3);
             animation: pulse-red 2s infinite;
+        }
+
+        .verif-employee {
+            background: rgba(77, 163, 255, 0.1);
+            color: var(--accent-blue);
+            border: 1px solid rgba(77, 163, 255, 0.3);
         }
 
         @keyframes pulse-red {
@@ -775,6 +763,13 @@ function canAccess($feature, $config) {
             color: #fff;
         }
 
+        .master-role {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
         .avatar-box img {
             width: 42px;
             height: 42px;
@@ -862,6 +857,21 @@ function canAccess($feature, $config) {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(100%); }
         }
+
+        /* ==================== EMPLOYEE BADGE ==================== */
+        .employee-badge-header {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(77, 163, 255, 0.15);
+            border: 1px solid rgba(77, 163, 255, 0.3);
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body id="masterBody">
@@ -889,33 +899,37 @@ function canAccess($feature, $config) {
 
         <div class="company-info-widget">
             <div class="company-avatar">
-                <?php if($user['logo_path']): ?>
-                    <img src="<?= $uploadBase . htmlspecialchars($user['logo_path']) ?>" alt="Logo">
+                <?php if($isEmployee && $employeeData['empresa_logo']): ?>
+                    <img src="<?= $uploadBase . htmlspecialchars($employeeData['empresa_logo']) ?>" alt="Logo">
+                <?php elseif($company['logo_path']): ?>
+                    <img src="<?= $uploadBase . htmlspecialchars($company['logo_path']) ?>" alt="Logo">
                 <?php else: ?>
                     <i class="fa-solid fa-building" style="color: var(--text-secondary);"></i>
                 <?php endif; ?>
             </div>
             <div class="company-details">
-                <div class="company-name"><?= htmlspecialchars($user['nome']) ?></div>
-                <span class="company-id"><?= htmlspecialchars($user['public_id']) ?></span>
+                <div class="company-name">
+                    <?= $isEmployee ? htmlspecialchars($employeeData['empresa_nome']) : htmlspecialchars($company['nome']) ?>
+                </div>
+                <span class="company-id"><?= htmlspecialchars($company['public_id']) ?></span>
             </div>
         </div>
     </div>
 
     <div class="nav-menu">
-        <div class="nav-label">Centro de Comando</div>
+        <div class="nav-label"><?= $isEmployee ? 'Meus Acessos' : 'Centro de Comando' ?></div>
         
         <?php if(canAccess('dashboard', $minhaConfig)): ?>
-            <a href="javascript:void(0)" onclick="loadContent('modules/dashboard/dashboard', this)" class="nav-item active">
+            <a href="javascript:void(0)" onclick="loadContent('modules/dashboard/dashboard', this)" class="nav-item <?= !$isEmployee ? 'active' : '' ?>">
                 <div class="nav-icon-box"><i class="fa-solid fa-gauge-high"></i></div>
                 <span>Dashboard</span>
             </a>
         <?php endif; ?>
 
         <?php if(canAccess('produtos', $minhaConfig)): ?>
-            <a href="javascript:void(0)" onclick="loadContent('modules/produtos/produtos', this)" class="nav-item">
+            <a href="javascript:void(0)" onclick="loadContent('modules/produtos/produtos', this)" class="nav-item <?= $isEmployee ? 'active' : '' ?>">
                 <div class="nav-icon-box"><i class="fa-solid fa-box"></i></div>
-                <span>Meus Produtos</span>
+                <span><?= $isEmployee ? 'Produtos' : 'Meus Produtos' ?></span>
                 <?php if($stats['produtos_pendentes'] > 0): ?>
                     <span class="notification-badge"><?= $stats['produtos_pendentes'] ?></span>
                 <?php endif; ?>
@@ -963,6 +977,7 @@ function canAccess($feature, $config) {
             </a>
         <?php endif; ?>
 
+        <?php if($isManager): ?>
         <div class="nav-label">Sistema</div>
         
         <?php if(canAccess('configuracoes', $minhaConfig)): ?>
@@ -971,10 +986,11 @@ function canAccess($feature, $config) {
                 <span>Configurações</span>
             </a>
         <?php endif; ?>
+        <?php endif; ?>
     </div>
 
     <div class="sidebar-footer-fixed">
-        <a href="../../registration/login/logout.php" class="logout-btn">
+        <a href="<?= $isEmployee ? 'employee/logout_funcionario.php' : '../../registration/login/logout.php' ?>" class="logout-btn">
             <i class="fa-solid fa-power-off"></i>
             <span>Finalizar Sessão</span>
         </a>
@@ -987,15 +1003,23 @@ function canAccess($feature, $config) {
         <div class="header-content">
             <div class="header-left">
                 <div class="breadcrumb-area">
-                    <span id="parent-name">Centro de Comando</span>
+                    <span id="parent-name"><?= $isEmployee ? 'Painel Funcionário' : 'Centro de Comando' ?></span>
                     <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>
                 </div>
-                <div class="b-current" id="current-page-title">Dashboard</div>
+                <div class="b-current" id="current-page-title">
+                    <?= $isEmployee ? 'Produtos' : 'Dashboard' ?>
+                    <?php if($isEmployee): ?>
+                        <span class="employee-badge-header">
+                            <i class="fa-solid fa-user-tie"></i>
+                            MODO FUNCIONÁRIO
+                        </span>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <div class="search-container">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="mainSearchInput" placeholder="Pesquisar transações, produtos..." autocomplete="off">
+                <input type="text" id="mainSearchInput" placeholder="Pesquisar..." autocomplete="off">
             </div>
 
             <div class="header-right">
@@ -1013,11 +1037,11 @@ function canAccess($feature, $config) {
 
                 <div class="master-profile">
                     <div class="master-info">
-                        <span class="master-name"><?= htmlspecialchars($user['nome']) ?></span>
-                        <span style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;"><?= $minhaConfig['label'] ?></span>
+                        <span class="master-name"><?= htmlspecialchars($displayName) ?></span>
+                        <span class="master-role"><?= htmlspecialchars($displayCargo) ?></span>
                     </div>
                     <div class="avatar-box">
-                        <img src="https://ui-avatars.com/api/?name=<?= urlencode($user['nome']) ?>&background=00ff88&color=000&bold=true" alt="Avatar">
+                        <img src="<?= $displayAvatar ?>" alt="Avatar">
                     </div>
                 </div>
             </div>
@@ -1029,7 +1053,7 @@ function canAccess($feature, $config) {
         <div class="rejection-alert-banner">
             <div style="flex: 1;">
                 <h3><i class="fa-solid fa-triangle-exclamation"></i> Documentos Rejeitados - Prazo Expirando!</h3>
-                <p><strong>Motivo:</strong> <?= htmlspecialchars($user['motivo_rejeicao'] ?? 'Não especificado') ?></p>
+                <p><strong>Motivo:</strong> <?= htmlspecialchars($company['motivo_rejeicao'] ?? 'Não especificado') ?></p>
             </div>
             <div style="display: flex; align-items: center; gap: 20px;">
                 <span id="deadline-clock" class="countdown-timer">--:--:--</span>
@@ -1052,15 +1076,18 @@ function canAccess($feature, $config) {
 <script>
 const userData = <?= json_encode([
     'userId' => $userId,
-    'nome' => $user['nome'],
-    'publicId' => $user['public_id'],
-    'taxId' => $user['tax_id'] ?? 'N/A',
-    'businessType' => $tipoBus,
-    'statusDoc' => $statusDoc,
-    'stats' => $stats,
-    'subscription' => $subscription,
-    'healthScore' => $healthScore
-]) ?>;
+    'isEmployee' => $isEmployee,
+    'isManager' => $isManager,
+    'employeeId' => $isEmployee ? $employeeId : null,
+    'nome' => $displayName,
+    'email' => $displayEmail,
+    'cargo' => $displayCargo,
+    'publicId' => $company['public_id'],
+    'empresaNome' => $isEmployee ? $employeeData['empresa_nome'] : $company['nome'],
+    'permissions' => $isEmployee ? $employeePermissions : null,
+    'businessType' => $company['business_type'] ?? 'mei',
+    'stats' => $stats
+], JSON_UNESCAPED_UNICODE) ?>;
 
 const deadline = <?= $deadlineTimestamp ?>;
 
@@ -1098,7 +1125,7 @@ if (deadline > 0) {
     setInterval(updateCountdown, 1000);
 }
 
-// ==================== SISTEMA DE NAVEGAÇÃO (IGUAL AO ADMIN) ====================
+// ==================== SISTEMA DE NAVEGAÇÃO ====================
 let contentCache = new Map();
 let isLoading = false;
 
@@ -1111,6 +1138,7 @@ async function loadContent(pageName, element = null) {
     if (!contentArea) return;
 
     isLoading = true;
+    if(loader) loader.style.display = 'block';
     
     // Limpar query strings e extensões
     const parts = pageName.split('?');
@@ -1138,7 +1166,6 @@ async function loadContent(pageName, element = null) {
             }
 
             if (!response.ok) {
-                // Se ainda falhar, mostrar erro
                 throw new Error('Módulo não encontrado: ' + cleanName);
             } else {
                 html = await response.text();
@@ -1154,20 +1181,16 @@ async function loadContent(pageName, element = null) {
         
         contentArea.innerHTML = html;
 
-        // Executar scripts inline (com verificação)
+        // Executar scripts inline
         const existingScripts = new Set();
         contentArea.querySelectorAll('script').forEach(oldScript => {
             const scriptContent = oldScript.innerHTML.trim();
             
-            // Evitar reexecutar scripts vazios
             if (!scriptContent) return;
             
-            // Criar hash simples do conteúdo para detectar duplicatas
             const scriptHash = scriptContent.substring(0, 100);
             
-            // Se já foi executado, pular
             if (existingScripts.has(scriptHash)) {
-                console.log('⚠️ Script duplicado detectado, pulando...');
                 return;
             }
             
@@ -1196,7 +1219,8 @@ async function loadContent(pageName, element = null) {
             // Atualizar breadcrumb
             const labelSpan = element.querySelector('span');
             if(labelSpan) {
-                document.getElementById('current-page-title').innerText = labelSpan.innerText;
+                document.getElementById('current-page-title').innerHTML = labelSpan.innerText + 
+                    (userData.isEmployee ? '<span class="employee-badge-header"><i class="fa-solid fa-user-tie"></i> MODO FUNCIONÁRIO</span>' : '');
             }
         }
 
@@ -1211,9 +1235,11 @@ async function loadContent(pageName, element = null) {
                 <i class="fa-solid fa-exclamation-triangle" style="font-size: 64px; color: #ff4d4d; margin-bottom: 20px; opacity: 0.5;"></i>
                 <h2 style="font-size: 24px; font-weight: 800; color: #fff; margin-bottom: 10px;">Módulo não encontrado</h2>
                 <p style="color: var(--text-secondary); margin-bottom: 30px;">O módulo "<strong>${pageName}</strong>" não está disponível.</p>
+                ${!userData.isEmployee ? `
                 <button onclick="loadContent('modules/dashboard/dashboard')" style="padding: 12px 24px; background: var(--accent-green); color: #000; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                     <i class="fa-solid fa-home"></i> Voltar ao Dashboard
                 </button>
+                ` : ''}
             </div>
         `;
     } finally {
@@ -1225,22 +1251,23 @@ async function loadContent(pageName, element = null) {
 // Carregar página inicial
 window.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
-    const page = urlParams.get('page') || 'modules/dashboard/dashboard';
+    const defaultPage = userData.isEmployee ? 'modules/produtos/produtos' : 'modules/dashboard/dashboard';
+    const page = urlParams.get('page') || defaultPage;
     loadContent(page, null);
 });
 
 // Navegação com botão voltar
 window.onpopstate = () => {
     const urlParams = new URLSearchParams(window.location.search);
-    loadContent(urlParams.get('page') || 'modules/dashboard/dashboard', null);
+    const defaultPage = userData.isEmployee ? 'modules/produtos/produtos' : 'modules/dashboard/dashboard';
+    loadContent(urlParams.get('page') || defaultPage, null);
 };
 
-// Loading no loader
-if(document.getElementById('page-loader')) {
-    document.getElementById('page-loader').style.display = 'block';
-}
-
-console.log('✅ VisionGreen Business Dashboard carregado - User:', userData.publicId);
+console.log('✅ VisionGreen Dashboard carregado -', 
+    userData.isEmployee ? 'Funcionário:' : 'Gestor:', 
+    userData.nome,
+    userData.isEmployee ? `(${userData.cargo})` : ''
+);
 </script>
 </body>
 </html>

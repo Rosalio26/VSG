@@ -357,6 +357,164 @@ tbody tr:hover {
     gap: 6px;
 }
 
+/* MODAL SYSTEM */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(1, 4, 9, 0.85);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-container {
+    background: var(--gh-bg-secondary);
+    border: 1px solid var(--gh-border);
+    border-radius: 8px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--gh-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gh-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--gh-text-secondary);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.modal-close:hover {
+    background: var(--gh-bg-tertiary);
+    color: var(--gh-text);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--gh-border);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.modal-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 28px;
+}
+
+.modal-icon.success {
+    background: rgba(46, 160, 67, 0.15);
+    color: var(--gh-accent-green-bright);
+}
+
+.modal-icon.error {
+    background: rgba(218, 54, 51, 0.15);
+    color: var(--gh-accent-red);
+}
+
+.modal-icon.warning {
+    background: rgba(210, 153, 34, 0.15);
+    color: var(--gh-accent-yellow);
+}
+
+.modal-icon.info {
+    background: rgba(31, 111, 235, 0.15);
+    color: var(--gh-accent-blue);
+}
+
+.modal-message {
+    text-align: center;
+    color: var(--gh-text);
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 16px;
+}
+
+.modal-details {
+    background: var(--gh-bg-tertiary);
+    border: 1px solid var(--gh-border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--gh-text-secondary);
+    line-height: 1.6;
+}
+
+.modal-link {
+    background: var(--gh-bg-primary);
+    border: 1px solid var(--gh-border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 12px;
+    word-break: break-all;
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--gh-accent-blue);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .stats-grid {
@@ -370,6 +528,10 @@ tbody tr:hover {
     
     .actions-group {
         flex-direction: column;
+    }
+    
+    .modal-container {
+        max-width: 100%;
     }
 }
 </style>
@@ -479,6 +641,78 @@ tbody tr:hover {
     let funcionarios = [];
     let departamentos = [];
 
+    // ========== SISTEMA DE MODAIS ==========
+    
+    function mostrarModal({ tipo = 'info', titulo, mensagem, detalhes, link, onConfirm, onCancel, showCancel = true }) {
+        const iconMap = {
+            success: 'fa-check-circle',
+            error: 'fa-times-circle',
+            warning: 'fa-exclamation-triangle',
+            info: 'fa-info-circle'
+        };
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = `
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h3 class="modal-title">
+                        <i class="fa-solid ${iconMap[tipo] || iconMap.info}"></i>
+                        ${titulo}
+                    </h3>
+                    <button class="modal-close" onclick="fecharModal(this)">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="modal-icon ${tipo}">
+                        <i class="fa-solid ${iconMap[tipo] || iconMap.info}"></i>
+                    </div>
+                    <div class="modal-message">${mensagem}</div>
+                    ${detalhes ? `<div class="modal-details">${detalhes}</div>` : ''}
+                    ${link ? `<div class="modal-link">${link}</div>` : ''}
+                </div>
+                <div class="modal-footer">
+                    ${showCancel ? `<button class="btn btn-secondary" onclick="fecharModal(this)">${onCancel ? 'Cancelar' : 'Fechar'}</button>` : ''}
+                    ${onConfirm ? `<button class="btn btn-primary" data-action="confirm">Confirmar</button>` : ''}
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        // Event listeners
+        if (onConfirm) {
+            overlay.querySelector('[data-action="confirm"]').onclick = () => {
+                onConfirm();
+                overlay.remove();
+            };
+        }
+
+        // Fechar com ESC
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                document.removeEventListener('keydown', handleEsc);
+            }
+        };
+        document.addEventListener('keydown', handleEsc);
+
+        // Fechar clicando fora
+        overlay.onclick = (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+            }
+        };
+    }
+
+    window.fecharModal = function(el) {
+        const overlay = el.closest('.modal-overlay');
+        if (overlay) overlay.remove();
+    };
+
+    // ========== FUNÇÕES PRINCIPAIS ==========
+
     // Carregar dados ao iniciar
     init();
 
@@ -514,11 +748,23 @@ tbody tr:hover {
                 renderDepartamentosFilter();
                 document.getElementById('totalRecords').textContent = `${funcionarios.length} registros`;
             } else {
-                mostrarErro('Erro ao carregar funcionários');
+                mostrarModal({
+                    tipo: 'error',
+                    titulo: 'Erro ao Carregar',
+                    mensagem: 'Não foi possível carregar os funcionários',
+                    detalhes: data.message,
+                    showCancel: false
+                });
             }
         } catch (error) {
             console.error('Erro:', error);
-            mostrarErro('Erro ao carregar funcionários');
+            mostrarModal({
+                tipo: 'error',
+                titulo: 'Erro ao Carregar',
+                mensagem: 'Erro ao carregar funcionários',
+                detalhes: error.message,
+                showCancel: false
+            });
         }
     }
 
@@ -584,7 +830,9 @@ tbody tr:hover {
                         <div class="avatar">${getInitials(func.nome)}</div>
                         <div>
                             <div style="font-weight: 600;">${func.nome}</div>
-                            <div style="font-size: 12px; color: var(--gh-text-secondary);">${func.email}</div>
+                            <div style="font-size: 12px; color: var(--gh-text-secondary);">${func.email || '-'}</div>
+                            ${func.email_company ? `<div style="font-size: 11px; color: var(--gh-accent-blue); margin-top: 2px;"><i class="fa-solid fa-building"></i> ${func.email_company}</div>` : ''}
+                            ${func.pode_acessar_sistema ? '<span style="font-size: 10px; background: rgba(0,255,136,0.1); color: #00ff88; padding: 2px 6px; border-radius: 4px; margin-top: 4px; display: inline-block;"><i class="fa-solid fa-key"></i> Acesso Concedido</span>' : ''}
                         </div>
                     </div>
                 </td>
@@ -601,6 +849,15 @@ tbody tr:hover {
                         <button class="btn btn-secondary btn-sm" onclick="editarFuncionario(${func.id})" title="Editar">
                             <i class="fa-solid fa-edit"></i>
                         </button>
+                        ${!func.pode_acessar_sistema ? `
+                        <button class="btn btn-primary btn-sm" onclick="concederAcesso(${func.id})" title="Conceder Acesso ao Sistema">
+                            <i class="fa-solid fa-key"></i>
+                        </button>
+                        ` : `
+                        <button class="btn btn-secondary btn-sm" onclick="gerenciarPermissoes(${func.id})" title="Gerenciar Permissões">
+                            <i class="fa-solid fa-sliders"></i>
+                        </button>
+                        `}
                         <button class="btn btn-danger btn-sm" onclick="confirmarExclusao(${func.id}, '${func.nome}')" title="Excluir">
                             <i class="fa-solid fa-trash"></i>
                         </button>
@@ -834,16 +1091,46 @@ tbody tr:hover {
             const result = await response.json();
 
             if (result.success) {
-                alert(result.message);
-                fecharModalCadastro();
-                carregarFuncionarios();
-                carregarStats();
+                // Montar detalhes se for cadastro
+                let detalhesMsg = '';
+                if (!isEdit && result.email_company) {
+                    detalhesMsg = `
+                        <strong>✅ Email Corporativo Gerado:</strong><br>
+                        <code style="background: #f0f0f0; padding: 4px 8px; border-radius: 3px; color: #0066cc; font-size: 14px;">${result.email_company}</code><br>
+                        <small style="color: var(--gh-text-muted);">Este email será usado para login no sistema</small>
+                    `;
+                }
+                
+                mostrarModal({
+                    tipo: 'success',
+                    titulo: isEdit ? 'Funcionário Atualizado' : 'Funcionário Cadastrado',
+                    mensagem: result.message,
+                    detalhes: detalhesMsg,
+                    showCancel: false,
+                    onConfirm: () => {
+                        fecharModalCadastro();
+                        carregarFuncionarios();
+                        carregarStats();
+                    }
+                });
             } else {
-                alert('Erro: ' + result.message);
+                mostrarModal({
+                    tipo: 'error',
+                    titulo: 'Erro ao Salvar',
+                    mensagem: 'Não foi possível salvar o funcionário',
+                    detalhes: result.message,
+                    showCancel: false
+                });
             }
         } catch (error) {
             console.error('Erro:', error);
-            alert('Erro ao salvar funcionário');
+            mostrarModal({
+                tipo: 'error',
+                titulo: 'Erro ao Salvar',
+                mensagem: 'Erro ao salvar funcionário',
+                detalhes: error.message,
+                showCancel: false
+            });
         }
     };
 
@@ -1033,36 +1320,144 @@ tbody tr:hover {
 
     // Confirmar exclusão
     window.confirmarExclusao = async function(id, nome) {
-        if (!confirm(`Deseja realmente excluir o funcionário "${nome}"?`)) {
-            return;
-        }
+        mostrarModal({
+            tipo: 'warning',
+            titulo: 'Confirmar Exclusão',
+            mensagem: `Deseja realmente excluir o funcionário <strong>"${nome}"</strong>?`,
+            detalhes: 'Esta ação não pode ser desfeita.',
+            onConfirm: async () => {
+                try {
+                    const response = await fetch('modules/funcionarios/actions/excluir_funcionario.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: id })
+                    });
 
-        try {
-            const response = await fetch('modules/funcionarios/actions/excluir_funcionario.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id })
-            });
+                    const data = await response.json();
 
-            const data = await response.json();
-
-            if (data.success) {
-                alert('Funcionário excluído com sucesso!');
-                carregarFuncionarios();
-                carregarStats();
-            } else {
-                alert('Erro ao excluir: ' + data.message);
+                    if (data.success) {
+                        mostrarModal({
+                            tipo: 'success',
+                            titulo: 'Funcionário Excluído',
+                            mensagem: 'Funcionário excluído com sucesso!',
+                            showCancel: false,
+                            onConfirm: () => {
+                                carregarFuncionarios();
+                                carregarStats();
+                            }
+                        });
+                    } else {
+                        mostrarModal({
+                            tipo: 'error',
+                            titulo: 'Erro ao Excluir',
+                            mensagem: 'Não foi possível excluir o funcionário',
+                            detalhes: data.message,
+                            showCancel: false
+                        });
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    mostrarModal({
+                        tipo: 'error',
+                        titulo: 'Erro ao Excluir',
+                        mensagem: 'Erro ao excluir funcionário',
+                        detalhes: error.message,
+                        showCancel: false
+                    });
+                }
             }
-        } catch (error) {
-            console.error('Erro:', error);
-            alert('Erro ao excluir funcionário');
-        }
+        });
     };
 
-    function mostrarErro(msg) {
-        console.error(msg);
-    }
+    // Conceder acesso ao sistema
+    window.concederAcesso = async function(funcionarioId) {
+        const funcionario = funcionarios.find(f => f.id === funcionarioId);
+        if (!funcionario) return;
 
-    console.log('✅ Módulo de Funcionários carregado');
+        mostrarModal({
+            tipo: 'warning',
+            titulo: 'Conceder Acesso ao Sistema',
+            mensagem: `Deseja conceder acesso ao sistema para <strong>${funcionario.nome}</strong>?`,
+            detalhes: 'Um email será enviado para o email pessoal do funcionário com instruções para definir senha.',
+            onConfirm: async () => {
+                try {
+                    const response = await fetch('modules/funcionarios/actions/conceder_acesso.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            employee_id: funcionarioId,
+                            permissions: ['mensagens', 'produtos', 'vendas', 'relatorios']
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // Montar mensagem com emails CORRETOS
+                        let emailInfo = '';
+                        if (result.email_pessoal && result.email_company) {
+                            emailInfo = `
+                                <strong>📧 Email Pessoal (recebeu o email):</strong><br>
+                                <span style="color: var(--gh-text);">${result.email_pessoal}</span><br><br>
+                                <strong>🏢 Email para Login no Sistema:</strong><br>
+                                <code style="background: #f0f0f0; padding: 4px 8px; border-radius: 3px; color: #0066cc; font-size: 14px;">${result.email_company}</code>
+                            `;
+                        } else if (result.email_company) {
+                            emailInfo = `
+                                <strong>🏢 Email para Login:</strong><br>
+                                <code style="background: #f0f0f0; padding: 4px 8px; border-radius: 3px; color: #0066cc;">${result.email_company}</code>
+                            `;
+                        }
+
+                        const avisoEmail = !result.email_enviado 
+                            ? '<br><br><strong>⚠️ AVISO:</strong> Falha no envio do email, mas o acesso foi concedido. Compartilhe o link manualmente.' 
+                            : '';
+
+                        mostrarModal({
+                            tipo: 'success',
+                            titulo: 'Acesso Concedido!',
+                            mensagem: `Acesso concedido com sucesso para <strong>${funcionario.nome}</strong>`,
+                            detalhes: emailInfo + avisoEmail,
+                            link: result.link_acesso,
+                            showCancel: false,
+                            onConfirm: () => {
+                                carregarFuncionarios();
+                            }
+                        });
+                    } else {
+                        mostrarModal({
+                            tipo: 'error',
+                            titulo: 'Erro ao Conceder Acesso',
+                            mensagem: 'Não foi possível conceder acesso ao sistema',
+                            detalhes: result.message,
+                            showCancel: false
+                        });
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    mostrarModal({
+                        tipo: 'error',
+                        titulo: 'Erro ao Conceder Acesso',
+                        mensagem: 'Erro ao conceder acesso',
+                        detalhes: error.message,
+                        showCancel: false
+                    });
+                }
+            }
+        });
+    };
+
+    // Gerenciar permissões
+    window.gerenciarPermissoes = function(funcionarioId) {
+        mostrarModal({
+            tipo: 'info',
+            titulo: 'Gerenciar Permissões',
+            mensagem: 'Modal de gerenciamento de permissões será implementado em breve.',
+            detalhes: `ID do funcionário: ${funcionarioId}`,
+            showCancel: false
+        });
+    };
+
+    console.log('✅ Módulo de Funcionários carregado com sistema de modais');
 })();
 </script>
