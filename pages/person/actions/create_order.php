@@ -6,7 +6,7 @@ require_once '../../../registration/includes/db.php';
 $customerId = (int)($_SESSION['auth']['user_id'] ?? 0);
 
 if ($customerId === 0) {
-    echo json_encode(['success' => false, 'message' => 'Não autenticado'], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['success' => false, 'message' => 'Não autenticado']);
     exit;
 }
 
@@ -18,143 +18,155 @@ $payment_method = $_POST['payment_method'] ?? '';
 $customer_notes = trim($_POST['customer_notes'] ?? '');
 
 if (empty($items) || empty($shipping_address) || empty($payment_method)) {
-    echo json_encode(['success' => false, 'message' => 'Dados incompletos'], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['success' => false, 'message' => 'Dados incompletos']);
     exit;
 }
 
 try {
     $mysqli->begin_transaction();
     
+    // Buscar dados do cliente
+    $stmtCustomer = $mysqli->prepare("SELECT nome, apelido FROM users WHERE id = ?");
+    $stmtCustomer->bind_param('i', $customerId);
+    $stmtCustomer->execute();
+    $customerData = $stmtCustomer->get_result()->fetch_assoc();
+    $stmtCustomer->close();
+    
+    $customerName = $customerData['nome'] . ' ' . ($customerData['apelido'] ?? '');
+    
     // Agrupar itens por empresa
     $itemsByCompany = [];
     foreach ($items as $item) {
-        $companyId = (int)$item['company_id'];
+        $companyId = $item['company_id'];
         if (!isset($itemsByCompany[$companyId])) {
             $itemsByCompany[$companyId] = [];
         }
         $itemsByCompany[$companyId][] = $item;
     }
     
-    $createdOrders = [];
-    
     // Criar um pedido para cada empresa
     foreach ($itemsByCompany as $companyId => $companyItems) {
         $subtotal = 0;
-        $currency = 'MZN'; // Default
-        
         foreach ($companyItems as $item) {
-            $subtotal += floatval($item['preco']) * intval($item['quantity']);
-            if (isset($item['currency'])) {
-                $currency = $item['currency'];
-            }
+            $subtotal += $item['preco'] * $item['quantity'];
         }
         
         $total = $subtotal;
         $orderNumber = 'PED-' . date('Ymd') . '-' . strtoupper(substr(md5(uniqid()), 0, 6));
+        $orderDate = date('Y-m-d');
         
-        // Inserir pedido
+        // ============================================================
+        // 1. INSERIR PEDIDO
+        // ============================================================
         $stmtOrder = $mysqli->prepare("
             INSERT INTO orders (
                 company_id, customer_id, order_number, order_date, 
                 subtotal, total, currency, status, payment_status, payment_method,
-                shipping_address, shipping_city, shipping_phone, customer_notes,
-                created_at
-            ) VALUES (?, ?, ?, NOW(), ?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, NOW())
+                shipping_address, shipping_city, shipping_phone, customer_notes
+            ) VALUES (?, ?, ?, ?, ?, ?, 'MZN', 'pending', 'pending', ?, ?, ?, ?, ?)
         ");
         
-        if (!$stmtOrder) {
-            throw new Exception('Erro ao preparar inserção do pedido: ' . $mysqli->error);
-        }
-        
         $stmtOrder->bind_param(
-            'iisddssssss',
-            $companyId, 
-            $customerId, 
-            $orderNumber, 
-            $subtotal, 
-            $total,
-            $currency,
-            $payment_method, 
-            $shipping_address, 
-            $shipping_city, 
-            $shipping_phone, 
-            $customer_notes
+            'iissddsssss',
+            $companyId, $customerId, $orderNumber, $orderDate,
+            $subtotal, $total, $payment_method, 
+            $shipping_address, $shipping_city, $shipping_phone, $customer_notes
         );
         
-        if (!$stmtOrder->execute()) {
-            throw new Exception('Erro ao executar inserção do pedido: ' . $stmtOrder->error);
-        }
-        
+        $stmtOrder->execute();
         $orderId = $stmtOrder->insert_id;
         $stmtOrder->close();
         
-        // Inserir itens do pedido
+        // ============================================================
+        // 2. INSERIR ITENS DO PEDIDO
+        // ============================================================
         $stmtItem = $mysqli->prepare("
             INSERT INTO order_items (
-                order_id, product_id, product_name, quantity, unit_price, total
-            ) VALUES (?, ?, ?, ?, ?, ?)
+                order_id, product_id, product_name, product_image, product_category,
+                quantity, unit_price, discount, total
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         
-        if (!$stmtItem) {
-            throw new Exception('Erro ao preparar inserção dos itens: ' . $mysqli->error);
-        }
-        
         foreach ($companyItems as $item) {
-            $productId = (int)$item['id'];
-            $productName = trim($item['nome']);
-            $quantity = (int)$item['quantity'];
-            $unitPrice = floatval($item['preco']);
-            $itemTotal = $unitPrice * $quantity;
+            $itemTotal = $item['preco'] * $item['quantity'];
+            $discount = 0;
+            $productImage = $item['imagem'] ?? null;
+            $productCategory = $item['categoria'] ?? null;
             
             $stmtItem->bind_param(
-                'iisidd',
-                $orderId, 
-                $productId, 
-                $productName, 
-                $quantity, 
-                $unitPrice, 
-                $itemTotal
+                'iisssiddd',
+                $orderId, $item['id'], $item['nome'], $productImage, $productCategory,
+                $item['quantity'], $item['preco'], $discount, $itemTotal
             );
+            $stmtItem->execute();
+            $itemId = $stmtItem->insert_id;
             
-            if (!$stmtItem->execute()) {
-                throw new Exception('Erro ao inserir item: ' . $stmtItem->error);
+            // ============================================================
+            // 3. ATUALIZAR STOCK (Manual - substitui trigger)
+            // ============================================================
+            if ($item['id']) {
+                $stmtStock = $mysqli->prepare("
+                    UPDATE products 
+                    SET stock = stock - ? 
+                    WHERE id = ? AND stock IS NOT NULL AND stock >= ?
+                ");
+                $stmtStock->bind_param('iii', $item['quantity'], $item['id'], $item['quantity']);
+                $stmtStock->execute();
+                
+                if ($stmtStock->affected_rows === 0) {
+                    // Stock insuficiente
+                    $stmtStock->close();
+                    throw new Exception("Stock insuficiente para: " . $item['nome']);
+                }
+                $stmtStock->close();
             }
             
-            // Atualizar estoque (se não for ilimitado)
-            $stmtUpdateStock = $mysqli->prepare("
-                UPDATE products 
-                SET stock_quantity = stock_quantity - ? 
-                WHERE id = ? AND stock_quantity IS NOT NULL AND stock_quantity >= ?
+            // ============================================================
+            // 4. CRIAR SALES_RECORD (Manual - substitui trigger)
+            // ============================================================
+            $stmtSales = $mysqli->prepare("
+                INSERT INTO sales_records (
+                    order_id, order_item_id, company_id, customer_id, product_id,
+                    sale_date, sale_time, 
+                    quantity, unit_price, discount, total, currency,
+                    order_status, payment_status,
+                    product_name, product_category, customer_name
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'MZN', 'pending', 'pending', ?, ?, ?)
             ");
             
-            $stmtUpdateStock->bind_param('iii', $quantity, $productId, $quantity);
-            $stmtUpdateStock->execute();
-            $stmtUpdateStock->close();
+            $saleTime = date('H:i:s');
+            
+            $stmtSales->bind_param(
+                'iiiiiisidddsss',
+                $orderId, $itemId, $companyId, $customerId, $item['id'],
+                $orderDate, $saleTime,
+                $item['quantity'], $item['preco'], $discount, $itemTotal,
+                $item['nome'], $productCategory, $customerName
+            );
+            $stmtSales->execute();
+            $stmtSales->close();
         }
         
         $stmtItem->close();
         
-        $createdOrders[] = [
-            'order_id' => $orderId,
-            'order_number' => $orderNumber,
-            'company_id' => $companyId,
-            'total' => $total
-        ];
+        // ============================================================
+        // 5. CRIAR HISTÓRICO INICIAL
+        // ============================================================
+        $stmtHistory = $mysqli->prepare("
+            INSERT INTO order_status_history (order_id, status_from, status_to, changed_by)
+            VALUES (?, NULL, 'pending', ?)
+        ");
+        $stmtHistory->bind_param('ii', $orderId, $customerId);
+        $stmtHistory->execute();
+        $stmtHistory->close();
     }
     
     $mysqli->commit();
     
-    echo json_encode([
-        'success' => true, 
-        'message' => 'Pedido realizado com sucesso!',
-        'orders' => $createdOrders
-    ], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['success' => true, 'message' => 'Pedido realizado com sucesso!']);
     
 } catch (Exception $e) {
     $mysqli->rollback();
     error_log("Erro ao criar pedido: " . $e->getMessage());
-    echo json_encode([
-        'success' => false, 
-        'message' => 'Erro ao processar pedido: ' . $e->getMessage()
-    ], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

@@ -551,8 +551,13 @@ if ($isEmployee) {
                                 <i class="fa-solid fa-eye"></i>
                             </button>
                             ${canEdit ? `
-                            <button class="btn btn-secondary btn-icon" onclick="window.ComprasModule.updateStatus(${compra.id})" title="Atualizar Status">
+                            <button class="btn btn-secondary btn-icon" onclick="window.ComprasModule.updateStatus(${compra.id}, '${compra.status}')" title="Atualizar Status">
                                 <i class="fa-solid fa-pen"></i>
+                            </button>
+                            ` : ''}
+                            ${canEdit && compra.status !== 'delivered' && compra.status !== 'cancelled' ? `
+                            <button class="btn btn-danger btn-icon" onclick="window.ComprasModule.cancelar(${compra.id})" title="Cancelar Pedido">
+                                <i class="fa-solid fa-ban"></i>
                             </button>
                             ` : ''}
                             ${canDelete && (compra.status === 'pending' || compra.status === 'cancelled') ? `
@@ -572,7 +577,7 @@ if ($isEmployee) {
     
     function escapeHtml(text) {
         const div = document.createElement('div');
-        div.textContent = text;
+        div.textContent = text || '';
         return div.innerHTML;
     }
     
@@ -583,7 +588,7 @@ if ($isEmployee) {
     }
     
     function formatMoney(value) {
-        return parseFloat(value).toFixed(2).replace('.', ',');
+        return parseFloat(value || 0).toFixed(2).replace('.', ',');
     }
     
     // Filtros
@@ -611,7 +616,18 @@ if ($isEmployee) {
             const data = await response.json();
             
             if (data.success) {
-                alert('Detalhes do Pedido:\n' + JSON.stringify(data.pedido, null, 2));
+                let msg = `PEDIDO: ${data.pedido.order_number}\n\n`;
+                msg += `Cliente: ${data.pedido.customer_name}\n`;
+                msg += `Email: ${data.pedido.customer_email}\n`;
+                msg += `Data: ${formatDate(data.pedido.order_date)}\n`;
+                msg += `Total: ${formatMoney(data.pedido.total)} ${data.pedido.currency}\n`;
+                msg += `Status: ${data.pedido.status}\n`;
+                msg += `Pagamento: ${data.pedido.payment_status}\n\n`;
+                msg += `ITENS (${data.items.length}):\n`;
+                data.items.forEach(item => {
+                    msg += `- ${item.product_name} (${item.quantity}x) = ${formatMoney(item.total)}\n`;
+                });
+                alert(msg);
             } else {
                 showAlert('error', data.message);
             }
@@ -620,13 +636,22 @@ if ($isEmployee) {
         }
     }
     
-    async function updateStatus(id) {
-        const newStatus = prompt('Novo status:\npending, confirmed, processing, shipped, delivered, cancelled');
-        if (!newStatus) return;
+    async function updateStatus(id, currentStatus) {
+        const statusOptions = {
+            'pending': 'confirmed',
+            'confirmed': 'processing',
+            'processing': 'shipped',
+            'shipped': 'delivered'
+        };
+        
+        const nextStatus = statusOptions[currentStatus] || 'confirmed';
+        const statusText = prompt(`Atualizar status para?\n\nOpções: pending, confirmed, processing, shipped, delivered, cancelled\n\nSugestão: ${nextStatus}`, nextStatus);
+        
+        if (!statusText) return;
         
         const formData = new FormData();
         formData.append('id', id);
-        formData.append('status', newStatus);
+        formData.append('status', statusText.trim().toLowerCase());
         
         try {
             const response = await fetch('modules/compras/actions/atualizar_status.php', {
@@ -643,8 +668,31 @@ if ($isEmployee) {
         }
     }
     
+    async function cancelar(id) {
+        const reason = prompt('Motivo do cancelamento:');
+        if (!reason) return;
+        
+        const formData = new FormData();
+        formData.append('id', id);
+        formData.append('reason', reason);
+        
+        try {
+            const response = await fetch('modules/compras/actions/cancelar_pedido.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            showAlert(result.success ? 'success' : 'error', result.message);
+            
+            if (result.success) loadCompras();
+        } catch (error) {
+            showAlert('error', 'Erro ao cancelar');
+        }
+    }
+    
     async function deletar(id) {
-        if (!confirm('Deletar este pedido?')) return;
+        if (!confirm('Deletar este pedido permanentemente?')) return;
         
         const formData = new FormData();
         formData.append('id', id);
@@ -698,6 +746,7 @@ if ($isEmployee) {
     window.ComprasModule = {
         viewDetails,
         updateStatus,
+        cancelar,
         deletar,
         exportar
     };

@@ -1,15 +1,8 @@
 <?php
-/**
- * Atualizar status do pedido
- * Empresa pode alterar status e pagamento
- */
-
 header('Content-Type: application/json; charset=utf-8');
 session_start();
-
 require_once '../../../../../registration/includes/db.php';
 
-// Autenticação
 $isEmployee = isset($_SESSION['employee_auth']['employee_id']);
 $isCompany = isset($_SESSION['auth']['user_id']);
 
@@ -18,11 +11,11 @@ if (!$isEmployee && !$isCompany) {
     exit;
 }
 
-// Verificar permissão de edição
+// Verificar permissão
 if ($isEmployee) {
     $companyId = (int)$_SESSION['employee_auth']['empresa_id'];
     $employeeId = (int)$_SESSION['employee_auth']['employee_id'];
-    $changedBy = $employeeId;
+    $userId = $employeeId;
     
     $stmt = $mysqli->prepare("
         SELECT can_edit FROM employee_permissions 
@@ -39,13 +32,12 @@ if ($isEmployee) {
     }
 } else {
     $companyId = (int)$_SESSION['auth']['user_id'];
-    $changedBy = $companyId;
+    $userId = $companyId;
 }
 
-// Dados
 $id = (int)($_POST['id'] ?? 0);
-$newStatus = $_POST['status'] ?? '';
-$newPaymentStatus = $_POST['payment_status'] ?? '';
+$newStatus = trim($_POST['status'] ?? '');
+$newPaymentStatus = trim($_POST['payment_status'] ?? '');
 $notes = trim($_POST['notes'] ?? '');
 
 if ($id <= 0) {
@@ -53,16 +45,16 @@ if ($id <= 0) {
     exit;
 }
 
-// Validar
-$validStatuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
-$validPaymentStatuses = ['pending', 'paid', 'partial', 'refunded'];
+// Validar status
+$validStatus = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
+$validPaymentStatus = ['pending', 'paid', 'partial', 'refunded'];
 
-if (!empty($newStatus) && !in_array($newStatus, $validStatuses)) {
+if ($newStatus && !in_array($newStatus, $validStatus)) {
     echo json_encode(['success' => false, 'message' => 'Status inválido']);
     exit;
 }
 
-if (!empty($newPaymentStatus) && !in_array($newPaymentStatus, $validPaymentStatuses)) {
+if ($newPaymentStatus && !in_array($newPaymentStatus, $validPaymentStatus)) {
     echo json_encode(['success' => false, 'message' => 'Status de pagamento inválido']);
     exit;
 }
@@ -70,73 +62,128 @@ if (!empty($newPaymentStatus) && !in_array($newPaymentStatus, $validPaymentStatu
 try {
     // Verificar se pedido pertence à empresa
     $stmt = $mysqli->prepare("
-        SELECT id FROM orders 
+        SELECT status, payment_status 
+        FROM orders 
         WHERE id = ? AND company_id = ? AND deleted_at IS NULL
     ");
     
     $stmt->bind_param('ii', $id, $companyId);
     $stmt->execute();
+    $result = $stmt->get_result();
     
-    if ($stmt->get_result()->num_rows === 0) {
+    if ($result->num_rows === 0) {
         $stmt->close();
         echo json_encode(['success' => false, 'message' => 'Pedido não encontrado']);
         exit;
     }
+    
+    $currentData = $result->fetch_assoc();
+    $oldStatus = $currentData['status'];
+    $oldPaymentStatus = $currentData['payment_status'];
     $stmt->close();
     
     $mysqli->begin_transaction();
     
+    // ============================================================
+    // 1. ATUALIZAR STATUS DO PEDIDO
+    // ============================================================
     $updates = [];
     $params = [];
-    $types = "";
+    $types = '';
     
-    if (!empty($newStatus)) {
+    if ($newStatus && $newStatus !== $oldStatus) {
         $updates[] = "status = ?";
         $params[] = $newStatus;
-        $types .= "s";
+        $types .= 's';
         
+        // Se status = delivered, definir delivered_at
         if ($newStatus === 'delivered') {
             $updates[] = "delivered_at = NOW()";
         }
     }
     
-    if (!empty($newPaymentStatus)) {
+    if ($newPaymentStatus && $newPaymentStatus !== $oldPaymentStatus) {
         $updates[] = "payment_status = ?";
         $params[] = $newPaymentStatus;
-        $types .= "s";
+        $types .= 's';
         
+        // Se pagamento = paid, definir payment_date
         if ($newPaymentStatus === 'paid') {
             $updates[] = "payment_date = NOW()";
         }
     }
     
-    if (!empty($notes)) {
+    if ($notes) {
+        $timestamp = date('Y-m-d H:i:s');
+        $noteEntry = "\n[{$timestamp}] {$notes}";
         $updates[] = "internal_notes = CONCAT(COALESCE(internal_notes, ''), ?)";
-        $params[] = "[" . date('Y-m-d H:i') . "] " . $notes . "\n";
-        $types .= "s";
+        $params[] = $noteEntry;
+        $types .= 's';
     }
     
-    if (empty($updates)) {
-        $mysqli->rollback();
-        echo json_encode(['success' => false, 'message' => 'Nenhuma alteração']);
-        exit;
+    if (!empty($updates)) {
+        $params[] = $id;
+        $params[] = $companyId;
+        $types .= 'ii';
+        
+        $sql = "UPDATE orders SET " . implode(', ', $updates) . " WHERE id = ? AND company_id = ?";
+        $stmtUpdate = $mysqli->prepare($sql);
+        $stmtUpdate->bind_param($types, ...$params);
+        $stmtUpdate->execute();
+        $stmtUpdate->close();
     }
     
-    $sql = "UPDATE orders SET " . implode(", ", $updates) . " WHERE id = ?";
-    $params[] = $id;
-    $types .= "i";
+    // ============================================================
+    // 2. CRIAR HISTÓRICO DE STATUS (Manual - substitui trigger)
+    // ============================================================
+    if ($newStatus && $newStatus !== $oldStatus) {
+        $stmtHistory = $mysqli->prepare("
+            INSERT INTO order_status_history (order_id, status_from, status_to, notes, changed_by)
+            VALUES (?, ?, ?, ?, ?)
+        ");
+        $stmtHistory->bind_param('isssi', $id, $oldStatus, $newStatus, $notes, $userId);
+        $stmtHistory->execute();
+        $stmtHistory->close();
+    }
     
-    $stmtUpdate = $mysqli->prepare($sql);
-    $stmtUpdate->bind_param($types, ...$params);
-    $stmtUpdate->execute();
-    $stmtUpdate->close();
+    // ============================================================
+    // 3. ATUALIZAR SALES_RECORDS (Manual - substitui trigger)
+    // ============================================================
+    if ($newStatus || $newPaymentStatus) {
+        $salesUpdates = [];
+        $salesParams = [];
+        $salesTypes = '';
+        
+        if ($newStatus) {
+            $salesUpdates[] = "order_status = ?";
+            $salesParams[] = $newStatus;
+            $salesTypes .= 's';
+        }
+        
+        if ($newPaymentStatus) {
+            $salesUpdates[] = "payment_status = ?";
+            $salesParams[] = $newPaymentStatus;
+            $salesTypes .= 's';
+        }
+        
+        if (!empty($salesUpdates)) {
+            $salesParams[] = $id;
+            $salesTypes .= 'i';
+            
+            $salesSql = "UPDATE sales_records SET " . implode(', ', $salesUpdates) . " WHERE order_id = ?";
+            $stmtSales = $mysqli->prepare($salesSql);
+            $stmtSales->bind_param($salesTypes, ...$salesParams);
+            $stmtSales->execute();
+            $stmtSales->close();
+        }
+    }
     
     $mysqli->commit();
     
-    echo json_encode(['success' => true, 'message' => 'Status atualizado!']);
+    echo json_encode(['success' => true, 'message' => 'Status atualizado com sucesso']);
     
 } catch (Exception $e) {
     $mysqli->rollback();
-    error_log("Erro ao atualizar: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Erro ao atualizar']);
+    error_log("Erro ao atualizar status: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Erro ao atualizar status']);
 }
