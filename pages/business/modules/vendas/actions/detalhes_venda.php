@@ -2,6 +2,7 @@
 /**
  * DETALHES DA VENDA
  * Retorna informações completas da venda incluindo cliente e produto
+ * ATUALIZADO: Suporta empresa e funcionário
  */
 
 header('Content-Type: application/json');
@@ -27,20 +28,41 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (!isset($_SESSION['auth']['user_id'])) {
+// Verificar autenticação (empresa OU funcionário)
+$isEmployee = isset($_SESSION['employee_auth']['employee_id']);
+$isCompany = isset($_SESSION['auth']['user_id']) && isset($_SESSION['auth']['type']) && $_SESSION['auth']['type'] === 'company';
+
+if (!$isEmployee && !$isCompany) {
     logDebug('ERRO: Não autenticado');
     echo json_encode(['success' => false, 'message' => 'Não autenticado']);
     exit;
 }
 
+// Determinar userId (ID da empresa)
+if ($isEmployee) {
+    $userId = (int)$_SESSION['employee_auth']['empresa_id'];
+    $userType = 'funcionario';
+} else {
+    $userId = (int)$_SESSION['auth']['user_id'];
+    $userType = 'gestor';
+}
+
 require_once __DIR__ . '/../../../../../registration/includes/db.php';
 
-$vendaId = (int)$_GET['venda_id'];
-logDebug('Venda ID', ['venda_id' => $vendaId]);
+$vendaId = (int)($_GET['venda_id'] ?? 0);
+
+if (!$vendaId) {
+    logDebug('ERRO: venda_id não fornecido');
+    echo json_encode(['success' => false, 'message' => 'ID da venda não fornecido']);
+    exit;
+}
+
+logDebug('Venda ID', ['venda_id' => $vendaId, 'user_type' => $userType]);
 
 try {
     logDebug('Buscando detalhes completos');
     
+    // Verificar que a venda pertence à empresa do usuário logado
     $stmt = $mysqli->prepare("
         SELECT 
             pp.id,
@@ -73,17 +95,18 @@ try {
         LEFT JOIN transactions t ON pp.transaction_id = t.id
         LEFT JOIN users u ON pp.user_id = u.id
         WHERE pp.id = ?
+        AND p.user_id = ?
     ");
     
-    $stmt->bind_param('i', $vendaId);
+    $stmt->bind_param('ii', $vendaId, $userId);
     $stmt->execute();
     $result = $stmt->get_result();
     
     if ($result->num_rows === 0) {
-        logDebug('Venda não encontrada');
+        logDebug('Venda não encontrada ou sem permissão');
         echo json_encode([
             'success' => false,
-            'message' => 'Venda não encontrada'
+            'message' => 'Venda não encontrada ou você não tem permissão para visualizá-la'
         ]);
         exit;
     }
@@ -99,7 +122,8 @@ try {
     
     echo json_encode([
         'success' => true,
-        'venda' => $venda
+        'venda' => $venda,
+        'user_type' => $userType
     ]);
     
 } catch (Exception $e) {
@@ -108,6 +132,6 @@ try {
     
     echo json_encode([
         'success' => false,
-        'message' => $e->getMessage()
+        'message' => 'Erro ao buscar detalhes: ' . $e->getMessage()
     ]);
 }

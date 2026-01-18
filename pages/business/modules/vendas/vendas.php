@@ -4,6 +4,7 @@
  * VISIONGREEN - MÓDULO DE VENDAS
  * Arquivo: pages/business/modules/vendas/vendas.php
  * Descrição: Visualização de vendas e pagamentos da empresa
+ * ATUALIZADO: Suporta empresa e funcionário
  * ================================================================================
  */
 
@@ -11,12 +12,69 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (!isset($_SESSION['auth']['user_id'])) {
-    echo '<div style="padding: 40px; text-align: center; color: #ff4d4d;">Acesso Negado</div>';
+// Verificar autenticação (empresa OU funcionário)
+// Incluir DB
+require_once '../../../../registration/includes/db.php';
+
+// Verificar autenticação (empresa OU funcionário)
+$isEmployee = isset($_SESSION['employee_auth']['employee_id']);
+$isCompany = isset($_SESSION['auth']['user_id']) && isset($_SESSION['auth']['type']) && $_SESSION['auth']['type'] === 'company';
+
+if (!$isEmployee && !$isCompany) {
+    echo '<div style="padding: 40px; text-align: center; color: #ff4d4d;">
+        <i class="fa-solid fa-lock" style="font-size: 48px; margin-bottom: 16px;"></i>
+        <h3>Acesso Negado</h3>
+        <p>Faça login para acessar esta página.</p>
+    </div>';
     exit;
 }
 
-$userId = (int)$_SESSION['auth']['user_id'];
+// Determinar empresa_id e permissões
+if ($isEmployee) {
+    $userId = (int)$_SESSION['employee_auth']['empresa_id'];
+    $employeeId = (int)$_SESSION['employee_auth']['employee_id'];
+    $userName = $_SESSION['employee_auth']['nome'];
+    $userType = 'funcionario';
+    
+    // VERIFICAR PERMISSÕES
+    $stmt = $mysqli->prepare("
+        SELECT can_view, can_create, can_edit, can_delete 
+        FROM employee_permissions 
+        WHERE employee_id = ? AND module = 'vendas'
+        LIMIT 1
+    ");
+    $stmt->bind_param('i', $employeeId);
+    $stmt->execute();
+    $permissions = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    
+    if (!$permissions || !$permissions['can_view']) {
+        echo '<div style="padding: 40px; text-align: center; color: #ff4d4d;">
+            <i class="fa-solid fa-ban" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+            <h3>Acesso Restrito</h3>
+            <p>Você não tem permissão para acessar o módulo de Vendas.</p>
+            <p style="font-size: 12px; color: #8b949e; margin-top: 16px;">
+                Contate o gestor da empresa para solicitar acesso.
+            </p>
+        </div>';
+        exit;
+    }
+    
+    $canView = true;
+    $canCreate = (bool)$permissions['can_create'];
+    $canEdit = (bool)$permissions['can_edit'];
+    $canDelete = (bool)$permissions['can_delete'];
+    
+} else {
+    $userId = (int)$_SESSION['auth']['user_id'];
+    $employeeId = null;
+    $userName = $_SESSION['auth']['nome'];
+    $userType = 'gestor';
+    $canView = true;
+    $canCreate = true;
+    $canEdit = true;
+    $canDelete = true;
+}
 ?>
 
 <style>
@@ -284,6 +342,32 @@ tbody tr:hover {
     color: var(--gh-accent-blue);
 }
 
+/* Permission Badge */
+.permission-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(77, 163, 255, 0.1);
+    border: 1px solid rgba(77, 163, 255, 0.3);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1f6feb;
+}
+
+.permission-badge.readonly {
+    background: rgba(210, 153, 34, 0.1);
+    border-color: rgba(210, 153, 34, 0.3);
+    color: #d29922;
+}
+
+.permission-badge.full-access {
+    background: rgba(46, 160, 67, 0.1);
+    border-color: rgba(46, 160, 67, 0.3);
+    color: #2ea043;
+}
+
 /* Empty State */
 .empty-state {
     text-align: center;
@@ -351,8 +435,28 @@ tbody tr:hover {
     <div class="page-header">
         <h1 class="page-title">
             <i class="fa-solid fa-chart-line"></i>
-            Minhas Vendas
+            <?= $isEmployee ? 'Vendas da Empresa' : 'Minhas Vendas' ?>
         </h1>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <?php if ($isEmployee): ?>
+                <?php if ($canEdit && $canCreate && $canDelete): ?>
+                    <span class="permission-badge full-access">
+                        <i class="fa-solid fa-shield-check"></i>
+                        Controle Total
+                    </span>
+                <?php elseif ($canEdit): ?>
+                    <span class="permission-badge">
+                        <i class="fa-solid fa-user-tie"></i>
+                        Modo Edição
+                    </span>
+                <?php else: ?>
+                    <span class="permission-badge readonly">
+                        <i class="fa-solid fa-eye"></i>
+                        Apenas Visualização
+                    </span>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
     </div>
 
     <!-- Stats Cards -->
@@ -437,12 +541,14 @@ tbody tr:hover {
             </button>
         </div>
 
-        <div class="filter-group" style="margin-top: 18px;">
-            <button class="btn btn-secondary" onclick="exportarVendas()">
-                <i class="fa-solid fa-download"></i>
-                Exportar
-            </button>
-        </div>
+        <?php if ($canEdit || $canCreate): ?>
+            <div class="filter-group" style="margin-top: 18px;">
+                <button class="btn btn-secondary" onclick="exportarVendas()">
+                    <i class="fa-solid fa-download"></i>
+                    Exportar
+                </button>
+            </div>
+        <?php endif; ?>
     </div>
 
     <!-- Table -->
@@ -487,6 +593,15 @@ tbody tr:hover {
     'use strict';
 
     const userId = <?= $userId ?>;
+    const userType = '<?= $userType ?>';
+    const isEmployee = <?= $isEmployee ? 'true' : 'false' ?>;
+    const canView = <?= $canView ? 'true' : 'false' ?>;
+    const canCreate = <?= $canCreate ? 'true' : 'false' ?>;
+    const canEdit = <?= $canEdit ? 'true' : 'false' ?>;
+    const canDelete = <?= $canDelete ? 'true' : 'false' ?>;
+
+    console.log('🔐 Permissões:', { canView, canCreate, canEdit, canDelete });
+
     let vendas = [];
     let produtos = [];
 
@@ -848,6 +963,10 @@ tbody tr:hover {
 
     // Exportar vendas
     window.exportarVendas = function() {
+        if (!canEdit && !canCreate) {
+            alert('❌ Você não tem permissão para exportar relatórios');
+            return;
+        }
         const csv = generateCSV(vendas);
         downloadCSV(csv, 'vendas_' + new Date().toISOString().split('T')[0] + '.csv');
     };
@@ -881,6 +1000,6 @@ tbody tr:hover {
         console.error(msg);
     }
 
-    console.log('✅ Módulo de Vendas carregado');
+    console.log('✅ Módulo de Vendas carregado -', userType, '- User ID:', userId);
 })();
 </script>

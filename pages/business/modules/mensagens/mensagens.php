@@ -2,6 +2,7 @@
 /**
  * MÓDULO DE MENSAGENS ESTILO WHATSAPP - VisionGreen Pro
  * Versão compatível com dashboard_business.php AJAX
+ * ATUALIZADO: Suporta empresa e funcionário
  */
 
 // Iniciar sessão se ainda não foi iniciada
@@ -12,13 +13,25 @@ if (session_status() === PHP_SESSION_NONE) {
 // Incluir conexão com banco de dados
 require_once __DIR__ . '/../../../../registration/includes/db.php';
 
-// Verificar autenticação
-if (empty($_SESSION['auth']['user_id'])) {
+// Detectar tipo de usuário
+$isEmployee = isset($_SESSION['employee_auth']['employee_id']);
+$isManager = isset($_SESSION['auth']['user_id']);
+
+if (!$isEmployee && !$isManager) {
     echo "<div style='padding: 40px; text-align: center;'>❌ Acesso negado - Faça login novamente</div>";
     exit;
 }
 
-$userId = (int) $_SESSION['auth']['user_id'];
+// Determinar empresa_id para buscar mensagens
+if ($isEmployee) {
+    $userId = (int)$_SESSION['employee_auth']['empresa_id']; // ID da empresa
+    $userName = $_SESSION['employee_auth']['nome'];
+    $userType = 'funcionario';
+} else {
+    $userId = (int)$_SESSION['auth']['user_id'];
+    $userName = $_SESSION['auth']['nome'];
+    $userType = 'gestor';
+}
 
 // Buscar conversas agrupadas por remetente
 $conversations = $mysqli->query("
@@ -490,7 +503,14 @@ $uploadBase = "../../registration/uploads/business/";
     animation: spin 1s linear infinite;
 }
 </style>
-
+<?php if ($isEmployee): ?>
+<div style="padding: 16px; background: rgba(77, 163, 255, 0.1); border: 1px solid rgba(77, 163, 255, 0.3); border-radius: 8px; margin-bottom: 16px;">
+    <p style="color: var(--gh-text); font-size: 14px; margin: 0;">
+        <i class="fa-solid fa-info-circle"></i>
+        <strong>Modo Funcionário:</strong> Você está visualizando as mensagens da empresa.
+    </p>
+</div>
+<?php endif; ?>
 <div class="whatsapp-container" id="whatsappContainer">
     <!-- Lista de Conversas -->
     <div class="conversations-panel">
@@ -556,6 +576,8 @@ $uploadBase = "../../registration/uploads/business/";
 // Sistema de Mensagens Encapsulado (sem conflitos)
 window.MessagingSystem = (function() {
     const userId = <?= $userId ?>;
+    const userType = '<?= $userType ?>';
+    const isEmployee = <?= $isEmployee ? 'true' : 'false' ?>;
     let currentChatId = null;
     let messagesCache = {};
 
@@ -776,7 +798,7 @@ window.MessagingSystem = (function() {
 
     // Inicializar
     if (typeof lucide !== 'undefined') lucide.createIcons();
-    console.log('✅ Sistema de mensagens carregado');
+    console.log('✅ Sistema de mensagens carregado -', userType, '- User ID:', userId);
 
     // API Pública
     return {

@@ -4,6 +4,7 @@
  * VISIONGREEN - BUSINESS DASHBOARD (COM SUPORTE A FUNCIONÁRIOS)
  * Arquivo: pages/business/index.php
  * Descrição: Dashboard unificado para GESTORES e FUNCIONÁRIOS
+ * ATUALIZADO: Usa user_employee_id e email_company
  * ================================================================================
  */
 
@@ -22,19 +23,30 @@ if (isset($_SESSION['employee_auth']['employee_id'])) {
     $isEmployee = true;
     $employeeId = (int)$_SESSION['employee_auth']['employee_id'];
     
-    // Buscar dados do funcionário
+    // Buscar dados do funcionário usando user_employee_id
     $stmt = $mysqli->prepare("
-        SELECT e.*, 
-               u.id as company_id, 
-               u.nome as empresa_nome,
-               u.public_id as empresa_public_id,
-               b.logo_path as empresa_logo
+        SELECT 
+            e.id,
+            e.nome,
+            e.email_company,
+            e.cargo,
+            e.user_id as company_id,
+            e.user_employee_id,
+            e.status,
+            e.pode_acessar_sistema,
+            e.is_active,
+            u.email as email_pessoal,
+            emp.nome as empresa_nome,
+            emp.public_id as empresa_public_id,
+            b.logo_path as empresa_logo
         FROM employees e
-        INNER JOIN users u ON e.user_id = u.id
-        LEFT JOIN businesses b ON u.id = b.user_id
+        INNER JOIN users u ON e.user_employee_id = u.id
+        INNER JOIN users emp ON e.user_id = emp.id
+        LEFT JOIN businesses b ON emp.id = b.user_id
         WHERE e.id = ? 
         AND e.is_active = 1 
         AND e.pode_acessar_sistema = 1
+        AND u.type = 'employee'
     ");
     $stmt->bind_param('i', $employeeId);
     $stmt->execute();
@@ -42,7 +54,15 @@ if (isset($_SESSION['employee_auth']['employee_id'])) {
     $stmt->close();
     
     if (!$employeeData) {
+        unset($_SESSION['employee_auth']);
         header("Location: employee/login_funcionario.php?error=session_expired");
+        exit;
+    }
+    
+    // Verificar status
+    if ($employeeData['status'] !== 'ativo') {
+        unset($_SESSION['employee_auth']);
+        header("Location: employee/login_funcionario.php?error=account_inactive");
         exit;
     }
     
@@ -110,12 +130,14 @@ if (!$company) {
 /* ================= DEFINIR DADOS DE EXIBIÇÃO ================= */
 if ($isEmployee) {
     $displayName = $employeeData['nome'];
-    $displayEmail = $employeeData['email'];
+    $displayEmail = $employeeData['email_company']; // Email corporativo
+    $displayEmailPessoal = $employeeData['email_pessoal']; // Email pessoal
     $displayCargo = $employeeData['cargo'];
     $displayAvatar = "https://ui-avatars.com/api/?name=" . urlencode($employeeData['nome']) . "&background=4da3ff&color=fff&bold=true";
 } else {
     $displayName = $company['nome'];
     $displayEmail = $company['email'];
+    $displayEmailPessoal = null;
     $displayCargo = 'Gestor';
     $displayAvatar = "https://ui-avatars.com/api/?name=" . urlencode($company['nome']) . "&background=00ff88&color=000&bold=true";
 }
@@ -162,8 +184,24 @@ $stats = [
     'vendas_mes' => 0,
     'vendas_total' => 0,
     'mensagens_nao_lidas' => 0,
-    'produtos_pendentes' => 0
+    'produtos_pendentes' => 0,
+    'funcionarios_total' => 0
 ];
+
+// Total de funcionários (apenas para gestor)
+if ($isManager) {
+    $stmt = $mysqli->prepare("
+        SELECT COUNT(*) as total
+        FROM employees
+        WHERE user_id = ?
+        AND is_active = 1
+    ");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    $stats['funcionarios_total'] = (int)$result['total'];
+    $stmt->close();
+}
 
 // Vendas do mês
 $result = $mysqli->query("
@@ -231,17 +269,17 @@ if ($isEmployee) {
         'mei'  => [
             'label' => 'Individual (MEI)', 
             'color' => '#8b949e', 
-            'features' => ['dashboard', 'produtos', 'vendas', 'configuracoes']
+            'features' => ['dashboard', 'produtos', 'vendas', 'compras', 'clientes', 'configuracoes']
         ],
         'ltda' => [
             'label' => 'Limitada (LTDA)', 
             'color' => '#4da3ff', 
-            'features' => ['dashboard', 'produtos', 'vendas', 'funcionarios', 'assinatura', 'mensagens', 'configuracoes']
+            'features' => ['dashboard', 'produtos', 'vendas', 'compras', 'clientes', 'funcionarios', 'assinatura', 'mensagens', 'configuracoes']
         ],
         'sa'   => [
             'label' => 'Anônima (S.A)', 
             'color' => '#00ff88', 
-            'features' => ['dashboard', 'produtos', 'vendas', 'funcionarios', 'assinatura', 'mensagens', 'relatorios', 'configuracoes']
+            'features' => ['dashboard', 'produtos', 'vendas', 'compras', 'clientes', 'funcionarios', 'assinatura', 'mensagens', 'relatorios', 'configuracoes']
         ]
     ];
     $minhaConfig = $permissoes[$tipoBus] ?? $permissoes['mei'];
@@ -284,7 +322,6 @@ if ($isManager && $statusDoc === 'rejeitado') {
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -943,6 +980,20 @@ if ($isManager && $statusDoc === 'rejeitado') {
             </a>
         <?php endif; ?>
 
+        <?php if(canAccess('compras', $minhaConfig)): ?>
+            <a href="javascript:void(0)" onclick="loadContent('modules/compras/compras', this)" class="nav-item">
+                <div class="nav-icon-box"><i class="fa-solid fa-shopping-cart"></i></div>
+                <span>Compras</span>
+            </a>
+        <?php endif; ?>
+
+        <?php if(canAccess('clientes', $minhaConfig)): ?>
+            <a href="javascript:void(0)" onclick="loadContent('modules/clientes/clientes', this)" class="nav-item">
+                <div class="nav-icon-box"><i class="fa-solid fa-user"></i></div>
+                <span>Clientes</span>
+            </a>
+        <?php endif; ?>
+
         <?php if(canAccess('funcionarios', $minhaConfig)): ?>
             <a href="javascript:void(0)" onclick="loadContent('modules/funcionarios/funcionarios', this)" class="nav-item">
                 <div class="nav-icon-box"><i class="fa-solid fa-users"></i></div>
@@ -1074,200 +1125,202 @@ if ($isManager && $statusDoc === 'rejeitado') {
 </main>
 
 <script>
-const userData = <?= json_encode([
-    'userId' => $userId,
-    'isEmployee' => $isEmployee,
-    'isManager' => $isManager,
-    'employeeId' => $isEmployee ? $employeeId : null,
-    'nome' => $displayName,
-    'email' => $displayEmail,
-    'cargo' => $displayCargo,
-    'publicId' => $company['public_id'],
-    'empresaNome' => $isEmployee ? $employeeData['empresa_nome'] : $company['nome'],
-    'permissions' => $isEmployee ? $employeePermissions : null,
-    'businessType' => $company['business_type'] ?? 'mei',
-    'stats' => $stats
-], JSON_UNESCAPED_UNICODE) ?>;
+    const userData = <?= json_encode([
+        'userId' => $userId,
+        'isEmployee' => $isEmployee,
+        'isManager' => $isManager,
+        'employeeId' => $isEmployee ? $employeeId : null,
+        'nome' => $displayName,
+        'email' => $displayEmail,
+        'emailPessoal' => $displayEmailPessoal,
+        'cargo' => $displayCargo,
+        'publicId' => $company['public_id'],
+        'empresaNome' => $isEmployee ? $employeeData['empresa_nome'] : $company['nome'],
+        'permissions' => $isEmployee ? $employeePermissions : null,
+        'businessType' => $company['business_type'] ?? 'mei',
+        'stats' => $stats
+    ], JSON_UNESCAPED_UNICODE) ?>;
 
-const deadline = <?= $deadlineTimestamp ?>;
+    const deadline = <?= $deadlineTimestamp ?>;
 
-function toggleSidebar() {
-    document.getElementById('masterBody').classList.toggle('sidebar-is-collapsed');
-}
-
-// Countdown para documentos rejeitados
-if (deadline > 0) {
-    function updateCountdown() {
-        const timerElement = document.getElementById('deadline-clock');
-        if (!timerElement) return;
-
-        const now = Math.floor(Date.now() / 1000);
-        const diff = deadline - now;
-
-        if (diff <= 0) {
-            timerElement.innerText = "EXPIRADO!";
-            timerElement.style.background = "rgba(255, 50, 50, 0.4)";
-            return;
-        }
-
-        const h = Math.floor(diff / 3600);
-        const m = Math.floor((diff % 3600) / 60);
-        const s = diff % 60;
-
-        timerElement.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        
-        if (diff < 3600) {
-            timerElement.style.animation = "pulse-red 1s infinite";
-        }
+    function toggleSidebar() {
+        document.getElementById('masterBody').classList.toggle('sidebar-is-collapsed');
     }
 
-    updateCountdown();
-    setInterval(updateCountdown, 1000);
-}
+    // Countdown para documentos rejeitados
+    if (deadline > 0) {
+        function updateCountdown() {
+            const timerElement = document.getElementById('deadline-clock');
+            if (!timerElement) return;
 
-// ==================== SISTEMA DE NAVEGAÇÃO ====================
-let contentCache = new Map();
-let isLoading = false;
+            const now = Math.floor(Date.now() / 1000);
+            const diff = deadline - now;
 
-async function loadContent(pageName, element = null) {
-    if (isLoading) return;
-    
-    const contentArea = document.getElementById('content-area');
-    const loader = document.getElementById('page-loader');
-    
-    if (!contentArea) return;
-
-    isLoading = true;
-    if(loader) loader.style.display = 'block';
-    
-    // Limpar query strings e extensões
-    const parts = pageName.split('?');
-    const cleanName = parts[0].replace(/\.(php|html)$/, "");
-    const queryString = parts[1] ? '?' + parts[1] : "";
-    const fullUrl = cleanName + queryString;
-
-    if (!element) {
-        element = document.querySelector(`[onclick*="'${cleanName}'"]`);
-    }
-
-    try {
-        let html;
-        
-        // Cache
-        if (contentCache.has(fullUrl)) {
-            html = contentCache.get(fullUrl);
-        } else {
-            // Tentar .php primeiro
-            let response = await fetch(cleanName + '.php' + queryString, { cache: 'no-cache' });
-            
-            // Se falhar, tentar .html
-            if (!response.ok) {
-                response = await fetch(cleanName + '.html' + queryString, { cache: 'no-cache' });
-            }
-
-            if (!response.ok) {
-                throw new Error('Módulo não encontrado: ' + cleanName);
-            } else {
-                html = await response.text();
-                
-                // Limitar cache
-                if (contentCache.size > 20) {
-                    const firstKey = contentCache.keys().next().value;
-                    contentCache.delete(firstKey);
-                }
-                contentCache.set(fullUrl, html);
-            }
-        }
-        
-        contentArea.innerHTML = html;
-
-        // Executar scripts inline
-        const existingScripts = new Set();
-        contentArea.querySelectorAll('script').forEach(oldScript => {
-            const scriptContent = oldScript.innerHTML.trim();
-            
-            if (!scriptContent) return;
-            
-            const scriptHash = scriptContent.substring(0, 100);
-            
-            if (existingScripts.has(scriptHash)) {
+            if (diff <= 0) {
+                timerElement.innerText = "EXPIRADO!";
+                timerElement.style.background = "rgba(255, 50, 50, 0.4)";
                 return;
             }
-            
-            existingScripts.add(scriptHash);
-            
-            try {
-                const newScript = document.createElement('script');
-                Array.from(oldScript.attributes).forEach(attr => {
-                    newScript.setAttribute(attr.name, attr.value);
-                });
-                newScript.appendChild(document.createTextNode(scriptContent));
-                oldScript.parentNode.replaceChild(newScript, oldScript);
-            } catch (error) {
-                console.error('Erro ao executar script:', error);
-            }
-        });
 
-        // Atualizar navegação ativa
-        if(element && element.classList) {
-            document.querySelectorAll('.nav-item').forEach(btn => {
-                if(btn && btn.classList) btn.classList.remove('active');
-            });
+            const h = Math.floor(diff / 3600);
+            const m = Math.floor((diff % 3600) / 60);
+            const s = diff % 60;
+
+            timerElement.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
             
-            element.classList.add('active');
-            
-            // Atualizar breadcrumb
-            const labelSpan = element.querySelector('span');
-            if(labelSpan) {
-                document.getElementById('current-page-title').innerHTML = labelSpan.innerText + 
-                    (userData.isEmployee ? '<span class="employee-badge-header"><i class="fa-solid fa-user-tie"></i> MODO FUNCIONÁRIO</span>' : '');
+            if (diff < 3600) {
+                timerElement.style.animation = "pulse-red 1s infinite";
             }
         }
 
-        // Atualizar URL
-        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + cleanName + queryString;
-        window.history.pushState({ path: newUrl }, '', newUrl);
-
-    } catch (error) {
-        console.error('Erro ao carregar:', error);
-        contentArea.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; text-align: center;">
-                <i class="fa-solid fa-exclamation-triangle" style="font-size: 64px; color: #ff4d4d; margin-bottom: 20px; opacity: 0.5;"></i>
-                <h2 style="font-size: 24px; font-weight: 800; color: #fff; margin-bottom: 10px;">Módulo não encontrado</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 30px;">O módulo "<strong>${pageName}</strong>" não está disponível.</p>
-                ${!userData.isEmployee ? `
-                <button onclick="loadContent('modules/dashboard/dashboard')" style="padding: 12px 24px; background: var(--accent-green); color: #000; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-home"></i> Voltar ao Dashboard
-                </button>
-                ` : ''}
-            </div>
-        `;
-    } finally {
-        if(loader) loader.style.display = 'none';
-        isLoading = false;
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
     }
-}
 
-// Carregar página inicial
-window.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const defaultPage = userData.isEmployee ? 'modules/produtos/produtos' : 'modules/dashboard/dashboard';
-    const page = urlParams.get('page') || defaultPage;
-    loadContent(page, null);
-});
+    // ==================== SISTEMA DE NAVEGAÇÃO ====================
+    let contentCache = new Map();
+    let isLoading = false;
 
-// Navegação com botão voltar
-window.onpopstate = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const defaultPage = userData.isEmployee ? 'modules/produtos/produtos' : 'modules/dashboard/dashboard';
-    loadContent(urlParams.get('page') || defaultPage, null);
-};
+    async function loadContent(pageName, element = null) {
+        if (isLoading) return;
+        
+        const contentArea = document.getElementById('content-area');
+        const loader = document.getElementById('page-loader');
+        
+        if (!contentArea) return;
 
-console.log('✅ VisionGreen Dashboard carregado -', 
-    userData.isEmployee ? 'Funcionário:' : 'Gestor:', 
-    userData.nome,
-    userData.isEmployee ? `(${userData.cargo})` : ''
-);
+        isLoading = true;
+        if(loader) loader.style.display = 'block';
+        
+        // Limpar query strings e extensões
+        const parts = pageName.split('?');
+        const cleanName = parts[0].replace(/\.(php|html)$/, "");
+        const queryString = parts[1] ? '?' + parts[1] : "";
+        const fullUrl = cleanName + queryString;
+
+        if (!element) {
+            element = document.querySelector(`[onclick*="'${cleanName}'"]`);
+        }
+
+        try {
+            let html;
+            
+            // Cache
+            if (contentCache.has(fullUrl)) {
+                html = contentCache.get(fullUrl);
+            } else {
+                // Tentar .php primeiro
+                let response = await fetch(cleanName + '.php' + queryString, { cache: 'no-cache' });
+                
+                // Se falhar, tentar .html
+                if (!response.ok) {
+                    response = await fetch(cleanName + '.html' + queryString, { cache: 'no-cache' });
+                }
+
+                if (!response.ok) {
+                    throw new Error('Módulo não encontrado: ' + cleanName);
+                } else {
+                    html = await response.text();
+                    
+                    // Limitar cache
+                    if (contentCache.size > 20) {
+                        const firstKey = contentCache.keys().next().value;
+                        contentCache.delete(firstKey);
+                    }
+                    contentCache.set(fullUrl, html);
+                }
+            }
+            
+            contentArea.innerHTML = html;
+
+            // Executar scripts inline
+            const existingScripts = new Set();
+            contentArea.querySelectorAll('script').forEach(oldScript => {
+                const scriptContent = oldScript.innerHTML.trim();
+                
+                if (!scriptContent) return;
+                
+                const scriptHash = scriptContent.substring(0, 100);
+                
+                if (existingScripts.has(scriptHash)) {
+                    return;
+                }
+                
+                existingScripts.add(scriptHash);
+                
+                try {
+                    const newScript = document.createElement('script');
+                    Array.from(oldScript.attributes).forEach(attr => {
+                        newScript.setAttribute(attr.name, attr.value);
+                    });
+                    newScript.appendChild(document.createTextNode(scriptContent));
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                } catch (error) {
+                    console.error('Erro ao executar script:', error);
+                }
+            });
+
+            // Atualizar navegação ativa
+            if(element && element.classList) {
+                document.querySelectorAll('.nav-item').forEach(btn => {
+                    if(btn && btn.classList) btn.classList.remove('active');
+                });
+                
+                element.classList.add('active');
+                
+                // Atualizar breadcrumb
+                const labelSpan = element.querySelector('span');
+                if(labelSpan) {
+                    document.getElementById('current-page-title').innerHTML = labelSpan.innerText + 
+                        (userData.isEmployee ? '<span class="employee-badge-header"><i class="fa-solid fa-user-tie"></i> MODO FUNCIONÁRIO</span>' : '');
+                }
+            }
+
+            // Atualizar URL
+            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + cleanName + queryString;
+            window.history.pushState({ path: newUrl }, '', newUrl);
+
+        } catch (error) {
+            console.error('Erro ao carregar:', error);
+            contentArea.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; text-align: center;">
+                    <i class="fa-solid fa-exclamation-triangle" style="font-size: 64px; color: #ff4d4d; margin-bottom: 20px; opacity: 0.5;"></i>
+                    <h2 style="font-size: 24px; font-weight: 800; color: #fff; margin-bottom: 10px;">Módulo não encontrado</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 30px;">O módulo "<strong>${pageName}</strong>" não está disponível.</p>
+                    ${!userData.isEmployee ? `
+                    <button onclick="loadContent('modules/dashboard/dashboard')" style="padding: 12px 24px; background: var(--accent-green); color: #000; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-home"></i> Voltar ao Dashboard
+                    </button>
+                    ` : ''}
+                </div>
+            `;
+        } finally {
+            if(loader) loader.style.display = 'none';
+            isLoading = false;
+        }
+    }
+
+    // Carregar página inicial
+    window.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const defaultPage = userData.isEmployee ? 'modules/produtos/produtos' : 'modules/dashboard/dashboard';
+        const page = urlParams.get('page') || defaultPage;
+        loadContent(page, null);
+    });
+
+    // Navegação com botão voltar
+    window.onpopstate = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const defaultPage = userData.isEmployee ? 'modules/produtos/produtos' : 'modules/dashboard/dashboard';
+        loadContent(urlParams.get('page') || defaultPage, null);
+    };
+
+    console.log('✅ VisionGreen Dashboard carregado -', 
+        userData.isEmployee ? 'Funcionário:' : 'Gestor:', 
+        userData.nome,
+        userData.isEmployee ? `(${userData.cargo})` : '',
+        userData.isEmployee ? `Email: ${userData.email}` : ''
+    );
 </script>
 </body>
 </html>

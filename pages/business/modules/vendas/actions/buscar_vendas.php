@@ -2,6 +2,7 @@
 /**
  * BUSCAR VENDAS
  * Retorna vendas de produtos da empresa
+ * ATUALIZADO: Suporta empresa e funcionário
  */
 
 header('Content-Type: application/json');
@@ -28,15 +29,39 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (!isset($_SESSION['auth']['user_id'])) {
+// Verificar autenticação (empresa OU funcionário)
+$isEmployee = isset($_SESSION['employee_auth']['employee_id']);
+$isCompany = isset($_SESSION['auth']['user_id']) && isset($_SESSION['auth']['type']) && $_SESSION['auth']['type'] === 'company';
+
+if (!$isEmployee && !$isCompany) {
     logDebug('ERRO: Não autenticado');
     echo json_encode(['success' => false, 'message' => 'Não autenticado']);
     exit;
 }
 
+// Determinar userId (ID da empresa)
+if ($isEmployee) {
+    $userId = (int)$_SESSION['employee_auth']['empresa_id'];
+    $userType = 'funcionario';
+    logDebug('Funcionário acessando', ['empresa_id' => $userId]);
+} else {
+    $userId = (int)$_SESSION['auth']['user_id'];
+    $userType = 'gestor';
+    logDebug('Gestor acessando', ['user_id' => $userId]);
+}
+
+// Se vier user_id por GET, validar que é o mesmo
+if (isset($_GET['user_id'])) {
+    $requestUserId = (int)$_GET['user_id'];
+    if ($requestUserId !== $userId) {
+        logDebug('ERRO: User ID não corresponde');
+        echo json_encode(['success' => false, 'message' => 'Acesso negado']);
+        exit;
+    }
+}
+
 require_once __DIR__ . '/../../../../../registration/includes/db.php';
 
-$userId = (int)$_GET['user_id'];
 $periodo = (int)($_GET['periodo'] ?? 30);
 $status = $_GET['status'] ?? '';
 $produtoId = $_GET['produto_id'] ?? '';
@@ -44,6 +69,7 @@ $search = $_GET['search'] ?? '';
 
 logDebug('Parâmetros', [
     'user_id' => $userId,
+    'user_type' => $userType,
     'periodo' => $periodo,
     'status' => $status,
     'produto_id' => $produtoId,
@@ -123,7 +149,8 @@ try {
     
     echo json_encode([
         'success' => true,
-        'vendas' => $vendas
+        'vendas' => $vendas,
+        'user_type' => $userType
     ]);
     
 } catch (Exception $e) {

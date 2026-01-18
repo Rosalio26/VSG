@@ -4,6 +4,7 @@
  * VISIONGREEN - ACTION: BUSCAR PRODUTOS
  * Arquivo: company/modules/produtos/actions/search_products.php
  * Descrição: Retorna produtos filtrados via AJAX
+ * ATUALIZADO: Suporta empresa e funcionário
  * ================================================================================
  */
 
@@ -14,13 +15,25 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Verificar autenticação
-if (!isset($_SESSION['auth']['user_id'])) {
+// Verificar autenticação (empresa OU funcionário)
+$isEmployee = isset($_SESSION['employee_auth']['employee_id']);
+$isCompany = isset($_SESSION['auth']['user_id']) && isset($_SESSION['auth']['type']) && $_SESSION['auth']['type'] === 'company';
+
+if (!$isEmployee && !$isCompany) {
     echo json_encode(['success' => false, 'message' => 'Sessão expirada']);
     exit;
 }
 
-$userId = (int)$_SESSION['auth']['user_id'];
+// Determinar userId (ID da empresa)
+if ($isEmployee) {
+    $userId = (int)$_SESSION['employee_auth']['empresa_id']; // ID da empresa
+    $employeeId = (int)$_SESSION['employee_auth']['employee_id'];
+    $userType = 'funcionario';
+} else {
+    $userId = (int)$_SESSION['auth']['user_id'];
+    $employeeId = null;
+    $userType = 'gestor';
+}
 
 // Conectar ao banco
 $db_paths = [
@@ -102,5 +115,7 @@ $stats = $stats_stmt->get_result()->fetch_assoc();
 echo json_encode([
     'success' => true,
     'products' => $products,
-    'stats' => $stats
+    'stats' => $stats,
+    'user_type' => $userType, // Informação adicional
+    'user_id' => $userId
 ]);

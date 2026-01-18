@@ -1,20 +1,3 @@
--- --------------------------------------------------------
--- Host:                         127.0.0.1
--- Server version:               8.0.44 - MySQL Community Server - GPL
--- Server OS:                    Win64
--- HeidiSQL Version:             12.14.0.7165
--- --------------------------------------------------------
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET NAMES utf8 */;
-/*!50503 SET NAMES utf8mb4 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-
--- Dumping structure for table vsg.admin_audit_logs
 CREATE TABLE IF NOT EXISTS `admin_audit_logs` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `admin_id` bigint unsigned DEFAULT NULL,
@@ -29,6 +12,7 @@ CREATE TABLE IF NOT EXISTS `admin_audit_logs` (
   KEY `idx_action` (`action`),
   CONSTRAINT `admin_audit_logs_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
 ) ENGINE=InnoDB AUTO_INCREMENT=144 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 
 
 -- Dumping structure for table vsg.businesses
@@ -52,7 +36,6 @@ CREATE TABLE IF NOT EXISTS `businesses` (
   UNIQUE KEY `tax_id_unique` (`tax_id`) USING BTREE,
   CONSTRAINT `fk_business_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 
 
 -- Dumping structure for table vsg.company_growth_metrics
@@ -96,6 +79,7 @@ CREATE TABLE IF NOT EXISTS `company_health_score` (
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
+
 -- Dumping structure for table vsg.eco_certifications
 CREATE TABLE IF NOT EXISTS `eco_certifications` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -127,7 +111,8 @@ CREATE TABLE IF NOT EXISTS `employee_access_logs` (
   KEY `idx_action` (`action`) USING BTREE,
   KEY `idx_created_at` (`created_at`) USING BTREE,
   CONSTRAINT `fk_access_logs_employee` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 
 -- Dumping structure for table vsg.employee_permissions
@@ -149,44 +134,53 @@ CREATE TABLE IF NOT EXISTS `employee_permissions` (
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
+
 -- Dumping structure for table vsg.employees
 CREATE TABLE IF NOT EXISTS `employees` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `user_id` bigint unsigned NOT NULL COMMENT 'ID da empresa',
-  `nome` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Nome completo',
-  `email` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Email',
-  `telefone` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Telefone',
-  `cargo` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Cargo/Função',
-  `departamento` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Departamento',
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID do registro profissional',
+  `user_id` bigint unsigned NOT NULL COMMENT 'ID da empresa dona (FK para users onde type=company)',
+  `user_employee_id` bigint unsigned DEFAULT NULL COMMENT 'FK para users.id (funcionário)',
+  `nome` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Nome completo (sincronizado com users.nome)',
+  `email_company` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Email corporativo @empresa.vsg.com - ÚNICO GLOBALMENTE',
+  `telefone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Telefone (sincronizado com users.telefone)',
+  `cargo` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Cargo/Função',
+  `departamento` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Departamento',
   `data_admissao` date NOT NULL COMMENT 'Data de admissão',
   `salario` decimal(10,2) DEFAULT NULL COMMENT 'Salário',
-  `status` enum('ativo','inativo','ferias','afastado') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ativo',
-  `foto_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Caminho da foto',
-  `documento` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Nº do documento',
-  `tipo_documento` enum('bi','passaporte','dire','nuit') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'bi',
-  `endereco` text COLLATE utf8mb4_unicode_ci COMMENT 'Endereço completo',
-  `observacoes` text COLLATE utf8mb4_unicode_ci COMMENT 'Observações',
-  `password_hash` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Hash da senha',
-  `pode_acessar_sistema` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Se pode fazer login',
-  `primeiro_acesso` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Se é primeiro acesso',
-  `ultimo_login` datetime DEFAULT NULL COMMENT 'Data do último login',
-  `token_primeiro_acesso` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Token para definir senha',
-  `token_expira_em` datetime DEFAULT NULL COMMENT 'Expiração do token',
-  `is_active` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Se está ativo',
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `status` enum('ativo','inativo','ferias','afastado') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ativo' COMMENT 'Status profissional do funcionário',
+  `foto_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Caminho da foto do funcionário',
+  `documento` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Número do documento de identificação',
+  `tipo_documento` enum('bi','passaporte','dire','nuit') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'bi' COMMENT 'Tipo de documento',
+  `endereco` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Endereço residencial completo',
+  `observacoes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Observações sobre o funcionário',
+  `password_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'DEPRECATED - Usar users.password_hash',
+  `pode_acessar_sistema` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Se pode fazer login no sistema',
+  `primeiro_acesso` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Se ainda não definiu senha',
+  `ultimo_login` datetime DEFAULT NULL COMMENT 'Data e hora do último login',
+  `token_primeiro_acesso` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Token para definir senha no primeiro acesso',
+  `token_expira_em` datetime DEFAULT NULL COMMENT 'Data de expiração do token',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Se o registro está ativo (soft delete)',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Data de criação do registro',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Data da última atualização',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE KEY `unique_email` (`user_id`,`email`) USING BTREE,
-  KEY `idx_user_id` (`user_id`) USING BTREE,
-  KEY `idx_status` (`status`) USING BTREE,
-  KEY `idx_cargo` (`cargo`) USING BTREE,
-  KEY `idx_is_active` (`is_active`) USING BTREE,
-  KEY `idx_data_admissao` (`data_admissao`),
-  KEY `idx_departamento` (`departamento`),
-  KEY `idx_email_login` (`email`,`pode_acessar_sistema`),
-  KEY `idx_token` (`token_primeiro_acesso`),
-  CONSTRAINT `fk_employees_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `unique_email_company` (`email_company`) COMMENT 'Email corporativo único em todo o sistema',
+  KEY `idx_user_id` (`user_id`) USING BTREE COMMENT 'Buscar funcionários por empresa',
+  KEY `idx_status` (`status`) USING BTREE COMMENT 'Filtrar por status',
+  KEY `idx_cargo` (`cargo`) USING BTREE COMMENT 'Filtrar por cargo',
+  KEY `idx_is_active` (`is_active`) USING BTREE COMMENT 'Filtrar ativos/inativos',
+  KEY `idx_data_admissao` (`data_admissao`) COMMENT 'Ordenar por data de admissão',
+  KEY `idx_departamento` (`departamento`) COMMENT 'Filtrar por departamento',
+  KEY `idx_email_company` (`email_company`) USING BTREE COMMENT 'Buscar por email corporativo',
+  KEY `idx_token` (`token_primeiro_acesso`) COMMENT 'Validar tokens de primeiro acesso',
+  KEY `idx_pode_acessar` (`pode_acessar_sistema`) COMMENT 'Filtrar quem tem acesso',
+  KEY `idx_email_company_active` (`email_company`,`is_active`) COMMENT 'Busca rápida de email ativo',
+  KEY `idx_empresa_status` (`user_id`,`status`,`is_active`) COMMENT 'Listar funcionários ativos por empresa',
+  KEY `idx_nome` (`nome`) COMMENT 'Busca por nome',
+  KEY `idx_user_employee_id` (`user_employee_id`),
+  CONSTRAINT `fk_employees_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_employees_user_employee` FOREIGN KEY (`user_employee_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Armazena dados profissionais dos funcionários';
+
 
 
 -- Dumping structure for table vsg.form_config
@@ -205,6 +199,8 @@ CREATE TABLE IF NOT EXISTS `form_config` (
 ) ENGINE=InnoDB AUTO_INCREMENT=341 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
+
+
 -- Dumping structure for table vsg.login_attempts
 CREATE TABLE IF NOT EXISTS `login_attempts` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -214,6 +210,7 @@ CREATE TABLE IF NOT EXISTS `login_attempts` (
   `last_attempt` datetime NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 
 
 -- Dumping structure for table vsg.login_history
@@ -269,6 +266,7 @@ CREATE TABLE IF NOT EXISTS `notifications` (
   CONSTRAINT `fk_notif_reply` FOREIGN KEY (`reply_to`) REFERENCES `notifications` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_notif_sender` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=60 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 
 -- Dumping structure for table vsg.product_purchases
@@ -334,6 +332,7 @@ CREATE TABLE IF NOT EXISTS `products` (
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
+
 -- Dumping structure for table vsg.remember_me
 CREATE TABLE IF NOT EXISTS `remember_me` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -394,6 +393,7 @@ CREATE TABLE IF NOT EXISTS `transactions` (
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
+
 -- Dumping structure for table vsg.user_subscriptions
 CREATE TABLE IF NOT EXISTS `user_subscriptions` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -419,24 +419,25 @@ CREATE TABLE IF NOT EXISTS `user_subscriptions` (
 ) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
+
 -- Dumping structure for table vsg.users
 CREATE TABLE IF NOT EXISTS `users` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `type` enum('person','company','admin') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `role` enum('user','admin','superadmin') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'user',
-  `nome` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `apelido` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `email` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `email_corporativo` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `telefone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `password_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `secure_id_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `status` enum('pending','active','blocked') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'pending',
-  `email_token` char(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `public_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `type` enum('person','company','admin','employee') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role` enum('user','admin','superadmin') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'user',
+  `nome` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `apelido` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email_corporativo` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `telefone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `secure_id_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` enum('pending','active','blocked') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'pending',
+  `email_token` char(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `email_token_expires` datetime DEFAULT NULL,
   `email_verified_at` datetime DEFAULT NULL,
-  `registration_step` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'email_pending',
+  `registration_step` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'email_pending',
   `last_activity` int DEFAULT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -444,7 +445,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `password_changed_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `uid_generated_at` datetime DEFAULT NULL,
   `lock_until` datetime DEFAULT NULL,
-  `two_fa_code` varchar(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `two_fa_code` varchar(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `is_in_lockdown` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE KEY `email` (`email`) USING BTREE,
@@ -457,7 +458,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   KEY `idx_deleted_at` (`deleted_at`),
   KEY `idx_type_deleted` (`type`,`deleted_at`),
   CONSTRAINT `chk_public_id` CHECK (regexp_like(`public_id`,_utf8mb4'^[0-9]{8}[SAPC]$'))
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 
 -- Dumping structure for view vsg.view_eco_products_approved
@@ -489,13 +491,13 @@ CREATE TABLE `view_eco_products_approved` (
 	`is_active` TINYINT(1) NULL COMMENT 'Se está ativo',
 	`created_at` TIMESTAMP NULL,
 	`updated_at` TIMESTAMP NULL,
-	`company_name` VARCHAR(1) NULL COLLATE 'utf8mb4_general_ci',
-	`company_email` VARCHAR(1) NOT NULL COLLATE 'utf8mb4_general_ci',
+	`company_name` VARCHAR(1) NULL COLLATE 'utf8mb4_unicode_ci',
+	`company_email` VARCHAR(1) NOT NULL COLLATE 'utf8mb4_unicode_ci',
 	`business_type` VARCHAR(1) NULL COLLATE 'utf8mb4_general_ci'
 );
 
--- Dumping structure for view vsg.view_eco_products_pending
--- Creating temporary table to overcome VIEW dependency errors
+
+
 CREATE TABLE `view_eco_products_pending` (
 	`id` INT NOT NULL,
 	`user_id` BIGINT UNSIGNED NULL COMMENT 'Empresa dona do produto',
@@ -523,7 +525,8 @@ CREATE TABLE `view_eco_products_pending` (
 	`is_active` TINYINT(1) NULL COMMENT 'Se está ativo',
 	`created_at` TIMESTAMP NULL,
 	`updated_at` TIMESTAMP NULL,
-	`company_name` VARCHAR(1) NULL COLLATE 'utf8mb4_general_ci',
-	`company_email` VARCHAR(1) NOT NULL COLLATE 'utf8mb4_general_ci',
+	`company_name` VARCHAR(1) NULL COLLATE 'utf8mb4_unicode_ci',
+	`company_email` VARCHAR(1) NOT NULL COLLATE 'utf8mb4_unicode_ci',
 	`days_waiting` INT NULL
 );
+

@@ -1,6 +1,7 @@
 <?php
 /**
  * ESTATÍSTICAS DE VENDAS
+ * ATUALIZADO: Suporta empresa e funcionário
  */
 
 header('Content-Type: application/json');
@@ -26,16 +27,43 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (!isset($_SESSION['auth']['user_id'])) {
+// Verificar autenticação (empresa OU funcionário)
+$isEmployee = isset($_SESSION['employee_auth']['employee_id']);
+$isCompany = isset($_SESSION['auth']['user_id']) && isset($_SESSION['auth']['type']) && $_SESSION['auth']['type'] === 'company';
+
+if (!$isEmployee && !$isCompany) {
     logDebug('ERRO: Não autenticado');
     echo json_encode(['success' => false, 'message' => 'Não autenticado']);
     exit;
 }
 
+// Determinar userId (ID da empresa)
+if ($isEmployee) {
+    $userId = (int)$_SESSION['employee_auth']['empresa_id'];
+    $userType = 'funcionario';
+    logDebug('Funcionário acessando', ['empresa_id' => $userId]);
+} else {
+    $userId = (int)$_SESSION['auth']['user_id'];
+    $userType = 'gestor';
+    logDebug('Gestor acessando', ['user_id' => $userId]);
+}
+
+// Se vier user_id por GET, validar que é o mesmo
+if (isset($_GET['user_id'])) {
+    $requestUserId = (int)$_GET['user_id'];
+    if ($requestUserId !== $userId) {
+        logDebug('ERRO: User ID não corresponde', [
+            'session_user_id' => $userId,
+            'request_user_id' => $requestUserId
+        ]);
+        echo json_encode(['success' => false, 'message' => 'Acesso negado']);
+        exit;
+    }
+}
+
 require_once __DIR__ . '/../../../../../registration/includes/db.php';
 
-$userId = (int)$_GET['user_id'];
-logDebug('User ID', ['user_id' => $userId]);
+logDebug('User ID validado', ['user_id' => $userId, 'type' => $userType]);
 
 try {
     // Total vendas mês atual
@@ -135,7 +163,8 @@ try {
         'pendentes' => $pendentes['count'],
         'valor_pendente' => $pendentes['valor'] ?? 0,
         'taxa_conversao' => $taxaConversao,
-        'conversao_trend' => 0
+        'conversao_trend' => 0,
+        'user_type' => $userType // Informação adicional
     ];
     
     logDebug('Stats calculadas');

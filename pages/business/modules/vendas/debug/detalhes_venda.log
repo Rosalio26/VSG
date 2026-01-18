@@ -8,3 +8,38 @@
 17:53:34 - Buscando detalhes completos
 17:53:34 - Venda encontrada - {"invoice":null,"cliente":"Ana Julia"}
 17:53:34 - === FIM DETALHES VENDA (SUCESSO) ===
+15:06:58 - === INÍCIO DETALHES VENDA ===
+14:06:58 - Venda ID - {"venda_id":1,"user_type":"funcionario"}
+14:06:58 - Buscando detalhes completos
+14:06:58 - Venda encontrada - {"invoice":null,"cliente":"Ana Julia"}
+14:06:58 - === FIM DETALHES VENDA (SUCESSO) ===
+15:07:04 - === INÍCIO DETALHES VENDA ===
+14:07:04 - Venda ID - {"venda_id":2,"user_type":"funcionario"}
+14:07:04 - Buscando detalhes completos
+14:07:04 - Venda encontrada - {"invoice":null,"cliente":"Arthur Muloco"}
+14:07:04 - === FIM DETALHES VENDA (SUCESSO) ===
+20:37:48 - === INÍCIO DETALHES VENDA ===
+19:37:48 - Venda ID - {"venda_id":1,"user_type":"funcionario"}
+19:37:48 - Buscando detalhes completos
+19:37:48 - Venda encontrada - {"invoice":null,"cliente":"Ana Julia"}
+19:37:48 - === FIM DETALHES VENDA (SUCESSO) ===
+20:53:07 - === INÍCIO DETALHES VENDA ===
+19:53:07 - Venda ID - {"venda_id":1,"user_type":"funcionario"}
+19:53:07 - Buscando detalhes completos
+19:53:07 - Venda encontrada - {"invoice":null,"cliente":"Ana Julia"}
+19:53:07 - === FIM DETALHES VENDA (SUCESSO) ===
+20:53:15 - === INÍCIO DETALHES VENDA ===
+19:53:15 - Venda ID - {"venda_id":2,"user_type":"funcionario"}
+19:53:15 - Buscando detalhes completos
+19:53:15 - Venda encontrada - {"invoice":null,"cliente":"Arthur Muloco"}
+19:53:15 - === FIM DETALHES VENDA (SUCESSO) ===
+01:16:07 - === INÍCIO DETALHES VENDA ===
+00:16:07 - Venda ID - {"venda_id":1,"user_type":"funcionario"}
+00:16:07 - Buscando detalhes completos
+00:16:07 - Venda encontrada - {"invoice":null,"cliente":"Ana Julia"}
+00:16:07 - === FIM DETALHES VENDA (SUCESSO) ===
+01:21:02 - === INÍCIO DETALHES VENDA ===
+00:21:02 - Venda ID - {"venda_id":1,"user_type":"funcionario"}
+00:21:02 - Buscando detalhes completos
+00:21:02 - Venda encontrada - {"invoice":null,"cliente":"Ana Julia"}
+00:21:02 - === FIM DETALHES VENDA (SUCESSO) ===

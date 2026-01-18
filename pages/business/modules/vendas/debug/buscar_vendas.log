@@ -112,3 +112,160 @@
 05:16:16 - Executando query
 05:16:16 - Vendas encontradas - {"count":0}
 05:16:16 - === FIM (SUCESSO) ===
+14:36:25 - === INÍCIO ===
+14:36:25 - ERRO: Não autenticado
+14:40:26 - === INÍCIO ===
+14:40:26 - ERRO: Não autenticado
+15:02:35 - === INÍCIO ===
+15:02:35 - ERRO: Não autenticado
+15:06:51 - === INÍCIO ===
+15:06:51 - Funcionário acessando - {"empresa_id":6}
+14:06:51 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+14:06:51 - Preparando query
+14:06:51 - Executando query
+14:06:51 - Vendas encontradas - {"count":2}
+14:06:51 - === FIM (SUCESSO) ===
+15:07:11 - === INÍCIO ===
+15:07:11 - Funcionário acessando - {"empresa_id":6}
+14:07:11 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"2","search":""}
+14:07:11 - Filtro produto - {"produto_id":"2"}
+14:07:11 - Preparando query
+14:07:11 - Executando query
+14:07:11 - Vendas encontradas - {"count":1}
+14:07:11 - === FIM (SUCESSO) ===
+15:07:14 - === INÍCIO ===
+15:07:14 - Funcionário acessando - {"empresa_id":6}
+14:07:14 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"pending","produto_id":"2","search":""}
+14:07:14 - Filtro status - {"status":"pending"}
+14:07:14 - Filtro produto - {"produto_id":"2"}
+14:07:14 - Preparando query
+14:07:14 - Executando query
+14:07:14 - Vendas encontradas - {"count":0}
+14:07:14 - === FIM (SUCESSO) ===
+15:07:16 - === INÍCIO ===
+15:07:16 - Funcionário acessando - {"empresa_id":6}
+14:07:16 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"pending","produto_id":"","search":""}
+14:07:16 - Filtro status - {"status":"pending"}
+14:07:16 - Preparando query
+14:07:16 - Executando query
+14:07:16 - Vendas encontradas - {"count":0}
+14:07:16 - === FIM (SUCESSO) ===
+15:07:28 - === INÍCIO ===
+15:07:28 - Funcionário acessando - {"empresa_id":6}
+14:07:28 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+14:07:28 - Preparando query
+14:07:28 - Executando query
+14:07:28 - Vendas encontradas - {"count":2}
+14:07:28 - === FIM (SUCESSO) ===
+15:07:55 - === INÍCIO ===
+15:07:55 - Gestor acessando - {"user_id":6}
+14:07:55 - Parâmetros - {"user_id":6,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+14:07:55 - Preparando query
+14:07:55 - Executando query
+14:07:55 - Vendas encontradas - {"count":2}
+14:07:55 - === FIM (SUCESSO) ===
+20:37:39 - === INÍCIO ===
+20:37:39 - Funcionário acessando - {"empresa_id":6}
+19:37:39 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+19:37:39 - Preparando query
+19:37:39 - Executando query
+19:37:39 - Vendas encontradas - {"count":2}
+19:37:39 - === FIM (SUCESSO) ===
+20:37:47 - === INÍCIO ===
+20:37:47 - Funcionário acessando - {"empresa_id":6}
+19:37:47 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+19:37:47 - Preparando query
+19:37:47 - Executando query
+19:37:47 - Vendas encontradas - {"count":2}
+19:37:47 - === FIM (SUCESSO) ===
+20:39:01 - === INÍCIO ===
+20:39:01 - Funcionário acessando - {"empresa_id":6}
+19:39:01 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+19:39:01 - Preparando query
+19:39:01 - Executando query
+19:39:01 - Vendas encontradas - {"count":2}
+19:39:01 - === FIM (SUCESSO) ===
+20:39:20 - === INÍCIO ===
+20:39:20 - Funcionário acessando - {"empresa_id":6}
+19:39:20 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+19:39:20 - Preparando query
+19:39:20 - Executando query
+19:39:20 - Vendas encontradas - {"count":2}
+19:39:20 - === FIM (SUCESSO) ===
+20:53:01 - === INÍCIO ===
+20:53:01 - Funcionário acessando - {"empresa_id":6}
+19:53:01 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+19:53:01 - Preparando query
+19:53:01 - Executando query
+19:53:01 - Vendas encontradas - {"count":2}
+19:53:01 - === FIM (SUCESSO) ===
+20:58:40 - === INÍCIO ===
+20:58:40 - Funcionário acessando - {"empresa_id":6}
+19:58:40 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+19:58:40 - Preparando query
+19:58:40 - Executando query
+19:58:40 - Vendas encontradas - {"count":2}
+19:58:40 - === FIM (SUCESSO) ===
+01:16:01 - === INÍCIO ===
+01:16:01 - Funcionário acessando - {"empresa_id":6}
+00:16:01 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+00:16:01 - Preparando query
+00:16:01 - Executando query
+00:16:01 - Vendas encontradas - {"count":2}
+00:16:01 - === FIM (SUCESSO) ===
+01:16:32 - === INÍCIO ===
+01:16:32 - Funcionário acessando - {"empresa_id":6}
+00:16:32 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+00:16:32 - Preparando query
+00:16:32 - Executando query
+00:16:32 - Vendas encontradas - {"count":2}
+00:16:32 - === FIM (SUCESSO) ===
+01:21:00 - === INÍCIO ===
+01:21:00 - Funcionário acessando - {"empresa_id":6}
+00:21:00 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+00:21:00 - Preparando query
+00:21:00 - Executando query
+00:21:00 - Vendas encontradas - {"count":2}
+00:21:00 - === FIM (SUCESSO) ===
+01:37:39 - === INÍCIO ===
+01:37:39 - Funcionário acessando - {"empresa_id":6}
+00:37:39 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+00:37:39 - Preparando query
+00:37:39 - Executando query
+00:37:39 - Vendas encontradas - {"count":2}
+00:37:39 - === FIM (SUCESSO) ===
+02:19:50 - === INÍCIO ===
+02:19:50 - Funcionário acessando - {"empresa_id":6}
+01:19:50 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+01:19:50 - Preparando query
+01:19:50 - Executando query
+01:19:50 - Vendas encontradas - {"count":2}
+01:19:50 - === FIM (SUCESSO) ===
+02:57:22 - === INÍCIO ===
+02:57:22 - Funcionário acessando - {"empresa_id":6}
+01:57:22 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+01:57:22 - Preparando query
+01:57:22 - Executando query
+01:57:22 - Vendas encontradas - {"count":2}
+01:57:22 - === FIM (SUCESSO) ===
+07:37:05 - === INÍCIO ===
+07:37:05 - Funcionário acessando - {"empresa_id":6}
+06:37:05 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+06:37:05 - Preparando query
+06:37:05 - Executando query
+06:37:05 - Vendas encontradas - {"count":2}
+06:37:05 - === FIM (SUCESSO) ===
+07:54:25 - === INÍCIO ===
+07:54:25 - Funcionário acessando - {"empresa_id":6}
+06:54:25 - Parâmetros - {"user_id":6,"user_type":"funcionario","periodo":30,"status":"","produto_id":"","search":""}
+06:54:25 - Preparando query
+06:54:25 - Executando query
+06:54:25 - Vendas encontradas - {"count":2}
+06:54:25 - === FIM (SUCESSO) ===
+08:01:42 - === INÍCIO ===
+08:01:42 - Gestor acessando - {"user_id":6}
+07:01:42 - Parâmetros - {"user_id":6,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+07:01:42 - Preparando query
+07:01:42 - Executando query
+07:01:42 - Vendas encontradas - {"count":2}
+07:01:42 - === FIM (SUCESSO) ===

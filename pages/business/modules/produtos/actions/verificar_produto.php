@@ -4,6 +4,7 @@
  * VISIONGREEN - VERIFICAÇÃO DE PRODUTO COM IA REAL
  * Arquivo: company/modules/produtos/actions/verificar_produto.php
  * Versão: 2.0 - Com Claude Vision AI + Fallback Simulado
+ * ATUALIZADO: Suporta empresa e funcionário
  * ================================================================================
  */
 
@@ -20,12 +21,34 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (!isset($_SESSION['auth']['user_id'])) {
+// Verificar autenticação (empresa OU funcionário)
+$isEmployee = isset($_SESSION['employee_auth']['employee_id']);
+$isCompany = isset($_SESSION['auth']['user_id']) && isset($_SESSION['auth']['type']) && $_SESSION['auth']['type'] === 'company';
+
+if (!$isEmployee && !$isCompany) {
     echo json_encode(['success' => false, 'message' => 'Sessão expirada']);
     exit;
 }
 
-$userId = (int)$_SESSION['auth']['user_id'];
+// Determinar userId (ID da empresa)
+if ($isEmployee) {
+    $userId = (int)$_SESSION['employee_auth']['empresa_id'];
+    $employeeId = (int)$_SESSION['employee_auth']['employee_id'];
+    $canEdit = false; // Funcionários não podem cadastrar produtos
+} else {
+    $userId = (int)$_SESSION['auth']['user_id'];
+    $employeeId = null;
+    $canEdit = true;
+}
+
+// Verificar permissão
+if ($isEmployee && !$canEdit) {
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Funcionários não têm permissão para cadastrar produtos'
+    ]);
+    exit;
+}
 
 // Conectar ao banco
 $db_paths = [

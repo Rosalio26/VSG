@@ -152,3 +152,279 @@
 05:16:16 - Taxa conversão - {"taxa":0}
 05:16:16 - Stats calculadas
 05:16:16 - === FIM STATS (SUCESSO) ===
+14:36:25 - === INÍCIO STATS ===
+14:36:25 - ERRO: Não autenticado
+14:40:26 - === INÍCIO STATS ===
+14:40:26 - ERRO: Não autenticado
+15:02:36 - === INÍCIO STATS ===
+15:02:36 - ERRO: Não autenticado
+15:06:52 - === INÍCIO STATS ===
+15:06:52 - Funcionário acessando - {"empresa_id":6}
+14:06:52 - User ID validado - {"user_id":6,"type":"funcionario"}
+14:06:52 - Calculando vendas mês atual
+14:06:52 - Total vendas - {"total":1}
+14:06:52 - Calculando vendas mês anterior
+14:06:52 - Trend vendas - {"trend":0}
+14:06:52 - Calculando receita total
+14:06:52 - Receita total - {"receita":"500.00"}
+14:06:52 - Trend receita - {"trend":-83.3}
+14:06:52 - Calculando pendentes
+14:06:52 - Pendentes - {"count":0,"valor":null}
+14:06:52 - Taxa conversão - {"taxa":100}
+14:06:52 - Stats calculadas
+14:06:52 - === FIM STATS (SUCESSO) ===
+15:07:28 - === INÍCIO STATS ===
+15:07:28 - Funcionário acessando - {"empresa_id":6}
+14:07:28 - User ID validado - {"user_id":6,"type":"funcionario"}
+14:07:28 - Calculando vendas mês atual
+14:07:28 - Total vendas - {"total":1}
+14:07:28 - Calculando vendas mês anterior
+14:07:28 - Trend vendas - {"trend":0}
+14:07:28 - Calculando receita total
+14:07:28 - Receita total - {"receita":"500.00"}
+14:07:28 - Trend receita - {"trend":-83.3}
+14:07:28 - Calculando pendentes
+14:07:28 - Pendentes - {"count":0,"valor":null}
+14:07:28 - Taxa conversão - {"taxa":100}
+14:07:28 - Stats calculadas
+14:07:28 - === FIM STATS (SUCESSO) ===
+15:07:55 - === INÍCIO STATS ===
+15:07:55 - Gestor acessando - {"user_id":6}
+14:07:55 - User ID validado - {"user_id":6,"type":"gestor"}
+14:07:55 - Calculando vendas mês atual
+14:07:55 - Total vendas - {"total":1}
+14:07:55 - Calculando vendas mês anterior
+14:07:55 - Trend vendas - {"trend":0}
+14:07:55 - Calculando receita total
+14:07:55 - Receita total - {"receita":"500.00"}
+14:07:55 - Trend receita - {"trend":-83.3}
+14:07:55 - Calculando pendentes
+14:07:55 - Pendentes - {"count":0,"valor":null}
+14:07:55 - Taxa conversão - {"taxa":100}
+14:07:55 - Stats calculadas
+14:07:55 - === FIM STATS (SUCESSO) ===
+20:37:39 - === INÍCIO STATS ===
+20:37:39 - Funcionário acessando - {"empresa_id":6}
+19:37:39 - User ID validado - {"user_id":6,"type":"funcionario"}
+19:37:39 - Calculando vendas mês atual
+19:37:39 - Total vendas - {"total":1}
+19:37:39 - Calculando vendas mês anterior
+19:37:39 - Trend vendas - {"trend":0}
+19:37:39 - Calculando receita total
+19:37:39 - Receita total - {"receita":"500.00"}
+19:37:39 - Trend receita - {"trend":-83.3}
+19:37:39 - Calculando pendentes
+19:37:39 - Pendentes - {"count":0,"valor":null}
+19:37:39 - Taxa conversão - {"taxa":100}
+19:37:39 - Stats calculadas
+19:37:39 - === FIM STATS (SUCESSO) ===
+20:37:47 - === INÍCIO STATS ===
+20:37:47 - Funcionário acessando - {"empresa_id":6}
+19:37:47 - User ID validado - {"user_id":6,"type":"funcionario"}
+19:37:47 - Calculando vendas mês atual
+19:37:47 - Total vendas - {"total":1}
+19:37:47 - Calculando vendas mês anterior
+19:37:47 - Trend vendas - {"trend":0}
+19:37:47 - Calculando receita total
+19:37:47 - Receita total - {"receita":"500.00"}
+19:37:47 - Trend receita - {"trend":-83.3}
+19:37:47 - Calculando pendentes
+19:37:47 - Pendentes - {"count":0,"valor":null}
+19:37:47 - Taxa conversão - {"taxa":100}
+19:37:47 - Stats calculadas
+19:37:47 - === FIM STATS (SUCESSO) ===
+20:39:01 - === INÍCIO STATS ===
+20:39:01 - Funcionário acessando - {"empresa_id":6}
+19:39:01 - User ID validado - {"user_id":6,"type":"funcionario"}
+19:39:01 - Calculando vendas mês atual
+19:39:01 - Total vendas - {"total":1}
+19:39:01 - Calculando vendas mês anterior
+19:39:01 - Trend vendas - {"trend":0}
+19:39:01 - Calculando receita total
+19:39:01 - Receita total - {"receita":"500.00"}
+19:39:01 - Trend receita - {"trend":-83.3}
+19:39:01 - Calculando pendentes
+19:39:01 - Pendentes - {"count":0,"valor":null}
+19:39:01 - Taxa conversão - {"taxa":100}
+19:39:01 - Stats calculadas
+19:39:01 - === FIM STATS (SUCESSO) ===
+20:39:20 - === INÍCIO STATS ===
+20:39:20 - Funcionário acessando - {"empresa_id":6}
+19:39:20 - User ID validado - {"user_id":6,"type":"funcionario"}
+19:39:20 - Calculando vendas mês atual
+19:39:20 - Total vendas - {"total":1}
+19:39:20 - Calculando vendas mês anterior
+19:39:20 - Trend vendas - {"trend":0}
+19:39:20 - Calculando receita total
+19:39:20 - Receita total - {"receita":"500.00"}
+19:39:20 - Trend receita - {"trend":-83.3}
+19:39:20 - Calculando pendentes
+19:39:20 - Pendentes - {"count":0,"valor":null}
+19:39:20 - Taxa conversão - {"taxa":100}
+19:39:20 - Stats calculadas
+19:39:20 - === FIM STATS (SUCESSO) ===
+20:53:01 - === INÍCIO STATS ===
+20:53:01 - Funcionário acessando - {"empresa_id":6}
+19:53:01 - User ID validado - {"user_id":6,"type":"funcionario"}
+19:53:01 - Calculando vendas mês atual
+19:53:01 - Total vendas - {"total":1}
+19:53:01 - Calculando vendas mês anterior
+19:53:01 - Trend vendas - {"trend":0}
+19:53:01 - Calculando receita total
+19:53:01 - Receita total - {"receita":"500.00"}
+19:53:01 - Trend receita - {"trend":-83.3}
+19:53:01 - Calculando pendentes
+19:53:01 - Pendentes - {"count":0,"valor":null}
+19:53:01 - Taxa conversão - {"taxa":100}
+19:53:01 - Stats calculadas
+19:53:01 - === FIM STATS (SUCESSO) ===
+20:58:40 - === INÍCIO STATS ===
+20:58:40 - Funcionário acessando - {"empresa_id":6}
+19:58:40 - User ID validado - {"user_id":6,"type":"funcionario"}
+19:58:40 - Calculando vendas mês atual
+19:58:40 - Total vendas - {"total":1}
+19:58:40 - Calculando vendas mês anterior
+19:58:40 - Trend vendas - {"trend":0}
+19:58:40 - Calculando receita total
+19:58:40 - Receita total - {"receita":"500.00"}
+19:58:40 - Trend receita - {"trend":-83.3}
+19:58:40 - Calculando pendentes
+19:58:40 - Pendentes - {"count":0,"valor":null}
+19:58:40 - Taxa conversão - {"taxa":100}
+19:58:40 - Stats calculadas
+19:58:40 - === FIM STATS (SUCESSO) ===
+01:16:01 - === INÍCIO STATS ===
+01:16:01 - Funcionário acessando - {"empresa_id":6}
+00:16:01 - User ID validado - {"user_id":6,"type":"funcionario"}
+00:16:01 - Calculando vendas mês atual
+00:16:01 - Total vendas - {"total":1}
+00:16:01 - Calculando vendas mês anterior
+00:16:01 - Trend vendas - {"trend":0}
+00:16:01 - Calculando receita total
+00:16:01 - Receita total - {"receita":"500.00"}
+00:16:01 - Trend receita - {"trend":-83.3}
+00:16:01 - Calculando pendentes
+00:16:01 - Pendentes - {"count":0,"valor":null}
+00:16:01 - Taxa conversão - {"taxa":100}
+00:16:01 - Stats calculadas
+00:16:01 - === FIM STATS (SUCESSO) ===
+01:16:32 - === INÍCIO STATS ===
+01:16:32 - Funcionário acessando - {"empresa_id":6}
+00:16:32 - User ID validado - {"user_id":6,"type":"funcionario"}
+00:16:32 - Calculando vendas mês atual
+00:16:32 - Total vendas - {"total":1}
+00:16:32 - Calculando vendas mês anterior
+00:16:32 - Trend vendas - {"trend":0}
+00:16:32 - Calculando receita total
+00:16:32 - Receita total - {"receita":"500.00"}
+00:16:32 - Trend receita - {"trend":-83.3}
+00:16:32 - Calculando pendentes
+00:16:32 - Pendentes - {"count":0,"valor":null}
+00:16:32 - Taxa conversão - {"taxa":100}
+00:16:32 - Stats calculadas
+00:16:32 - === FIM STATS (SUCESSO) ===
+01:21:00 - === INÍCIO STATS ===
+01:21:00 - Funcionário acessando - {"empresa_id":6}
+00:21:00 - User ID validado - {"user_id":6,"type":"funcionario"}
+00:21:00 - Calculando vendas mês atual
+00:21:00 - Total vendas - {"total":1}
+00:21:00 - Calculando vendas mês anterior
+00:21:00 - Trend vendas - {"trend":0}
+00:21:00 - Calculando receita total
+00:21:00 - Receita total - {"receita":"500.00"}
+00:21:00 - Trend receita - {"trend":-83.3}
+00:21:00 - Calculando pendentes
+00:21:00 - Pendentes - {"count":0,"valor":null}
+00:21:00 - Taxa conversão - {"taxa":100}
+00:21:00 - Stats calculadas
+00:21:00 - === FIM STATS (SUCESSO) ===
+01:37:39 - === INÍCIO STATS ===
+01:37:40 - Funcionário acessando - {"empresa_id":6}
+00:37:40 - User ID validado - {"user_id":6,"type":"funcionario"}
+00:37:40 - Calculando vendas mês atual
+00:37:40 - Total vendas - {"total":1}
+00:37:40 - Calculando vendas mês anterior
+00:37:40 - Trend vendas - {"trend":0}
+00:37:40 - Calculando receita total
+00:37:40 - Receita total - {"receita":"500.00"}
+00:37:40 - Trend receita - {"trend":-83.3}
+00:37:40 - Calculando pendentes
+00:37:40 - Pendentes - {"count":0,"valor":null}
+00:37:40 - Taxa conversão - {"taxa":100}
+00:37:40 - Stats calculadas
+00:37:40 - === FIM STATS (SUCESSO) ===
+02:19:50 - === INÍCIO STATS ===
+02:19:50 - Funcionário acessando - {"empresa_id":6}
+01:19:50 - User ID validado - {"user_id":6,"type":"funcionario"}
+01:19:50 - Calculando vendas mês atual
+01:19:50 - Total vendas - {"total":1}
+01:19:50 - Calculando vendas mês anterior
+01:19:50 - Trend vendas - {"trend":0}
+01:19:50 - Calculando receita total
+01:19:50 - Receita total - {"receita":"500.00"}
+01:19:50 - Trend receita - {"trend":-83.3}
+01:19:50 - Calculando pendentes
+01:19:50 - Pendentes - {"count":0,"valor":null}
+01:19:50 - Taxa conversão - {"taxa":100}
+01:19:50 - Stats calculadas
+01:19:50 - === FIM STATS (SUCESSO) ===
+02:57:22 - === INÍCIO STATS ===
+02:57:22 - Funcionário acessando - {"empresa_id":6}
+01:57:22 - User ID validado - {"user_id":6,"type":"funcionario"}
+01:57:22 - Calculando vendas mês atual
+01:57:22 - Total vendas - {"total":1}
+01:57:22 - Calculando vendas mês anterior
+01:57:22 - Trend vendas - {"trend":0}
+01:57:22 - Calculando receita total
+01:57:22 - Receita total - {"receita":"500.00"}
+01:57:22 - Trend receita - {"trend":-83.3}
+01:57:22 - Calculando pendentes
+01:57:22 - Pendentes - {"count":0,"valor":null}
+01:57:22 - Taxa conversão - {"taxa":100}
+01:57:22 - Stats calculadas
+01:57:22 - === FIM STATS (SUCESSO) ===
+07:37:05 - === INÍCIO STATS ===
+07:37:05 - Funcionário acessando - {"empresa_id":6}
+06:37:05 - User ID validado - {"user_id":6,"type":"funcionario"}
+06:37:05 - Calculando vendas mês atual
+06:37:05 - Total vendas - {"total":1}
+06:37:05 - Calculando vendas mês anterior
+06:37:05 - Trend vendas - {"trend":0}
+06:37:05 - Calculando receita total
+06:37:05 - Receita total - {"receita":"500.00"}
+06:37:05 - Trend receita - {"trend":-83.3}
+06:37:05 - Calculando pendentes
+06:37:05 - Pendentes - {"count":0,"valor":null}
+06:37:05 - Taxa conversão - {"taxa":100}
+06:37:05 - Stats calculadas
+06:37:05 - === FIM STATS (SUCESSO) ===
+07:54:25 - === INÍCIO STATS ===
+07:54:25 - Funcionário acessando - {"empresa_id":6}
+06:54:25 - User ID validado - {"user_id":6,"type":"funcionario"}
+06:54:25 - Calculando vendas mês atual
+06:54:25 - Total vendas - {"total":1}
+06:54:25 - Calculando vendas mês anterior
+06:54:25 - Trend vendas - {"trend":0}
+06:54:25 - Calculando receita total
+06:54:25 - Receita total - {"receita":"500.00"}
+06:54:25 - Trend receita - {"trend":-83.3}
+06:54:25 - Calculando pendentes
+06:54:25 - Pendentes - {"count":0,"valor":null}
+06:54:25 - Taxa conversão - {"taxa":100}
+06:54:25 - Stats calculadas
+06:54:25 - === FIM STATS (SUCESSO) ===
+08:01:42 - === INÍCIO STATS ===
+08:01:42 - Gestor acessando - {"user_id":6}
+07:01:42 - User ID validado - {"user_id":6,"type":"gestor"}
+07:01:42 - Calculando vendas mês atual
+07:01:42 - Total vendas - {"total":1}
+07:01:42 - Calculando vendas mês anterior
+07:01:42 - Trend vendas - {"trend":0}
+07:01:42 - Calculando receita total
+07:01:42 - Receita total - {"receita":"500.00"}
+07:01:42 - Trend receita - {"trend":-83.3}
+07:01:42 - Calculando pendentes
+07:01:42 - Pendentes - {"count":0,"valor":null}
+07:01:42 - Taxa conversão - {"taxa":100}
+07:01:42 - Stats calculadas
+07:01:42 - === FIM STATS (SUCESSO) ===

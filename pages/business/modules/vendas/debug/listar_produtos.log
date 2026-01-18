@@ -53,3 +53,99 @@
 05:16:16 - Buscando produtos da empresa
 05:16:16 - Produtos encontrados - {"count":0}
 05:16:16 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+14:36:25 - === INÍCIO LISTAR PRODUTOS ===
+14:36:25 - ERRO: Não autenticado
+14:40:26 - === INÍCIO LISTAR PRODUTOS ===
+14:40:26 - ERRO: Não autenticado
+15:02:35 - === INÍCIO LISTAR PRODUTOS ===
+15:02:35 - ERRO: Não autenticado
+15:06:52 - === INÍCIO LISTAR PRODUTOS ===
+14:06:52 - User ID - {"user_id":6,"user_type":"funcionario"}
+14:06:52 - Buscando produtos da empresa
+14:06:52 - Produtos encontrados - {"count":1}
+14:06:52 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+15:07:28 - === INÍCIO LISTAR PRODUTOS ===
+14:07:28 - User ID - {"user_id":6,"user_type":"funcionario"}
+14:07:28 - Buscando produtos da empresa
+14:07:28 - Produtos encontrados - {"count":1}
+14:07:28 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+15:07:55 - === INÍCIO LISTAR PRODUTOS ===
+14:07:55 - User ID - {"user_id":6,"user_type":"gestor"}
+14:07:55 - Buscando produtos da empresa
+14:07:55 - Produtos encontrados - {"count":1}
+14:07:55 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+20:37:39 - === INÍCIO LISTAR PRODUTOS ===
+19:37:39 - User ID - {"user_id":6,"user_type":"funcionario"}
+19:37:39 - Buscando produtos da empresa
+19:37:39 - Produtos encontrados - {"count":1}
+19:37:39 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+20:37:47 - === INÍCIO LISTAR PRODUTOS ===
+19:37:47 - User ID - {"user_id":6,"user_type":"funcionario"}
+19:37:47 - Buscando produtos da empresa
+19:37:47 - Produtos encontrados - {"count":1}
+19:37:47 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+20:39:01 - === INÍCIO LISTAR PRODUTOS ===
+19:39:01 - User ID - {"user_id":6,"user_type":"funcionario"}
+19:39:01 - Buscando produtos da empresa
+19:39:01 - Produtos encontrados - {"count":1}
+19:39:01 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+20:39:20 - === INÍCIO LISTAR PRODUTOS ===
+19:39:20 - User ID - {"user_id":6,"user_type":"funcionario"}
+19:39:20 - Buscando produtos da empresa
+19:39:20 - Produtos encontrados - {"count":1}
+19:39:20 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+20:53:01 - === INÍCIO LISTAR PRODUTOS ===
+19:53:01 - User ID - {"user_id":6,"user_type":"funcionario"}
+19:53:01 - Buscando produtos da empresa
+19:53:01 - Produtos encontrados - {"count":1}
+19:53:01 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+20:58:40 - === INÍCIO LISTAR PRODUTOS ===
+19:58:40 - User ID - {"user_id":6,"user_type":"funcionario"}
+19:58:40 - Buscando produtos da empresa
+19:58:40 - Produtos encontrados - {"count":1}
+19:58:40 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+01:16:01 - === INÍCIO LISTAR PRODUTOS ===
+00:16:01 - User ID - {"user_id":6,"user_type":"funcionario"}
+00:16:01 - Buscando produtos da empresa
+00:16:01 - Produtos encontrados - {"count":0}
+00:16:01 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+01:16:32 - === INÍCIO LISTAR PRODUTOS ===
+00:16:32 - User ID - {"user_id":6,"user_type":"funcionario"}
+00:16:32 - Buscando produtos da empresa
+00:16:32 - Produtos encontrados - {"count":0}
+00:16:32 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+01:21:00 - === INÍCIO LISTAR PRODUTOS ===
+00:21:00 - User ID - {"user_id":6,"user_type":"funcionario"}
+00:21:00 - Buscando produtos da empresa
+00:21:00 - Produtos encontrados - {"count":0}
+00:21:00 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+01:37:39 - === INÍCIO LISTAR PRODUTOS ===
+00:37:40 - User ID - {"user_id":6,"user_type":"funcionario"}
+00:37:40 - Buscando produtos da empresa
+00:37:40 - Produtos encontrados - {"count":0}
+00:37:40 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+02:19:50 - === INÍCIO LISTAR PRODUTOS ===
+01:19:50 - User ID - {"user_id":6,"user_type":"funcionario"}
+01:19:50 - Buscando produtos da empresa
+01:19:50 - Produtos encontrados - {"count":1}
+01:19:50 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+02:57:22 - === INÍCIO LISTAR PRODUTOS ===
+01:57:22 - User ID - {"user_id":6,"user_type":"funcionario"}
+01:57:22 - Buscando produtos da empresa
+01:57:22 - Produtos encontrados - {"count":2}
+01:57:22 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+07:37:05 - === INÍCIO LISTAR PRODUTOS ===
+06:37:05 - User ID - {"user_id":6,"user_type":"funcionario"}
+06:37:05 - Buscando produtos da empresa
+06:37:05 - Produtos encontrados - {"count":2}
+06:37:05 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+07:54:25 - === INÍCIO LISTAR PRODUTOS ===
+06:54:25 - User ID - {"user_id":6,"user_type":"funcionario"}
+06:54:25 - Buscando produtos da empresa
+06:54:25 - Produtos encontrados - {"count":2}
+06:54:25 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+08:01:42 - === INÍCIO LISTAR PRODUTOS ===
+07:01:42 - User ID - {"user_id":6,"user_type":"gestor"}
+07:01:42 - Buscando produtos da empresa
+07:01:42 - Produtos encontrados - {"count":2}
+07:01:42 - === FIM LISTAR PRODUTOS (SUCESSO) ===
