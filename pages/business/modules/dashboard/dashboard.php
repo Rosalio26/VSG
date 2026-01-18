@@ -4,6 +4,7 @@
  * VISIONGREEN - MÓDULO DASHBOARD (EMPRESA)
  * Arquivo: company/modules/dashboard/dashboard.php
  * Descrição: Dashboard principal com estatísticas e informações da empresa
+ * ATUALIZADO: Compatível com novo schema SQL (orders, order_items, payments)
  * ================================================================================
  */
 
@@ -63,149 +64,270 @@ $stmt->close();
 $stats = [
     'vendas_mes' => 0,
     'vendas_total' => 0,
-    'transacoes_mes' => 0,
-    'transacoes_total' => 0,
+    'pedidos_mes' => 0,
+    'pedidos_total' => 0,
     'produtos_total' => 0,
     'produtos_ativos' => 0,
+    'produtos_estoque_baixo' => 0,
     'mensagens_nao_lidas' => 0,
     'mensagens_total' => 0,
+    'clientes_total' => 0,
     'dias_ativo' => 0,
     'taxa_conversao' => 0,
-    'ticket_medio' => 0
+    'ticket_medio' => 0,
+    'pedidos_pendentes' => 0,
+    'pedidos_entregues' => 0
 ];
 
-// Vendas este mês
-$result = $mysqli->query("
-    SELECT COALESCE(SUM(amount), 0) as total 
-    FROM transactions 
-    WHERE user_id = '$userId' 
-    AND MONTH(transaction_date) = MONTH(NOW()) 
-    AND YEAR(transaction_date) = YEAR(NOW()) 
-    AND status = 'completed'
+// Vendas este mês (apenas pedidos pagos)
+$stmt = $mysqli->prepare("
+    SELECT COALESCE(SUM(total), 0) as total 
+    FROM orders 
+    WHERE company_id = ? 
+    AND MONTH(order_date) = MONTH(NOW()) 
+    AND YEAR(order_date) = YEAR(NOW()) 
+    AND payment_status = 'pago'
+    AND deleted_at IS NULL
 ");
-if ($result) {
-    $stats['vendas_mes'] = (float)$result->fetch_assoc()['total'];
-    $result->close();
-}
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$stats['vendas_mes'] = (float)$result['total'];
+$stmt->close();
 
 // Vendas totais
-$result = $mysqli->query("
-    SELECT COALESCE(SUM(amount), 0) as total 
-    FROM transactions 
-    WHERE user_id = '$userId' 
-    AND status = 'completed'
+$stmt = $mysqli->prepare("
+    SELECT COALESCE(SUM(total), 0) as total 
+    FROM orders 
+    WHERE company_id = ? 
+    AND payment_status = 'pago'
+    AND deleted_at IS NULL
 ");
-if ($result) {
-    $stats['vendas_total'] = (float)$result->fetch_assoc()['total'];
-    $result->close();
-}
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$stats['vendas_total'] = (float)$result['total'];
+$stmt->close();
 
-// Transações este mês
-$result = $mysqli->query("
+// Pedidos este mês
+$stmt = $mysqli->prepare("
     SELECT COUNT(*) as total 
-    FROM transactions 
-    WHERE user_id = '$userId' 
-    AND MONTH(transaction_date) = MONTH(NOW()) 
-    AND YEAR(transaction_date) = YEAR(NOW())
+    FROM orders 
+    WHERE company_id = ? 
+    AND MONTH(order_date) = MONTH(NOW()) 
+    AND YEAR(order_date) = YEAR(NOW())
+    AND deleted_at IS NULL
 ");
-if ($result) {
-    $stats['transacoes_mes'] = (int)$result->fetch_assoc()['total'];
-    $result->close();
-}
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$stats['pedidos_mes'] = (int)$result['total'];
+$stmt->close();
 
-// Total de transações
-$result = $mysqli->query("
+// Total de pedidos
+$stmt = $mysqli->prepare("
     SELECT COUNT(*) as total 
-    FROM transactions 
-    WHERE user_id = '$userId' 
-    AND status = 'completed'
+    FROM orders 
+    WHERE company_id = ? 
+    AND deleted_at IS NULL
 ");
-if ($result) {
-    $stats['transacoes_total'] = (int)$result->fetch_assoc()['total'];
-    $result->close();
-}
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$stats['pedidos_total'] = (int)$result['total'];
+$stmt->close();
+
+// Pedidos pendentes
+$stmt = $mysqli->prepare("
+    SELECT COUNT(*) as total 
+    FROM orders 
+    WHERE company_id = ? 
+    AND status = 'pendente'
+    AND deleted_at IS NULL
+");
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$stats['pedidos_pendentes'] = (int)$result['total'];
+$stmt->close();
+
+// Pedidos entregues
+$stmt = $mysqli->prepare("
+    SELECT COUNT(*) as total 
+    FROM orders 
+    WHERE company_id = ? 
+    AND status = 'entregue'
+    AND deleted_at IS NULL
+");
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$stats['pedidos_entregues'] = (int)$result['total'];
+$stmt->close();
 
 // Total de produtos
-$result = $mysqli->query("
+$stmt = $mysqli->prepare("
     SELECT COUNT(*) as total 
     FROM products 
-    WHERE user_id = '$userId'
+    WHERE user_id = ?
+    AND deleted_at IS NULL
 ");
-if ($result) {
-    $stats['produtos_total'] = (int)$result->fetch_assoc()['total'];
-    $result->close();
-}
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$stats['produtos_total'] = (int)$result['total'];
+$stmt->close();
 
 // Produtos ativos
-$result = $mysqli->query("
+$stmt = $mysqli->prepare("
     SELECT COUNT(*) as total 
     FROM products 
-    WHERE user_id = '$userId' 
-    AND is_active = 1
+    WHERE user_id = ? 
+    AND status = 'ativo'
+    AND deleted_at IS NULL
 ");
-if ($result) {
-    $stats['produtos_ativos'] = (int)$result->fetch_assoc()['total'];
-    $result->close();
-}
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$stats['produtos_ativos'] = (int)$result['total'];
+$stmt->close();
+
+// Produtos com estoque baixo
+$stmt = $mysqli->prepare("
+    SELECT COUNT(*) as total 
+    FROM products 
+    WHERE user_id = ? 
+    AND stock <= stock_minimo
+    AND status = 'ativo'
+    AND deleted_at IS NULL
+");
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$stats['produtos_estoque_baixo'] = (int)$result['total'];
+$stmt->close();
 
 // Mensagens não lidas
-$result = $mysqli->query("
+$stmt = $mysqli->prepare("
     SELECT COUNT(*) as total 
     FROM notifications 
-    WHERE receiver_id = '$userId' 
-    AND status = 'unread'
+    WHERE receiver_id = ? 
+    AND status = 'nao_lida'
 ");
-if ($result) {
-    $stats['mensagens_nao_lidas'] = (int)$result->fetch_assoc()['total'];
-    $result->close();
-}
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$stats['mensagens_nao_lidas'] = (int)$result['total'];
+$stmt->close();
 
 // Total de mensagens
-$result = $mysqli->query("
+$stmt = $mysqli->prepare("
     SELECT COUNT(*) as total 
     FROM notifications 
-    WHERE receiver_id = '$userId'
+    WHERE receiver_id = ?
 ");
-if ($result) {
-    $stats['mensagens_total'] = (int)$result->fetch_assoc()['total'];
-    $result->close();
-}
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$stats['mensagens_total'] = (int)$result['total'];
+$stmt->close();
+
+// Total de clientes únicos
+$stmt = $mysqli->prepare("
+    SELECT COUNT(DISTINCT customer_id) as total 
+    FROM orders 
+    WHERE company_id = ?
+    AND deleted_at IS NULL
+");
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$stats['clientes_total'] = (int)$result['total'];
+$stmt->close();
 
 // Dias ativo
-$result = $mysqli->query("
+$stmt = $mysqli->prepare("
     SELECT DATEDIFF(NOW(), created_at) as dias 
     FROM users 
-    WHERE id = '$userId'
+    WHERE id = ?
 ");
-if ($result) {
-    $stats['dias_ativo'] = (int)$result->fetch_assoc()['dias'];
-    $result->close();
-}
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$stats['dias_ativo'] = (int)$result['dias'];
+$stmt->close();
 
 // Calcular taxa de conversão e ticket médio
-$stats['taxa_conversao'] = $stats['transacoes_total'] > 0 ? round(($stats['transacoes_total'] / max($stats['mensagens_total'], 1)) * 100, 1) : 0;
-$stats['ticket_medio'] = $stats['transacoes_total'] > 0 ? round($stats['vendas_total'] / $stats['transacoes_total'], 2) : 0;
+$stats['taxa_conversao'] = $stats['pedidos_total'] > 0 ? round(($stats['pedidos_entregues'] / $stats['pedidos_total']) * 100, 1) : 0;
+$stats['ticket_medio'] = $stats['pedidos_total'] > 0 ? round($stats['vendas_total'] / $stats['pedidos_total'], 2) : 0;
 
-// ==================== BUSCAR TRANSAÇÕES RECENTES ====================
-$recent_transactions = $mysqli->query("
-    SELECT t.*, sp.name as plan_name 
-    FROM transactions t
-    LEFT JOIN subscription_plans sp ON t.plan_id = sp.id
-    WHERE t.user_id = '$userId'
-    ORDER BY t.transaction_date DESC
+// ==================== BUSCAR PEDIDOS RECENTES ====================
+$stmt = $mysqli->prepare("
+    SELECT 
+        o.id,
+        o.order_number,
+        o.order_date,
+        o.total,
+        o.status,
+        o.payment_status,
+        o.payment_method,
+        CONCAT(u.nome, ' ', COALESCE(u.apelido, '')) as customer_name,
+        (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) as items_count
+    FROM orders o
+    INNER JOIN users u ON o.customer_id = u.id
+    WHERE o.company_id = ?
+    AND o.deleted_at IS NULL
+    ORDER BY o.order_date DESC
     LIMIT 5
 ");
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$recent_orders = $stmt->get_result();
+$stmt->close();
 
 // ==================== BUSCAR PRODUTOS MAIS VENDIDOS ====================
-$top_products = $mysqli->query("
-    SELECT p.name, COUNT(pp.id) as vendas, SUM(pp.total_amount) as receita
+$stmt = $mysqli->prepare("
+    SELECT 
+        p.nome as name,
+        COUNT(oi.id) as vendas,
+        SUM(oi.total) as receita,
+        p.stock,
+        p.preco
     FROM products p
-    INNER JOIN product_purchases pp ON p.id = pp.product_id
-    WHERE p.user_id = '$userId' AND pp.status = 'completed'
+    INNER JOIN order_items oi ON p.id = oi.product_id
+    INNER JOIN orders o ON oi.order_id = o.id
+    WHERE p.user_id = ? 
+    AND o.payment_status = 'pago'
+    AND o.deleted_at IS NULL
+    AND p.deleted_at IS NULL
     GROUP BY p.id
     ORDER BY vendas DESC
     LIMIT 5
 ");
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$top_products = $stmt->get_result();
+$stmt->close();
+
+// ==================== BUSCAR PRODUTOS COM ESTOQUE BAIXO ====================
+$stmt = $mysqli->prepare("
+    SELECT 
+        nome,
+        stock,
+        stock_minimo,
+        preco
+    FROM products
+    WHERE user_id = ?
+    AND stock <= stock_minimo
+    AND status = 'ativo'
+    AND deleted_at IS NULL
+    ORDER BY stock ASC
+    LIMIT 5
+");
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$low_stock_products = $stmt->get_result();
+$stmt->close();
 ?>
 
 <style>
@@ -265,6 +387,29 @@ $top_products = $mysqli->query("
 .stat-description {
     font-size: 13px;
     color: var(--text-secondary, #8b949e);
+}
+
+.stat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-top: 8px;
+}
+
+.badge-warning {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.badge-danger {
+    background: rgba(255, 77, 77, 0.1);
+    color: #ff4d4d;
+    border: 1px solid rgba(255, 77, 77, 0.3);
 }
 
 .info-section {
@@ -365,6 +510,37 @@ $top_products = $mysqli->query("
     color: #ff4d4d;
 }
 
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-pendente {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+}
+
+.status-confirmado {
+    background: rgba(77, 163, 255, 0.1);
+    color: #4da3ff;
+}
+
+.status-entregue {
+    background: rgba(0, 255, 136, 0.1);
+    color: #00ff88;
+}
+
+.status-cancelado {
+    background: rgba(255, 77, 77, 0.1);
+    color: #ff4d4d;
+}
+
 .empty-state {
     text-align: center;
     padding: 40px 20px;
@@ -375,6 +551,19 @@ $top_products = $mysqli->query("
     font-size: 48px;
     margin-bottom: 16px;
     opacity: 0.3;
+}
+
+.stock-alert {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(255, 77, 77, 0.1);
+    border: 1px solid rgba(255, 77, 77, 0.3);
+    border-radius: 8px;
+    font-size: 11px;
+    color: #ff4d4d;
+    font-weight: 700;
 }
 
 @media (max-width: 768px) {
@@ -393,19 +582,43 @@ $top_products = $mysqli->query("
             </div>
             <span class="stat-label">Vendas Totais</span>
         </div>
-        <div class="stat-value">MT <?= number_format($stats['vendas_total'], 2, ',', '.') ?></div>
-        <div class="stat-description"><?= $stats['transacoes_total'] ?> transações concluídas</div>
+        <div class="stat-value"><?= number_format($stats['vendas_total'], 2, ',', '.') ?> MT</div>
+        <div class="stat-description"><?= $stats['pedidos_total'] ?> pedidos realizados</div>
+        <div class="stat-description" style="margin-top: 4px;">
+            <i class="fa-solid fa-calendar-day"></i> Este mês: <?= number_format($stats['vendas_mes'], 2, ',', '.') ?> MT
+        </div>
     </div>
 
     <div class="stat-card">
         <div class="stat-icon-wrapper">
             <div class="stat-icon" style="background: rgba(77, 163, 255, 0.1);">
-                <i class="fa-solid fa-box" style="color: var(--accent-blue, #4da3ff);"></i>
+                <i class="fa-solid fa-shopping-bag" style="color: var(--accent-blue, #4da3ff);"></i>
+            </div>
+            <span class="stat-label">Pedidos</span>
+        </div>
+        <div class="stat-value"><?= $stats['pedidos_total'] ?></div>
+        <div class="stat-description"><?= $stats['pedidos_entregues'] ?> entregues | <?= $stats['pedidos_mes'] ?> este mês</div>
+        <?php if($stats['pedidos_pendentes'] > 0): ?>
+            <span class="stat-badge badge-warning">
+                <i class="fa-solid fa-clock"></i> <?= $stats['pedidos_pendentes'] ?> pendentes
+            </span>
+        <?php endif; ?>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon-wrapper">
+            <div class="stat-icon" style="background: rgba(138, 43, 226, 0.1);">
+                <i class="fa-solid fa-box" style="color: #8a2be2;"></i>
             </div>
             <span class="stat-label">Produtos</span>
         </div>
         <div class="stat-value"><?= $stats['produtos_total'] ?></div>
         <div class="stat-description"><?= $stats['produtos_ativos'] ?> produtos ativos</div>
+        <?php if($stats['produtos_estoque_baixo'] > 0): ?>
+            <span class="stat-badge badge-danger">
+                <i class="fa-solid fa-triangle-exclamation"></i> <?= $stats['produtos_estoque_baixo'] ?> estoque baixo
+            </span>
+        <?php endif; ?>
     </div>
 
     <div class="stat-card">
@@ -413,21 +626,13 @@ $top_products = $mysqli->query("
             <div class="stat-icon" style="background: rgba(255, 193, 7, 0.1);">
                 <i class="fa-solid fa-chart-line" style="color: #ffc107;"></i>
             </div>
-            <span class="stat-label">Taxa Conversão</span>
+            <span class="stat-label">Performance</span>
         </div>
         <div class="stat-value"><?= $stats['taxa_conversao'] ?>%</div>
-        <div class="stat-description">Ticket médio: MT <?= number_format($stats['ticket_medio'], 2, ',', '.') ?></div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-icon-wrapper">
-            <div class="stat-icon" style="background: rgba(255, 77, 77, 0.1);">
-                <i class="fa-solid fa-bell" style="color: <?= $stats['mensagens_nao_lidas'] > 0 ? '#ff4d4d' : '#ffc107' ?>;"></i>
-            </div>
-            <span class="stat-label">Mensagens</span>
+        <div class="stat-description">Taxa de entrega</div>
+        <div class="stat-description" style="margin-top: 4px;">
+            <i class="fa-solid fa-ticket"></i> Ticket médio: <?= number_format($stats['ticket_medio'], 2, ',', '.') ?> MT
         </div>
-        <div class="stat-value"><?= $stats['mensagens_nao_lidas'] ?></div>
-        <div class="stat-description"><?= $stats['mensagens_total'] ?> mensagens totais</div>
     </div>
 </div>
 
@@ -454,39 +659,58 @@ $top_products = $mysqli->query("
             <p class="info-label">Dias Ativo</p>
             <code class="info-value" style="color: #ffc107;"><?= $stats['dias_ativo'] ?> dias</code>
         </div>
+        <div class="info-item" style="border-left-color: #8a2be2;">
+            <p class="info-label">Total de Clientes</p>
+            <code class="info-value" style="color: #8a2be2;"><?= $stats['clientes_total'] ?></code>
+        </div>
+        <div class="info-item" style="border-left-color: #ff4d4d;">
+            <p class="info-label">Mensagens Não Lidas</p>
+            <code class="info-value" style="color: #ff4d4d;"><?= $stats['mensagens_nao_lidas'] ?> / <?= $stats['mensagens_total'] ?></code>
+        </div>
     </div>
 </div>
 
 <!-- Grid de Atividades Recentes -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
-    <!-- Transações Recentes -->
+    <!-- Pedidos Recentes -->
     <div class="recent-activity">
         <h3 class="section-header">
             <i class="fa-solid fa-clock-rotate-left" style="color: var(--accent-green, #00ff88);"></i>
-            Transações Recentes
+            Pedidos Recentes
         </h3>
-        <?php if ($recent_transactions && $recent_transactions->num_rows > 0): ?>
-            <?php while ($trans = $recent_transactions->fetch_assoc()): ?>
+        <?php if ($recent_orders && $recent_orders->num_rows > 0): ?>
+            <?php while ($order = $recent_orders->fetch_assoc()): ?>
                 <div class="activity-item">
                     <div class="activity-info">
-                        <h4><?= htmlspecialchars($trans['plan_name'] ?? $trans['description'] ?? 'Transação') ?></h4>
+                        <h4>
+                            Pedido #<?= htmlspecialchars($order['order_number']) ?>
+                            <span class="status-badge status-<?= $order['status'] ?>">
+                                <?= ucfirst($order['status']) ?>
+                            </span>
+                        </h4>
                         <p>
-                            <i class="fa-solid fa-calendar"></i>
-                            <?= date('d/m/Y H:i', strtotime($trans['transaction_date'])) ?>
-                            <?php if ($trans['invoice_number']): ?>
-                                | Fatura: <?= htmlspecialchars($trans['invoice_number']) ?>
+                            <i class="fa-solid fa-user"></i> <?= htmlspecialchars($order['customer_name']) ?>
+                            | <i class="fa-solid fa-box"></i> <?= $order['items_count'] ?> itens
+                            | <i class="fa-solid fa-calendar"></i> <?= date('d/m/Y H:i', strtotime($order['order_date'])) ?>
+                        </p>
+                        <p style="margin-top: 4px;">
+                            <i class="fa-solid fa-credit-card"></i> <?= ucfirst($order['payment_method']) ?>
+                            <?php if($order['payment_status'] === 'pago'): ?>
+                                <span style="color: var(--accent-green, #00ff88);">✓ Pago</span>
+                            <?php else: ?>
+                                <span style="color: #ffc107;">⏳ <?= ucfirst($order['payment_status']) ?></span>
                             <?php endif; ?>
                         </p>
                     </div>
-                    <div class="activity-amount <?= $trans['status'] === 'completed' ? 'amount-positive' : ($trans['status'] === 'pending' ? 'amount-pending' : 'amount-failed') ?>">
-                        MT <?= number_format($trans['amount'], 2, ',', '.') ?>
+                    <div class="activity-amount <?= $order['payment_status'] === 'pago' ? 'amount-positive' : 'amount-pending' ?>">
+                        <?= number_format($order['total'], 2, ',', '.') ?> MT
                     </div>
                 </div>
             <?php endwhile; ?>
         <?php else: ?>
             <div class="empty-state">
-                <i class="fa-solid fa-receipt"></i>
-                <p>Nenhuma transação registrada</p>
+                <i class="fa-solid fa-shopping-bag"></i>
+                <p>Nenhum pedido registrado</p>
             </div>
         <?php endif; ?>
     </div>
@@ -513,12 +737,13 @@ $top_products = $mysqli->query("
                             <?= htmlspecialchars($prod['name']) ?>
                         </h4>
                         <p>
-                            <i class="fa-solid fa-shopping-cart"></i>
-                            <?= $prod['vendas'] ?> vendas
+                            <i class="fa-solid fa-shopping-cart"></i> <?= $prod['vendas'] ?> vendas
+                            | <i class="fa-solid fa-box-open"></i> Estoque: <?= $prod['stock'] ?>
+                            | <i class="fa-solid fa-tag"></i> <?= number_format($prod['preco'], 2, ',', '.') ?> MT
                         </p>
                     </div>
                     <div class="activity-amount amount-positive">
-                        MT <?= number_format($prod['receita'], 2, ',', '.') ?>
+                        <?= number_format($prod['receita'], 2, ',', '.') ?> MT
                     </div>
                 </div>
                 <?php $rank++; ?>
@@ -531,6 +756,32 @@ $top_products = $mysqli->query("
         <?php endif; ?>
     </div>
 </div>
+
+<!-- Alerta de Estoque Baixo -->
+<?php if ($low_stock_products && $low_stock_products->num_rows > 0): ?>
+<div class="recent-activity" style="margin-top: 20px; border: 1px solid rgba(255, 77, 77, 0.3);">
+    <h3 class="section-header">
+        <i class="fa-solid fa-triangle-exclamation" style="color: #ff4d4d;"></i>
+        Alerta: Produtos com Estoque Baixo
+    </h3>
+    <?php while ($prod = $low_stock_products->fetch_assoc()): ?>
+        <div class="activity-item">
+            <div class="activity-info">
+                <h4><?= htmlspecialchars($prod['nome']) ?></h4>
+                <p>
+                    <span class="stock-alert">
+                        <i class="fa-solid fa-exclamation-circle"></i>
+                        Estoque: <?= $prod['stock'] ?> / Mínimo: <?= $prod['stock_minimo'] ?>
+                    </span>
+                </p>
+            </div>
+            <div class="activity-amount" style="color: #ffc107;">
+                <?= number_format($prod['preco'], 2, ',', '.') ?> MT
+            </div>
+        </div>
+    <?php endwhile; ?>
+</div>
+<?php endif; ?>
 
 <script>
 console.log('✅ Dashboard Module carregado');

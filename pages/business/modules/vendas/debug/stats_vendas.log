@@ -428,3 +428,9 @@
 07:01:42 - Taxa conversão - {"taxa":100}
 07:01:42 - Stats calculadas
 07:01:42 - === FIM STATS (SUCESSO) ===
+18:08:44 - === INÍCIO STATS ===
+18:08:44 - Gestor acessando - {"user_id":2}
+17:08:44 - User ID validado - {"user_id":2,"type":"gestor"}
+17:08:44 - Calculando vendas mês atual
+17:08:44 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":71}
+17:08:44 - === FIM STATS (ERRO) ===

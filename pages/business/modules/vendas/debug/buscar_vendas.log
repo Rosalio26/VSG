@@ -269,3 +269,9 @@
 07:01:42 - Executando query
 07:01:42 - Vendas encontradas - {"count":2}
 07:01:42 - === FIM (SUCESSO) ===
+18:08:44 - === INÍCIO ===
+18:08:44 - Gestor acessando - {"user_id":2}
+17:08:44 - Parâmetros - {"user_id":2,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+17:08:44 - Preparando query
+17:08:44 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":130}
+17:08:44 - === FIM (ERRO) ===

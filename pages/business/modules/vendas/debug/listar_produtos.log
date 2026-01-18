@@ -149,3 +149,8 @@
 07:01:42 - Buscando produtos da empresa
 07:01:42 - Produtos encontrados - {"count":2}
 07:01:42 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+18:08:44 - === INÍCIO LISTAR PRODUTOS ===
+17:08:44 - User ID - {"user_id":2,"user_type":"gestor"}
+17:08:44 - Buscando produtos da empresa
+17:08:44 - ERRO - {"message":"Unknown column 'name' in 'field list'","line":66}
+17:08:44 - === FIM LISTAR PRODUTOS (ERRO) ===

@@ -19,3 +19,17 @@
 13:24:02 - Preparando statement...
 13:24:02 - Executando query...
 13:24:02 - Produto salvo! ID: 2
+19:17:05 - === INÍCIO SALVAMENTO ===
+18:17:05 - ERRO: O nome do produto e o preço são obrigatórios.
+19:17:29 - === INÍCIO SALVAMENTO ===
+18:17:29 - ERRO: O nome do produto e o preço são obrigatórios.
+19:18:03 - === INÍCIO SALVAMENTO ===
+18:18:03 - ERRO: O nome do produto e o preço são obrigatórios.
+19:19:38 - === INÍCIO SALVAMENTO ===
+18:19:39 - Sucesso! ID: 1
+19:45:37 - === INÍCIO SALVAMENTO ===
+18:45:37 - Sucesso! Produto ID: 2
+19:46:32 - === INÍCIO SALVAMENTO ===
+18:46:32 - Sucesso! Produto ID: 3
+19:48:21 - === INÍCIO SALVAMENTO ===
+18:48:21 - Sucesso! Produto ID: 4
