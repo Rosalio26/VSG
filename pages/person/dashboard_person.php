@@ -58,7 +58,6 @@ if ($user['status'] === 'blocked') {
 $displayName = $user['apelido'] ?: $user['nome'];
 $displayAvatar = "https://ui-avatars.com/api/?name=" . urlencode($displayName) . "&background=00ff88&color=000&bold=true";
 
-// Categorias conforme nova lógica
 $categoryLabels = [
     'reciclavel' => ['icon' => '♻️', 'label' => 'Reciclável'],
     'sustentavel' => ['icon' => '🌿', 'label' => 'Sustentável'],
@@ -68,7 +67,6 @@ $categoryLabels = [
     'outro' => ['icon' => '📦', 'label' => 'Outros']
 ];
 
-// Faixas de preço
 $priceRanges = [
     ['min' => 0, 'max' => 1000, 'label' => 'Até 1.000 MZN'],
     ['min' => 1000, 'max' => 5000, 'label' => '1.000 - 5.000 MZN'],
@@ -76,7 +74,6 @@ $priceRanges = [
     ['min' => 10000, 'max' => 999999, 'label' => 'Acima de 10.000 MZN']
 ];
 
-// Estatísticas
 $stats = [
     'mensagens_nao_lidas' => 0,
     'pedidos_em_andamento' => 0,
@@ -101,11 +98,6 @@ if ($result) {
     $result->close();
 }
 
-// ============================================
-// DADOS PARA MEUS PEDIDOS - CARREGADOS AQUI
-// ============================================
-
-// Buscar todos os pedidos do cliente
 $stmt = $mysqli->prepare("
     SELECT 
         o.id,
@@ -134,7 +126,6 @@ $stmt->execute();
 $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-// Status mapping para pedidos
 $statusMap = [
     'pendente' => ['icon' => '⏳', 'label' => 'Pendente', 'color' => 'warning'],
     'confirmado' => ['icon' => '✓', 'label' => 'Confirmado', 'color' => 'info'],
@@ -159,17 +150,12 @@ $paymentMethodMap = [
     'manual' => ['icon' => '💵', 'label' => 'Pagamento Manual']
 ];
 
-// Estatísticas de pedidos
 $pedidosStats = [
     'total' => count($orders),
     'pendentes' => count(array_filter($orders, fn($o) => $o['status'] === 'pendente')),
     'em_andamento' => count(array_filter($orders, fn($o) => in_array($o['status'], ['confirmado', 'processando', 'enviado']))),
     'entregues' => count(array_filter($orders, fn($o) => $o['status'] === 'entregue'))
 ];
-
-// ============================================
-// FIM DOS DADOS DE PEDIDOS
-// ============================================
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -216,6 +202,16 @@ $pedidosStats = [
         .no-image-placeholder strong {
             font-size: 13px;
             color: var(--primary);
+        }
+        
+        /* Transição suave para badges */
+        .badge, .mobile-nav-badge, .stat-mini-value {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .badge.hiding, .mobile-nav-badge.hiding {
+            opacity: 0;
+            transform: scale(0.8);
         }
     </style>
 </head>
@@ -278,7 +274,7 @@ $pedidosStats = [
         <div class="sidebar-footer">
             <div class="stats-mini">
                 <div class="stat-mini">
-                    <span class="stat-mini-value"><?= $stats['pedidos_em_andamento'] ?></span>
+                    <span class="stat-mini-value" id="sidebar-pedidos-badge"><?= $stats['pedidos_em_andamento'] ?></span>
                     <span class="stat-mini-label">Pedidos</span>
                 </div>
                 <div class="stat-mini">
@@ -329,18 +325,14 @@ $pedidosStats = [
                 </div>
 
                 <div class="header-actions">
-                    <!-- Botão CARRINHO (produtos adicionados mas não comprados) -->
                     <button class="icon-btn" onclick="navigateTo('carrinho')" title="Carrinho de Compras">
                         <i class="fa-solid fa-shopping-cart"></i>
                         <span class="badge cart-badge" style="display: none;">0</span>
                     </button>
 
-                    <!-- Botão PEDIDOS (compras já finalizadas/em andamento) -->
                     <button class="icon-btn" onclick="navigateTo('meus_pedidos')" title="Meus Pedidos">
                         <i class="fa-solid fa-shopping-bag"></i>
-                        <?php if($stats['pedidos_em_andamento'] > 0): ?>
-                            <span class="badge"><?= $stats['pedidos_em_andamento'] ?></span>
-                        <?php endif; ?>
+                        <span class="badge" id="header-pedidos-badge" style="<?= $stats['pedidos_em_andamento'] > 0 ? '' : 'display: none;' ?>"><?= $stats['pedidos_em_andamento'] ?></span>
                     </button>
 
                     <button class="icon-btn" onclick="navigateTo('notificacoes')" title="Notificações">
@@ -362,7 +354,6 @@ $pedidosStats = [
         </header>
 
         <div class="content-wrapper">
-            <!-- Conteúdo Home (Produtos) -->
             <div id="content-home" class="dynamic-content active">
                 <div id="productsGrid" class="products-grid">
                     <div class="empty-state">
@@ -373,7 +364,6 @@ $pedidosStats = [
                 </div>
             </div>
 
-            <!-- Conteúdo Meus Pedidos -->
             <div id="content-meus_pedidos" class="dynamic-content">
                 <div class="content-loading active">
                     <div class="spinner"></div>
@@ -381,7 +371,6 @@ $pedidosStats = [
                 </div>
             </div>
 
-            <!-- Conteúdo Notificações -->
             <div id="content-notificacoes" class="dynamic-content">
                 <div class="content-loading active">
                     <div class="spinner"></div>
@@ -389,7 +378,6 @@ $pedidosStats = [
                 </div>
             </div>
 
-            <!-- Conteúdo Perfil -->
             <div id="content-perfil" class="dynamic-content">
                 <div class="content-loading active">
                     <div class="spinner"></div>
@@ -397,7 +385,6 @@ $pedidosStats = [
                 </div>
             </div>
 
-            <!-- Conteúdo Configurações -->
             <div id="content-configuracoes" class="dynamic-content">
                 <div class="content-loading active">
                     <div class="spinner"></div>
@@ -405,7 +392,6 @@ $pedidosStats = [
                 </div>
             </div>
 
-            <!-- Conteúdo Carrinho -->
             <div id="content-carrinho" class="dynamic-content">
                 <div class="content-loading active">
                     <div class="spinner"></div>
@@ -415,10 +401,8 @@ $pedidosStats = [
         </div>
     </main>
 
-    <!-- Mobile Overlay -->
     <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileMenu()"></div>
 
-    <!-- Mobile Bottom Navigation -->
     <nav class="mobile-nav">
         <div class="mobile-nav-grid">
             <button class="mobile-nav-item active" onclick="navigateTo('home')" data-page="home">
@@ -429,9 +413,7 @@ $pedidosStats = [
             <button class="mobile-nav-item" onclick="navigateTo('meus_pedidos')" data-page="meus_pedidos">
                 <i class="fa-solid fa-shopping-bag"></i>
                 <span class="mobile-nav-label">Pedidos</span>
-                <?php if($stats['pedidos_em_andamento'] > 0): ?>
-                    <span class="mobile-nav-badge"><?= $stats['pedidos_em_andamento'] ?></span>
-                <?php endif; ?>
+                <span class="mobile-nav-badge" id="mobile-pedidos-badge" style="<?= $stats['pedidos_em_andamento'] > 0 ? '' : 'display: none;' ?>"><?= $stats['pedidos_em_andamento'] ?></span>
             </button>
 
             <button class="mobile-nav-item" onclick="toggleMobileMenu()" data-page="filters">
@@ -462,15 +444,11 @@ $pedidosStats = [
             'publicId' => $user['public_id']
         ], JSON_UNESCAPED_UNICODE) ?>;
 
-
-
-// ✅ ADICIONAR AQUI:
-const ordersData = <?= json_encode($orders, JSON_UNESCAPED_UNICODE) ?>;
-const pedidosStats = <?= json_encode($pedidosStats, JSON_UNESCAPED_UNICODE) ?>;
-const statusMap = <?= json_encode($statusMap, JSON_UNESCAPED_UNICODE) ?>;
-const paymentStatusMap = <?= json_encode($paymentStatusMap, JSON_UNESCAPED_UNICODE) ?>;
-const paymentMethodMap = <?= json_encode($paymentMethodMap, JSON_UNESCAPED_UNICODE) ?>;
-
+        const ordersData = <?= json_encode($orders, JSON_UNESCAPED_UNICODE) ?>;
+        const pedidosStats = <?= json_encode($pedidosStats, JSON_UNESCAPED_UNICODE) ?>;
+        const statusMap = <?= json_encode($statusMap, JSON_UNESCAPED_UNICODE) ?>;
+        const paymentStatusMap = <?= json_encode($paymentStatusMap, JSON_UNESCAPED_UNICODE) ?>;
+        const paymentMethodMap = <?= json_encode($paymentMethodMap, JSON_UNESCAPED_UNICODE) ?>;
 
         let filters = {
             search: '',
@@ -482,13 +460,11 @@ const paymentMethodMap = <?= json_encode($paymentMethodMap, JSON_UNESCAPED_UNICO
         let currentPage = 'home';
         const loadedPages = new Set(['home']);
 
-        // Toggle Sidebar
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('collapsed');
             localStorage.setItem('sidebarCollapsed', document.getElementById('sidebar').classList.contains('collapsed'));
         }
 
-        // Mobile Menu
         function toggleMobileMenu() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('mobileOverlay');
@@ -501,7 +477,49 @@ const paymentMethodMap = <?= json_encode($paymentMethodMap, JSON_UNESCAPED_UNICO
             document.getElementById('mobileOverlay').classList.remove('active');
         }
 
-        // Sistema de Navegação Dinâmica
+        // Função para limpar badges de pedidos com animação suave
+        async function clearOrdersBadge() {
+            const headerBadge = document.getElementById('header-pedidos-badge');
+            const mobileBadge = document.getElementById('mobile-pedidos-badge');
+            const sidebarBadge = document.getElementById('sidebar-pedidos-badge');
+            
+            // Animar saída dos badges
+            [headerBadge, mobileBadge].forEach(badge => {
+                if (badge) {
+                    badge.classList.add('hiding');
+                }
+            });
+            
+            // Aguardar animação e então esconder
+            setTimeout(() => {
+                if (headerBadge) {
+                    headerBadge.style.display = 'none';
+                    headerBadge.textContent = '0';
+                    headerBadge.classList.remove('hiding');
+                }
+                if (mobileBadge) {
+                    mobileBadge.style.display = 'none';
+                    mobileBadge.textContent = '0';
+                    mobileBadge.classList.remove('hiding');
+                }
+                if (sidebarBadge) {
+                    sidebarBadge.textContent = '0';
+                }
+            }, 300);
+            
+            // Notificar o servidor que os pedidos foram visualizados
+            try {
+                await fetch('actions/mark_orders_viewed.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                localStorage.setItem('pedidosVisualizados', Date.now().toString());
+                console.log('✅ Badges de pedidos limpos');
+            } catch (error) {
+                console.log('⚠️ Aviso: não foi possível marcar pedidos como visualizados');
+            }
+        }
+
         async function navigateTo(page) {
             if (currentPage === page && page === 'home') return;
             closeMobileMenu();
@@ -521,6 +539,11 @@ const paymentMethodMap = <?= json_encode($paymentMethodMap, JSON_UNESCAPED_UNICO
             contentDiv.classList.add('active');
             currentPage = page;
             window.history.pushState({ page }, '', `?page=${page}`);
+
+            // Limpar badge ao abrir meus pedidos
+            if (page === 'meus_pedidos') {
+                await clearOrdersBadge();
+            }
 
             if (!loadedPages.has(page)) {
                 await loadPageContent(page);
@@ -581,7 +604,6 @@ const paymentMethodMap = <?= json_encode($paymentMethodMap, JSON_UNESCAPED_UNICO
             return text.substring(0, maxLength) + '...';
         }
 
-        // Carregar Produtos
         async function loadProducts() {
             const grid = document.getElementById('productsGrid');
             const loader = document.getElementById('loadingBar');
@@ -617,7 +639,6 @@ const paymentMethodMap = <?= json_encode($paymentMethodMap, JSON_UNESCAPED_UNICO
 
                         return `
                             <div class="product-card ${isNew ? 'new' : ''}" style="animation-delay: ${index * 0.05}s">
-                                <!-- ADICIONAR AQUI -->
                                 <div class="product-company">
                                     <i class="fa-solid fa-store"></i>
                                     <span>DISTRIBUIDA POR</span>
@@ -646,7 +667,6 @@ const paymentMethodMap = <?= json_encode($paymentMethodMap, JSON_UNESCAPED_UNICO
                                         <div class="product-category">${getCategoryIcon(p.categoria)} ${getCategoryName(p.categoria)}</div>
                                         <div class="product-name" title="${p.nome}">${p.nome}</div>
                                         
-                                        <!-- ADICIONAR AQUI -->
                                         <div class="product-description">${truncateText(p.descricao, 80)}</div>
                                         
                                         <div class="product-footer">
@@ -714,24 +734,19 @@ const paymentMethodMap = <?= json_encode($paymentMethodMap, JSON_UNESCAPED_UNICO
                 loader.classList.remove('active');
             }
         }
+        
         function handleImageError(img, companyName) {
             const container = img.parentElement;
-            
-            // Criar o elemento que substitui a imagem com erro
             const placeholder = document.createElement('div');
             placeholder.className = 'no-image-placeholder';
             placeholder.innerHTML = `
                 <span>Distribuído por:</span>
                 <strong>${companyName}</strong>
             `;
-            
-            // Remove a tag img quebrada
             img.remove();
-            
-            // Adiciona o texto no início do container (mantendo badges e botões intactos)
             container.prepend(placeholder);
         }
-        // Funções Auxiliares
+        
         function getCategoryIcon(cat) {
             const icons = {
                 'reciclavel': '♻️', 'sustentavel': '🌿', 'servico': '🛠️',
@@ -770,7 +785,6 @@ const paymentMethodMap = <?= json_encode($paymentMethodMap, JSON_UNESCAPED_UNICO
             return text.replace(/[&<>"']/g, m => map[m]);
         }
 
-        // Carrinho
         function addToCart(productId, productName, price, button) {
             button.innerHTML = '<i class="fa-solid fa-check"></i> Adicionado!';
             button.style.background = 'var(--primary)';
@@ -839,7 +853,7 @@ const paymentMethodMap = <?= json_encode($paymentMethodMap, JSON_UNESCAPED_UNICO
             const cart = JSON.parse(localStorage.getItem('cart') || '[]');
             const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
             
-            document.querySelectorAll('.cart-badge, .mobile-nav-badge').forEach(badge => {
+            document.querySelectorAll('.cart-badge').forEach(badge => {
                 if (totalItems > 0) {
                     badge.textContent = totalItems;
                     badge.style.display = 'flex';
@@ -889,7 +903,6 @@ const paymentMethodMap = <?= json_encode($paymentMethodMap, JSON_UNESCAPED_UNICO
             }, 3000);
         }
 
-        // Event Listeners
         document.querySelectorAll('.category-filter').forEach(el => {
             el.addEventListener('change', function() {
                 if (this.checked) {
@@ -931,11 +944,35 @@ const paymentMethodMap = <?= json_encode($paymentMethodMap, JSON_UNESCAPED_UNICO
             loadProducts();
         }
 
-        // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
             const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
             if (sidebarCollapsed) {
                 document.getElementById('sidebar').classList.add('collapsed');
+            }
+
+            // Verificar se pedidos já foram visualizados nesta sessão
+            const pedidosVisualizados = localStorage.getItem('pedidosVisualizados');
+            const agora = Date.now();
+            const umDiaEmMs = 24 * 60 * 60 * 1000;
+            
+            // Se foi visualizado há menos de 1 dia, manter badges zerados
+            if (pedidosVisualizados && (agora - parseInt(pedidosVisualizados)) < umDiaEmMs) {
+                const headerBadge = document.getElementById('header-pedidos-badge');
+                const mobileBadge = document.getElementById('mobile-pedidos-badge');
+                const sidebarBadge = document.getElementById('sidebar-pedidos-badge');
+                
+                if (headerBadge) {
+                    headerBadge.style.display = 'none';
+                    headerBadge.textContent = '0';
+                }
+                if (mobileBadge) {
+                    mobileBadge.style.display = 'none';
+                    mobileBadge.textContent = '0';
+                }
+                if (sidebarBadge) {
+                    sidebarBadge.textContent = '0';
+                }
+                console.log('✅ Badges de pedidos mantidos zerados (visualizados há menos de 1 dia)');
             }
 
             const urlParams = new URLSearchParams(window.location.search);

@@ -1,219 +1,3 @@
-<!-- 
-  Arquivo: /pages/person/pages/meus_pedidos.php
-  VERSÃO COMPLETA - Com modais e funções de cancelamento/confirmação
--->
-
-<style>
-/* Modal Styles - GitHub Dark Theme */
-.modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(4px);
-    z-index: 9999;
-    animation: fadeIn 0.2s ease;
-}
-
-.modal-overlay.active {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-
-.modal-container {
-    background: var(--card-bg);
-    border: 2px solid var(--border);
-    border-radius: 16px;
-    max-width: 600px;
-    width: 100%;
-    max-height: 90vh;
-    overflow-y: auto;
-    animation: slideUp 0.3s ease;
-}
-
-.modal-header {
-    padding: 24px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal-title {
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.modal-close {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 24px;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-}
-
-.modal-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
-}
-
-.modal-body {
-    padding: 24px;
-}
-
-.modal-footer {
-    padding: 20px 24px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-}
-
-.order-details-grid {
-    display: grid;
-    gap: 20px;
-}
-
-.detail-section {
-    background: rgba(255, 255, 255, 0.02);
-    padding: 16px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-}
-
-.detail-section h3 {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
-    text-transform: uppercase;
-}
-
-.detail-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.detail-row:last-child {
-    border-bottom: none;
-}
-
-.detail-label {
-    color: var(--text-secondary);
-    font-size: 14px;
-}
-
-.detail-value {
-    color: var(--text-primary);
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.items-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.item-card {
-    background: rgba(0, 0, 0, 0.2);
-    padding: 12px;
-    border-radius: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.item-info {
-    flex: 1;
-}
-
-.item-name {
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 4px;
-}
-
-.item-meta {
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-.item-total {
-    font-weight: 800;
-    color: var(--primary);
-    font-size: 16px;
-}
-
-.modal-input {
-    width: 100%;
-    padding: 12px 16px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 14px;
-    margin-top: 8px;
-}
-
-.modal-input:focus {
-    outline: none;
-    border-color: var(--primary);
-}
-
-.modal-label {
-    display: block;
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 8px;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@media (max-width: 768px) {
-    .modal-container {
-        max-height: 95vh;
-    }
-    
-    .modal-footer {
-        flex-direction: column;
-    }
-    
-    .modal-footer button {
-        width: 100%;
-    }
-}
-</style>
-
 <div class="page-container">
     <div class="page-header">
         <div class="page-header-content">
@@ -235,12 +19,12 @@
                     <span class="stat-label">Pendentes</span>
                 </div>
                 <div class="stat-pill info">
-                    <span class="stat-value" id="stat-andamento">0</span>
-                    <span class="stat-label">Andamento</span>
+                    <span class="stat-value" id="stat-confirmados">0</span>
+                    <span class="stat-label">Confirmados</span>
                 </div>
                 <div class="stat-pill success">
                     <span class="stat-value" id="stat-entregues">0</span>
-                    <span class="stat-label">Entregues</span>
+                    <span class="stat-label">Entregues e Pagos</span>
                 </div>
             </div>
         </div>
@@ -254,11 +38,11 @@
             <button class="filter-chip" data-status="pendente" onclick="filterOrdersByStatus('pendente', this)">
                 ⏳ Pendentes
             </button>
-            <button class="filter-chip" data-status="processando,confirmado,enviado" onclick="filterOrdersByStatus('processando,confirmado,enviado', this)">
-                ⚙️ Em Andamento
+            <button class="filter-chip" data-status="confirmado" onclick="filterOrdersByStatus('confirmado', this)">
+                ✓ Confirmados
             </button>
-            <button class="filter-chip" data-status="entregue" onclick="filterOrdersByStatus('entregue', this)">
-                ✅ Entregues
+            <button class="filter-chip" data-status="entregue_pago" onclick="filterOrdersByStatus('entregue_pago', this)">
+                ✅ Entregues e Pagos
             </button>
             <button class="filter-chip" data-status="cancelado" onclick="filterOrdersByStatus('cancelado', this)">
                 ❌ Cancelados
@@ -292,9 +76,7 @@
                 <i class="fa-solid fa-times"></i>
             </button>
         </div>
-        <div class="modal-body" id="modalDetailsContent">
-            <!-- Preenchido via JS -->
-        </div>
+        <div class="modal-body" id="modalDetailsContent"></div>
         <div class="modal-footer">
             <button class="btn-action btn-view" onclick="closeModal('modalDetails')">
                 <i class="fa-solid fa-check"></i>
@@ -304,86 +86,261 @@
     </div>
 </div>
 
-<!-- Modal Cancelamento -->
-<div class="modal-overlay" id="modalCancel">
-    <div class="modal-container">
-        <div class="modal-header">
-            <h2 class="modal-title">
-                <i class="fa-solid fa-ban"></i>
-                Cancelar Pedido
-            </h2>
-            <button class="modal-close" onclick="closeModal('modalCancel')">
-                <i class="fa-solid fa-times"></i>
-            </button>
-        </div>
-        <div class="modal-body">
-            <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                Tem certeza que deseja cancelar este pedido? Esta ação não pode ser desfeita.
-            </p>
-            <div class="detail-section">
-                <h3>Pedido #<span id="cancelOrderNumber"></span></h3>
-                <div class="detail-row">
-                    <span class="detail-label">Total:</span>
-                    <span class="detail-value" id="cancelOrderTotal"></span>
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-action btn-view" onclick="closeModal('modalCancel')">
-                <i class="fa-solid fa-arrow-left"></i>
-                Voltar
-            </button>
-            <button class="btn-action btn-cancel" onclick="confirmCancelOrder()">
-                <i class="fa-solid fa-ban"></i>
-                Confirmar Cancelamento
-            </button>
-        </div>
-    </div>
-</div>
+<style>
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+}
 
-<!-- Modal Confirmação Pagamento -->
-<div class="modal-overlay" id="modalConfirmPayment">
-    <div class="modal-container">
-        <div class="modal-header">
-            <h2 class="modal-title">
-                <i class="fa-solid fa-check-circle"></i>
-                Confirmar Pagamento
-            </h2>
-            <button class="modal-close" onclick="closeModal('modalConfirmPayment')">
-                <i class="fa-solid fa-times"></i>
-            </button>
-        </div>
-        <div class="modal-body">
-            <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                Confirme que você já realizou o pagamento manual deste pedido.
-            </p>
-            <div class="detail-section" style="margin-bottom: 20px;">
-                <h3>Pedido #<span id="paymentOrderNumber"></span></h3>
-                <div class="detail-row">
-                    <span class="detail-label">Total:</span>
-                    <span class="detail-value" id="paymentOrderTotal"></span>
-                </div>
-            </div>
-            <label class="modal-label">Observações (opcional):</label>
-            <textarea id="paymentNotes" class="modal-input" rows="3" placeholder="Adicione qualquer informação adicional..."></textarea>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-action btn-view" onclick="closeModal('modalConfirmPayment')">
-                <i class="fa-solid fa-arrow-left"></i>
-                Voltar
-            </button>
-            <button class="btn-action btn-track" onclick="confirmPayment()">
-                <i class="fa-solid fa-check"></i>
-                Confirmar Pagamento
-            </button>
-        </div>
-    </div>
-</div>
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-container {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    max-width: 800px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 255, 136, 0.05);
+}
+
+.modal-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.modal-title i {
+    color: var(--primary);
+    font-size: 24px;
+}
+
+.modal-close {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-secondary);
+}
+
+.modal-close:hover {
+    background: rgba(244, 67, 54, 0.2);
+    border-color: #f44336;
+    color: #f44336;
+    transform: rotate(90deg);
+}
+
+.modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
+}
+
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.order-details-grid {
+    display: grid;
+    gap: 24px;
+}
+
+.detail-section {
+    background: rgba(0, 255, 136, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.detail-section h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.detail-section h3::before {
+    content: '';
+    width: 4px;
+    height: 20px;
+    background: var(--primary);
+    border-radius: 2px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.detail-value {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 600;
+    text-align: right;
+}
+
+.items-list {
+    display: grid;
+    gap: 12px;
+}
+
+.item-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.item-card:hover {
+    border-color: var(--primary);
+    transform: translateX(4px);
+}
+
+.item-info {
+    flex: 1;
+}
+
+.item-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.item-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.item-total {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-left: 16px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (max-width: 768px) {
+    .modal-container {
+        max-width: 100%;
+        max-height: 95vh;
+        border-radius: 12px 12px 0 0;
+        margin-top: auto;
+    }
+    
+    .modal-body {
+        padding: 16px;
+    }
+    
+    .detail-section {
+        padding: 16px;
+    }
+    
+    .item-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .item-total {
+        margin-left: 0;
+        align-self: flex-end;
+    }
+}
+</style>
 
 <script>
 let currentFilter = 'all';
 let currentOrders = [];
-let currentOrderIdForAction = null;
 
 function renderOrders() {
     console.log('🔄 Iniciando renderização de pedidos...');
@@ -418,12 +375,11 @@ function renderOrders() {
         return;
     }
     
-    updateStats(
-        pedidosStats.total || ordersData.length,
-        pedidosStats.pendentes || 0,
-        pedidosStats.em_andamento || 0,
-        pedidosStats.entregues || 0
-    );
+    const pendentes = ordersData.filter(o => o.status === 'pendente').length;
+    const confirmados = ordersData.filter(o => o.status === 'confirmado' || o.status === 'processando' || o.status === 'enviado').length;
+    const entreguesPagos = ordersData.filter(o => o.payment_method === 'manual' && o.payment_status === 'pago').length;
+    
+    updateStats(ordersData.length, pendentes, confirmados, entreguesPagos);
     
     try {
         container.innerHTML = ordersData.map((order, index) => renderOrderCard(order, index)).join('');
@@ -442,11 +398,8 @@ function renderOrderCard(order, index) {
     const shippingAddress = order.shipping_address && order.shipping_address !== 'null' ? order.shipping_address : null;
     const shippingCity = order.shipping_city && order.shipping_city !== 'null' ? order.shipping_city : null;
     
-    const canCancel = order.status === 'pendente' || order.status === 'confirmado';
-    const canConfirmPayment = order.payment_method === 'manual' && order.status === 'entregue' && order.payment_status === 'pendente';
-    
     return `
-        <div class="order-card" data-status="${order.status}" data-order="${order.order_number}" style="animation: fadeInUp 0.5s ease ${index * 0.1}s backwards;">
+        <div class="order-card" data-status="${order.status}" data-payment="${order.payment_status}" data-method="${order.payment_method}" data-order="${order.order_number}" style="animation: fadeInUp 0.5s ease ${index * 0.1}s backwards;">
             <div class="order-header">
                 <div class="order-number">
                     <i class="fa-solid fa-hashtag"></i>
@@ -506,16 +459,10 @@ function renderOrderCard(order, index) {
                         Rastrear
                     </button>
                     ` : ''}
-                    ${canConfirmPayment ? `
-                    <button class="btn-action btn-track" onclick="openConfirmPaymentModal(${order.id}, '${order.order_number}', ${order.total})">
-                        <i class="fa-solid fa-check-circle"></i>
-                        Confirmar Pagamento
-                    </button>
-                    ` : ''}
-                    ${canCancel ? `
-                    <button class="btn-action btn-cancel" onclick="openCancelModal(${order.id}, '${order.order_number}', ${order.total})">
-                        <i class="fa-solid fa-ban"></i>
-                        Cancelar
+                    ${order.status === 'entregue' ? `
+                    <button class="btn-action btn-track" onclick="contactSupport('${order.order_number}')">
+                        <i class="fa-solid fa-headset"></i>
+                        Suporte
                     </button>
                     ` : ''}
                 </div>
@@ -524,11 +471,11 @@ function renderOrderCard(order, index) {
     `;
 }
 
-function updateStats(total, pendentes, andamento, entregues) {
+function updateStats(total, pendentes, confirmados, entreguesPagos) {
     document.getElementById('stat-total').textContent = total;
     document.getElementById('stat-pendentes').textContent = pendentes;
-    document.getElementById('stat-andamento').textContent = andamento;
-    document.getElementById('stat-entregues').textContent = entregues;
+    document.getElementById('stat-confirmados').textContent = confirmados;
+    document.getElementById('stat-entregues').textContent = entreguesPagos;
 }
 
 function filterOrdersByStatus(status, button) {
@@ -541,24 +488,24 @@ function filterOrdersByStatus(status, button) {
     
     cards.forEach(card => {
         const cardStatus = card.dataset.status;
+        const cardPayment = card.dataset.payment;
+        let shouldShow = false;
+        
         if (status === 'all') {
+            shouldShow = true;
+        } else if (status === 'entregue_pago') {
+            shouldShow = cardPayment === 'pago' && card.dataset.method === 'manual';
+        } else if (status === 'confirmado') {
+            shouldShow = cardStatus === 'confirmado' || cardStatus === 'processando' || cardStatus === 'enviado';
+        } else {
+            shouldShow = cardStatus === status;
+        }
+        
+        if (shouldShow) {
             card.style.display = 'block';
             visibleCount++;
-        } else if (status.includes(',')) {
-            const statusList = status.split(',');
-            if (statusList.includes(cardStatus)) {
-                card.style.display = 'block';
-                visibleCount++;
-            } else {
-                card.style.display = 'none';
-            }
         } else {
-            if (cardStatus === status) {
-                card.style.display = 'block';
-                visibleCount++;
-            } else {
-                card.style.display = 'none';
-            }
+            card.style.display = 'none';
         }
     });
     
@@ -581,19 +528,58 @@ function filterOrdersByStatus(status, button) {
 function searchOrdersByNumber() {
     const searchTerm = document.getElementById('searchOrders').value.toLowerCase().trim();
     const cards = document.querySelectorAll('.order-card');
+    let visibleCount = 0;
     
     cards.forEach(card => {
         const orderNumber = card.dataset.order.toLowerCase();
         const cardStatus = card.dataset.status;
-        const matchesFilter = currentFilter === 'all' || 
-                             (currentFilter.includes(',') ? currentFilter.split(',').includes(cardStatus) : cardStatus === currentFilter);
+        const cardPayment = card.dataset.payment;
+        const cardMethod = card.dataset.method;
+        
+        let matchesFilter = false;
+        if (currentFilter === 'all') {
+            matchesFilter = true;
+        } else if (currentFilter === 'entregue_pago') {
+            matchesFilter = cardPayment === 'pago' && cardMethod === 'manual';
+        } else if (currentFilter === 'confirmado') {
+            matchesFilter = cardStatus === 'confirmado' || cardStatus === 'processando' || cardStatus === 'enviado';
+        } else {
+            matchesFilter = cardStatus === currentFilter;
+        }
         
         if (orderNumber.includes(searchTerm) && matchesFilter) {
             card.style.display = 'block';
+            visibleCount++;
         } else {
             card.style.display = 'none';
         }
     });
+    
+    // Remover empty state anterior se existir
+    const existingEmpty = document.querySelector('.search-empty-state');
+    if (existingEmpty) existingEmpty.remove();
+    
+    // Mostrar mensagem se nenhum resultado
+    if (visibleCount === 0 && searchTerm.length > 0) {
+        const container = document.getElementById('ordersList');
+        const emptyState = document.createElement('div');
+        emptyState.className = 'empty-state search-empty-state';
+        emptyState.innerHTML = `
+            <i class="fa-solid fa-search"></i>
+            <h2>Nenhum pedido encontrado</h2>
+            <p>Não há pedidos com o número "<strong>${searchTerm}</strong>"</p>
+            <button class="btn-action btn-view" onclick="clearSearch()" style="margin-top: 20px;">
+                <i class="fa-solid fa-times"></i>
+                Limpar Busca
+            </button>
+        `;
+        container.appendChild(emptyState);
+    }
+}
+
+function clearSearch() {
+    document.getElementById('searchOrders').value = '';
+    searchOrdersByNumber();
 }
 
 async function viewOrderDetails(orderId) {
@@ -632,6 +618,10 @@ function showOrderDetailsModal(order) {
                 <div class="detail-row">
                     <span class="detail-label">Data:</span>
                     <span class="detail-value">${formatDate(order.order_date)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Empresa:</span>
+                    <span class="detail-value">${order.company_name || 'VisionGreen'}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Status:</span>
@@ -691,84 +681,25 @@ function showOrderDetailsModal(order) {
                 </p>
             </div>
             ` : ''}
+            
+            ${order.customer_notes ? `
+            <div class="detail-section">
+                <h3>Observações do Cliente</h3>
+                <p style="color: var(--text-secondary); line-height: 1.6;">${order.customer_notes}</p>
+            </div>
+            ` : ''}
         </div>
     `;
     
     openModal('modalDetails');
 }
 
-function openCancelModal(orderId, orderNumber, total) {
-    currentOrderIdForAction = orderId;
-    document.getElementById('cancelOrderNumber').textContent = orderNumber;
-    document.getElementById('cancelOrderTotal').textContent = formatPrice(total) + ' MZN';
-    openModal('modalCancel');
-}
-
-async function confirmCancelOrder() {
-    if (!currentOrderIdForAction) return;
-    
-    try {
-        const response = await fetch('actions/cancel_order.php', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({order_id: currentOrderIdForAction})
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showToast('✅ Pedido cancelado com sucesso!', 'success');
-            closeModal('modalCancel');
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            showToast(`❌ ${data.message}`, 'error');
-        }
-    } catch (error) {
-        console.error('❌ Erro:', error);
-        showToast('❌ Erro ao cancelar pedido', 'error');
-    }
-}
-
-function openConfirmPaymentModal(orderId, orderNumber, total) {
-    currentOrderIdForAction = orderId;
-    document.getElementById('paymentOrderNumber').textContent = orderNumber;
-    document.getElementById('paymentOrderTotal').textContent = formatPrice(total) + ' MZN';
-    document.getElementById('paymentNotes').value = '';
-    openModal('modalConfirmPayment');
-}
-
-async function confirmPayment() {
-    if (!currentOrderIdForAction) return;
-    
-    const notes = document.getElementById('paymentNotes').value.trim();
-    
-    try {
-        const response = await fetch('actions/confirm_payment.php', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                order_id: currentOrderIdForAction,
-                notes: notes
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showToast('✅ Pagamento confirmado com sucesso!', 'success');
-            closeModal('modalConfirmPayment');
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            showToast(`❌ ${data.message}`, 'error');
-        }
-    } catch (error) {
-        console.error('❌ Erro:', error);
-        showToast('❌ Erro ao confirmar pagamento', 'error');
-    }
-}
-
 function trackOrder(orderId) {
     showToast('🚚 Função de rastreamento em desenvolvimento', 'info');
+}
+
+function contactSupport(orderNumber) {
+    showToast(`📞 Entre em contato com o suporte mencionando o pedido #${orderNumber}`, 'info');
 }
 
 function openModal(modalId) {
@@ -779,7 +710,6 @@ function openModal(modalId) {
 function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
     document.body.style.overflow = '';
-    currentOrderIdForAction = null;
 }
 
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
@@ -819,5 +749,5 @@ style.textContent = `
 document.head.appendChild(style);
 
 renderOrders();
-console.log('✅ Módulo Meus Pedidos inicializado');
+console.log('✅ Módulo Meus Pedidos inicializado (versão cliente)');
 </script>
