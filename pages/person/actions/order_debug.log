@@ -1,0 +1,58 @@
+[2026-01-19 22:04:11] Tentativa de cancelamento
+Array
+(
+    [userId] => 1
+    [orderId] => 2
+)
+
+[2026-01-19 22:04:12] Pedido cancelado com sucesso
+Array
+(
+    [orderId] => 2
+)
+
+[2026-01-19 22:04:19] Buscando detalhes do pedido
+Array
+(
+    [userId] => 1
+    [orderId] => 2
+)
+
+[2026-01-19 22:04:19] Pedido carregado com sucesso
+Array
+(
+    [orderId] => 2
+    [itemsCount] => 1
+    [total] => 123.00
+)
+
+[2026-01-20 04:19:25] Buscando detalhes do pedido
+Array
+(
+    [userId] => 1
+    [orderId] => 1
+)
+
+[2026-01-20 04:19:25] Pedido carregado com sucesso
+Array
+(
+    [orderId] => 1
+    [itemsCount] => 1
+    [total] => 123.00
+)
+
+[2026-01-20 13:59:34] Buscando detalhes do pedido
+Array
+(
+    [userId] => 1
+    [orderId] => 9
+)
+
+[2026-01-20 13:59:34] Pedido carregado com sucesso
+Array
+(
+    [orderId] => 9
+    [itemsCount] => 1
+    [total] => 66.00
+)
+

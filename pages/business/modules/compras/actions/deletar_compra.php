@@ -1,11 +1,6 @@
 <?php
-/**
- * Deletar compra/pedido (soft delete)
- */
-
 header('Content-Type: application/json; charset=utf-8');
 session_start();
-
 require_once '../../../../../registration/includes/db.php';
 
 $isEmployee = isset($_SESSION['employee_auth']['employee_id']);
@@ -16,11 +11,11 @@ if (!$isEmployee && !$isCompany) {
     exit;
 }
 
-// Verificar permissão
 if ($isEmployee) {
     $companyId = (int)$_SESSION['employee_auth']['empresa_id'];
     $employeeId = (int)$_SESSION['employee_auth']['employee_id'];
     
+    // Verificar permissão de deletar
     $stmt = $mysqli->prepare("
         SELECT can_delete FROM employee_permissions 
         WHERE employee_id = ? AND module IN ('vendas', 'compras')
@@ -46,54 +41,39 @@ if ($id <= 0) {
 }
 
 try {
-    // Verificar se pedido pertence à empresa
+    // Verificar se pode deletar
     $stmt = $mysqli->prepare("
-        SELECT order_number, status 
-        FROM orders 
+        SELECT status FROM orders 
         WHERE id = ? AND company_id = ? AND deleted_at IS NULL
     ");
-    
     $stmt->bind_param('ii', $id, $companyId);
     $stmt->execute();
-    $result = $stmt->get_result();
+    $order = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
     
-    if ($result->num_rows === 0) {
-        $stmt->close();
+    if (!$order) {
         echo json_encode(['success' => false, 'message' => 'Pedido não encontrado']);
         exit;
     }
     
-    $pedido = $result->fetch_assoc();
-    $stmt->close();
-    
-    // Apenas pedidos pending ou cancelled podem ser deletados
-    if (!in_array($pedido['status'], ['pending', 'cancelled'])) {
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Apenas pedidos pendentes ou cancelados podem ser deletados'
-        ]);
+    // Só pode deletar se pendente ou cancelado
+    if (!in_array($order['status'], ['pendente', 'cancelado'])) {
+        echo json_encode(['success' => false, 'message' => 'Só é possível deletar pedidos pendentes ou cancelados']);
         exit;
     }
     
-    $mysqli->begin_transaction();
-    
     // Soft delete
-    $stmtDelete = $mysqli->prepare("
-        UPDATE orders 
-        SET deleted_at = NOW() 
+    $stmt = $mysqli->prepare("
+        UPDATE orders SET deleted_at = NOW() 
         WHERE id = ? AND company_id = ?
     ");
+    $stmt->bind_param('ii', $id, $companyId);
+    $stmt->execute();
+    $stmt->close();
     
-    $stmtDelete->bind_param('ii', $id, $companyId);
-    $stmtDelete->execute();
-    $stmtDelete->close();
-    
-    $mysqli->commit();
-    
-    echo json_encode(['success' => true, 'message' => 'Pedido deletado com sucesso']);
+    echo json_encode(['success' => true, 'message' => 'Pedido deletado']);
     
 } catch (Exception $e) {
-    $mysqli->rollback();
-    error_log("Erro ao deletar pedido: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Erro ao deletar pedido']);
+    error_log("Erro ao deletar: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Erro ao deletar']);
 }

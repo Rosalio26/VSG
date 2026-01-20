@@ -1,213 +1,141 @@
-<?php
-// Este arquivo deve estar em: pages/meus_pedidos.php
-?>
-<div style="max-width: 1200px; margin: 0 auto;">
-    <!-- Header -->
-    <div style="margin-bottom: 32px;">
-        <h1 style="font-size: 32px; font-weight: 800; color: var(--text-primary); margin-bottom: 8px;">
-            <i class="fa-solid fa-shopping-bag"></i> Meus Pedidos
-        </h1>
-        <p style="color: var(--text-secondary); font-size: 16px;">
-            Acompanhe o status de todos os seus pedidos
-        </p>
-    </div>
-
-    <!-- Filtros de Status -->
-    <div style="display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap;">
-        <button class="status-filter active" onclick="filterOrdersByStatus('all')" data-status="all">
-            <i class="fa-solid fa-list"></i> Todos
-            <span class="filter-count" id="count-all">0</span>
-        </button>
-        <button class="status-filter" onclick="filterOrdersByStatus('pendente')" data-status="pendente">
-            <i class="fa-solid fa-clock"></i> Pendentes
-            <span class="filter-count" id="count-pendente">0</span>
-        </button>
-        <button class="status-filter" onclick="filterOrdersByStatus('confirmado')" data-status="confirmado">
-            <i class="fa-solid fa-check-circle"></i> Confirmados
-            <span class="filter-count" id="count-confirmado">0</span>
-        </button>
-        <button class="status-filter" onclick="filterOrdersByStatus('processando')" data-status="processando">
-            <i class="fa-solid fa-box"></i> Em Preparo
-            <span class="filter-count" id="count-processando">0</span>
-        </button>
-        <button class="status-filter" onclick="filterOrdersByStatus('enviado')" data-status="enviado">
-            <i class="fa-solid fa-truck"></i> Enviados
-            <span class="filter-count" id="count-enviado">0</span>
-        </button>
-        <button class="status-filter" onclick="filterOrdersByStatus('entregue')" data-status="entregue">
-            <i class="fa-solid fa-check-double"></i> Entregues
-            <span class="filter-count" id="count-entregue">0</span>
-        </button>
-    </div>
-
-    <!-- Lista de Pedidos -->
-    <div id="ordersContainer">
-        <div style="text-align: center; padding: 60px 20px;">
-            <i class="fa-solid fa-spinner fa-spin" style="font-size: 48px; color: var(--text-secondary); margin-bottom: 20px;"></i>
-            <h3 style="color: var(--text-primary);">Carregando pedidos...</h3>
-        </div>
-    </div>
-</div>
+<!-- 
+  Arquivo: /pages/person/pages/meus_pedidos.php
+  VERSÃO COMPLETA - Com modais e funções de cancelamento/confirmação
+-->
 
 <style>
-/* Filtros de Status */
-.status-filter {
-    padding: 10px 20px;
-    background: var(--card-bg);
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    color: var(--text-primary);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+/* Modal Styles - GitHub Dark Theme */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    animation: fadeIn 0.2s ease;
 }
 
-.status-filter:hover {
-    border-color: var(--primary);
-    transform: translateY(-2px);
-}
-
-.status-filter.active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: #000;
-}
-
-.filter-count {
-    padding: 2px 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.status-filter.active .filter-count {
-    background: rgba(0, 0, 0, 0.2);
-}
-
-/* Order Card */
-.order-card {
-    background: var(--card-bg);
-    border: 2px solid var(--border);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 20px;
-    transition: all 0.3s ease;
-}
-
-.order-card:hover {
-    border-color: var(--primary);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
-}
-
-.order-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: start;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-}
-
-.order-number {
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--text-primary);
-    margin-bottom: 6px;
-}
-
-.order-date {
-    font-size: 13px;
-    color: var(--text-secondary);
-}
-
-.order-status-badge {
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.status-pendente {
-    background: rgba(251, 191, 36, 0.1);
-    color: #fbbf24;
-    border: 1px solid rgba(251, 191, 36, 0.3);
-}
-
-.status-confirmado {
-    background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
-    border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.status-processando {
-    background: rgba(168, 85, 247, 0.1);
-    color: #a855f7;
-    border: 1px solid rgba(168, 85, 247, 0.3);
-}
-
-.status-enviado {
-    background: rgba(6, 182, 212, 0.1);
-    color: #06b6d4;
-    border: 1px solid rgba(6, 182, 212, 0.3);
-}
-
-.status-entregue {
-    background: rgba(16, 185, 129, 0.1);
-    color: var(--primary);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.status-cancelado {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--danger);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.order-items {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.order-item {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    padding: 12px;
-    background: var(--darker-bg);
-    border-radius: 10px;
-}
-
-.item-image {
-    width: 60px;
-    height: 60px;
-    border-radius: 8px;
-    background: rgba(16, 185, 129, 0.1);
+.modal-overlay.active {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
-    flex-shrink: 0;
+    padding: 20px;
 }
 
-.item-image img {
+.modal-container {
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    max-width: 600px;
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
 }
 
-.item-image i {
+.modal-header {
+    padding: 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
     font-size: 24px;
-    color: var(--primary);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-footer {
+    padding: 20px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.order-details-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.detail-section {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.detail-section h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.detail-value {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.item-card {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 12px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .item-info {
@@ -215,352 +143,681 @@
 }
 
 .item-name {
-    font-size: 15px;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 4px;
 }
 
-.item-details {
-    font-size: 13px;
+.item-meta {
+    font-size: 12px;
     color: var(--text-secondary);
 }
 
-.item-price {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--primary);
-    text-align: right;
-}
-
-.order-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-}
-
-.order-total {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.total-label {
-    font-size: 13px;
-    color: var(--text-secondary);
-    font-weight: 600;
-}
-
-.total-value {
-    font-size: 24px;
+.item-total {
     font-weight: 800;
     color: var(--primary);
+    font-size: 16px;
 }
 
-.order-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.btn-action {
-    padding: 10px 20px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border: none;
-}
-
-.btn-view {
-    background: rgba(16, 185, 129, 0.1);
-    border: 2px solid rgba(16, 185, 129, 0.3);
-    color: var(--primary);
-}
-
-.btn-view:hover {
-    background: var(--primary);
-    color: #000;
-}
-
-.btn-cancel {
-    background: rgba(239, 68, 68, 0.1);
-    border: 2px solid rgba(239, 68, 68, 0.3);
-    color: var(--danger);
-}
-
-.btn-cancel:hover {
-    background: var(--danger);
-    color: #fff;
-}
-
-/* Empty State */
-.empty-orders {
-    text-align: center;
-    padding: 80px 20px;
-}
-
-.empty-orders i {
-    font-size: 64px;
-    color: var(--text-secondary);
-    margin-bottom: 20px;
-    opacity: 0.3;
-}
-
-.empty-orders h3 {
-    font-size: 24px;
-    font-weight: 700;
+.modal-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
     color: var(--text-primary);
-    margin-bottom: 12px;
-}
-
-.empty-orders p {
-    color: var(--text-secondary);
-    margin-bottom: 24px;
-}
-
-.btn-shop {
-    padding: 12px 24px;
-    background: var(--primary);
-    color: #000;
-    border: none;
-    border-radius: 10px;
     font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+    margin-top: 8px;
 }
 
-.btn-shop:hover {
-    transform: translateY(-2px);
+.modal-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.modal-label {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @media (max-width: 768px) {
-    .order-header {
-        flex-direction: column;
-        gap: 12px;
+    .modal-container {
+        max-height: 95vh;
     }
     
-    .order-footer {
-        flex-direction: column;
-        gap: 16px;
-        align-items: stretch;
-    }
-    
-    .order-actions {
+    .modal-footer {
         flex-direction: column;
     }
     
-    .btn-action {
-        justify-content: center;
+    .modal-footer button {
+        width: 100%;
     }
 }
 </style>
 
-<script>
-let allOrders = [];
-let currentFilter = 'all';
+<div class="page-container">
+    <div class="page-header">
+        <div class="page-header-content">
+            <div class="page-title-group">
+                <i class="fa-solid fa-shopping-bag"></i>
+                <div>
+                    <h1>Meus Pedidos</h1>
+                    <p class="page-subtitle">Acompanhe o status de suas compras</p>
+                </div>
+            </div>
+            
+            <div class="header-stats">
+                <div class="stat-pill">
+                    <span class="stat-value" id="stat-total">0</span>
+                    <span class="stat-label">Total</span>
+                </div>
+                <div class="stat-pill warning">
+                    <span class="stat-value" id="stat-pendentes">0</span>
+                    <span class="stat-label">Pendentes</span>
+                </div>
+                <div class="stat-pill info">
+                    <span class="stat-value" id="stat-andamento">0</span>
+                    <span class="stat-label">Andamento</span>
+                </div>
+                <div class="stat-pill success">
+                    <span class="stat-value" id="stat-entregues">0</span>
+                    <span class="stat-label">Entregues</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
-// Carregar pedidos
-async function loadOrders() {
-    const container = document.getElementById('ordersContainer');
-    
-    try {
-        const response = await fetch('actions/get_orders.php');
-        const data = await response.json();
+    <div class="filters-bar">
+        <div class="filter-group">
+            <button class="filter-chip active" data-status="all" onclick="filterOrdersByStatus('all', this)">
+                <i class="fa-solid fa-list"></i> Todos
+            </button>
+            <button class="filter-chip" data-status="pendente" onclick="filterOrdersByStatus('pendente', this)">
+                ⏳ Pendentes
+            </button>
+            <button class="filter-chip" data-status="processando,confirmado,enviado" onclick="filterOrdersByStatus('processando,confirmado,enviado', this)">
+                ⚙️ Em Andamento
+            </button>
+            <button class="filter-chip" data-status="entregue" onclick="filterOrdersByStatus('entregue', this)">
+                ✅ Entregues
+            </button>
+            <button class="filter-chip" data-status="cancelado" onclick="filterOrdersByStatus('cancelado', this)">
+                ❌ Cancelados
+            </button>
+        </div>
         
-        if (data.success) {
-            allOrders = data.orders;
-            updateStatusCounts();
-            renderOrders();
-        } else {
-            showEmptyState('Erro ao carregar pedidos');
-        }
-    } catch (error) {
-        console.error('Erro:', error);
-        showEmptyState('Erro ao carregar pedidos');
-    }
-}
+        <div class="search-filter">
+            <i class="fa-solid fa-search"></i>
+            <input type="text" id="searchOrders" placeholder="Buscar por número do pedido..." onkeyup="searchOrdersByNumber()">
+        </div>
+    </div>
 
-// Atualizar contadores de status
-function updateStatusCounts() {
-    const counts = {
-        all: allOrders.length,
-        pendente: 0,
-        confirmado: 0,
-        processando: 0,
-        enviado: 0,
-        entregue: 0
-    };
-    
-    allOrders.forEach(order => {
-        if (counts.hasOwnProperty(order.status)) {
-            counts[order.status]++;
-        }
-    });
-    
-    Object.keys(counts).forEach(status => {
-        const el = document.getElementById(`count-${status}`);
-        if (el) el.textContent = counts[status];
-    });
-}
+    <div class="orders-list" id="ordersList">
+        <div class="empty-state">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <h2>Carregando pedidos...</h2>
+            <p>Aguarde um momento</p>
+        </div>
+    </div>
+</div>
 
-// Renderizar pedidos
+<!-- Modal Detalhes -->
+<div class="modal-overlay" id="modalDetails">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2 class="modal-title">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span id="modalDetailsTitle">Detalhes do Pedido</span>
+            </h2>
+            <button class="modal-close" onclick="closeModal('modalDetails')">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="modalDetailsContent">
+            <!-- Preenchido via JS -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn-action btn-view" onclick="closeModal('modalDetails')">
+                <i class="fa-solid fa-check"></i>
+                Fechar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cancelamento -->
+<div class="modal-overlay" id="modalCancel">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2 class="modal-title">
+                <i class="fa-solid fa-ban"></i>
+                Cancelar Pedido
+            </h2>
+            <button class="modal-close" onclick="closeModal('modalCancel')">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                Tem certeza que deseja cancelar este pedido? Esta ação não pode ser desfeita.
+            </p>
+            <div class="detail-section">
+                <h3>Pedido #<span id="cancelOrderNumber"></span></h3>
+                <div class="detail-row">
+                    <span class="detail-label">Total:</span>
+                    <span class="detail-value" id="cancelOrderTotal"></span>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-action btn-view" onclick="closeModal('modalCancel')">
+                <i class="fa-solid fa-arrow-left"></i>
+                Voltar
+            </button>
+            <button class="btn-action btn-cancel" onclick="confirmCancelOrder()">
+                <i class="fa-solid fa-ban"></i>
+                Confirmar Cancelamento
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmação Pagamento -->
+<div class="modal-overlay" id="modalConfirmPayment">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2 class="modal-title">
+                <i class="fa-solid fa-check-circle"></i>
+                Confirmar Pagamento
+            </h2>
+            <button class="modal-close" onclick="closeModal('modalConfirmPayment')">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                Confirme que você já realizou o pagamento manual deste pedido.
+            </p>
+            <div class="detail-section" style="margin-bottom: 20px;">
+                <h3>Pedido #<span id="paymentOrderNumber"></span></h3>
+                <div class="detail-row">
+                    <span class="detail-label">Total:</span>
+                    <span class="detail-value" id="paymentOrderTotal"></span>
+                </div>
+            </div>
+            <label class="modal-label">Observações (opcional):</label>
+            <textarea id="paymentNotes" class="modal-input" rows="3" placeholder="Adicione qualquer informação adicional..."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-action btn-view" onclick="closeModal('modalConfirmPayment')">
+                <i class="fa-solid fa-arrow-left"></i>
+                Voltar
+            </button>
+            <button class="btn-action btn-track" onclick="confirmPayment()">
+                <i class="fa-solid fa-check"></i>
+                Confirmar Pagamento
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentFilter = 'all';
+let currentOrders = [];
+let currentOrderIdForAction = null;
+
 function renderOrders() {
-    const container = document.getElementById('ordersContainer');
+    console.log('🔄 Iniciando renderização de pedidos...');
+    const container = document.getElementById('ordersList');
     
-    const filteredOrders = currentFilter === 'all' 
-        ? allOrders 
-        : allOrders.filter(o => o.status === currentFilter);
-    
-    if (filteredOrders.length === 0) {
-        showEmptyState();
+    if (typeof ordersData === 'undefined') {
+        console.error('❌ ordersData não está definido');
+        container.innerHTML = `
+            <div class="error-state">
+                <h3><i class="fa-solid fa-triangle-exclamation"></i> Erro de Dados</h3>
+                <p>Os dados dos pedidos não foram carregados. Recarregue a página.</p>
+            </div>
+        `;
         return;
     }
     
-    container.innerHTML = filteredOrders.map(order => `
-        <div class="order-card" data-status="${order.status}">
+    currentOrders = ordersData;
+    
+    if (!ordersData || ordersData.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fa-solid fa-shopping-bag"></i>
+                <h2>Nenhum pedido encontrado</h2>
+                <p>Você ainda não realizou nenhuma compra</p>
+                <button class="btn-action btn-view" onclick="navigateTo('home')" style="margin-top: 20px;">
+                    <i class="fa-solid fa-store"></i>
+                    Explorar Produtos
+                </button>
+            </div>
+        `;
+        updateStats(0, 0, 0, 0);
+        return;
+    }
+    
+    updateStats(
+        pedidosStats.total || ordersData.length,
+        pedidosStats.pendentes || 0,
+        pedidosStats.em_andamento || 0,
+        pedidosStats.entregues || 0
+    );
+    
+    try {
+        container.innerHTML = ordersData.map((order, index) => renderOrderCard(order, index)).join('');
+        console.log(`✅ ${ordersData.length} pedidos renderizados`);
+    } catch (error) {
+        console.error('❌ Erro:', error);
+        container.innerHTML = `<div class="error-state"><h3>Erro de Renderização</h3><p>${error.message}</p></div>`;
+    }
+}
+
+function renderOrderCard(order, index) {
+    const statusInfo = statusMap[order.status] || {icon: '❓', label: order.status, color: 'warning'};
+    const paymentInfo = paymentStatusMap[order.payment_status] || {icon: '❓', label: order.payment_status, color: 'warning'};
+    const methodInfo = paymentMethodMap[order.payment_method] || {icon: '💳', label: order.payment_method};
+    
+    const shippingAddress = order.shipping_address && order.shipping_address !== 'null' ? order.shipping_address : null;
+    const shippingCity = order.shipping_city && order.shipping_city !== 'null' ? order.shipping_city : null;
+    
+    const canCancel = order.status === 'pendente' || order.status === 'confirmado';
+    const canConfirmPayment = order.payment_method === 'manual' && order.status === 'entregue' && order.payment_status === 'pendente';
+    
+    return `
+        <div class="order-card" data-status="${order.status}" data-order="${order.order_number}" style="animation: fadeInUp 0.5s ease ${index * 0.1}s backwards;">
             <div class="order-header">
-                <div>
-                    <div class="order-number">#${order.order_number}</div>
-                    <div class="order-date">
-                        <i class="fa-solid fa-calendar"></i> ${formatDate(order.order_date)}
+                <div class="order-number">
+                    <i class="fa-solid fa-hashtag"></i>
+                    <strong>${order.order_number || 'N/A'}</strong>
+                </div>
+                <div class="order-date">
+                    <i class="fa-regular fa-calendar"></i>
+                    ${formatDate(order.order_date)}
+                </div>
+                <div class="order-company">
+                    <i class="fa-solid fa-store"></i>
+                    ${order.empresa_nome || 'VisionGreen'}
+                </div>
+            </div>
+            <div class="order-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Status do Pedido</span>
+                        <span class="status-badge status-${statusInfo.color}">
+                            ${statusInfo.icon} ${statusInfo.label}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Pagamento</span>
+                        <span class="status-badge status-${paymentInfo.color}">
+                            ${paymentInfo.icon} ${paymentInfo.label}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Método</span>
+                        <span class="info-value">${methodInfo.icon} ${methodInfo.label}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Itens</span>
+                        <span class="info-value">${order.total_items || order.items_count || 0} produto(s)</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Total</span>
+                        <span class="order-total">${formatPrice(order.total)} ${order.currency || 'MZN'}</span>
                     </div>
                 </div>
-                <span class="order-status-badge status-${order.status}">
-                    ${getStatusLabel(order.status)}
-                </span>
-            </div>
-            
-            <div class="order-items">
-                ${order.items.map(item => `
-                    <div class="order-item">
-                        <div class="item-image">
-                            ${item.product_image ? 
-                                `<img src="../../registration/uploads/products/${item.product_image}" alt="${item.product_name}">` :
-                                '<i class="fa-solid fa-box"></i>'
-                            }
-                        </div>
-                        <div class="item-info">
-                            <div class="item-name">${item.product_name}</div>
-                            <div class="item-details">Quantidade: ${item.quantity}</div>
-                        </div>
-                        <div class="item-price">${parseFloat(item.total).toFixed(2)} MZN</div>
-                    </div>
-                `).join('')}
-            </div>
-            
-            <div class="order-footer">
-                <div class="order-total">
-                    <span class="total-label">Total do Pedido</span>
-                    <span class="total-value">${parseFloat(order.total).toFixed(2)} MZN</span>
+                ${shippingAddress || shippingCity ? `
+                <div class="shipping-info">
+                    <i class="fa-solid fa-location-dot"></i>
+                    ${shippingAddress ? `<span>${shippingAddress}</span>` : ''}
+                    ${shippingCity ? `<span>${shippingAddress ? '•' : ''} ${shippingCity}</span>` : ''}
                 </div>
+                ` : ''}
                 <div class="order-actions">
                     <button class="btn-action btn-view" onclick="viewOrderDetails(${order.id})">
-                        <i class="fa-solid fa-eye"></i> Ver Detalhes
+                        <i class="fa-solid fa-eye"></i>
+                        Ver Detalhes
                     </button>
-                    ${order.status === 'pendente' ? `
-                        <button class="btn-action btn-cancel" onclick="cancelOrder(${order.id})">
-                            <i class="fa-solid fa-times"></i> Cancelar
-                        </button>
+                    ${order.status === 'enviado' || order.status === 'processando' ? `
+                    <button class="btn-action btn-track" onclick="trackOrder(${order.id})">
+                        <i class="fa-solid fa-truck"></i>
+                        Rastrear
+                    </button>
+                    ` : ''}
+                    ${canConfirmPayment ? `
+                    <button class="btn-action btn-track" onclick="openConfirmPaymentModal(${order.id}, '${order.order_number}', ${order.total})">
+                        <i class="fa-solid fa-check-circle"></i>
+                        Confirmar Pagamento
+                    </button>
+                    ` : ''}
+                    ${canCancel ? `
+                    <button class="btn-action btn-cancel" onclick="openCancelModal(${order.id}, '${order.order_number}', ${order.total})">
+                        <i class="fa-solid fa-ban"></i>
+                        Cancelar
+                    </button>
                     ` : ''}
                 </div>
             </div>
         </div>
-    `).join('');
-}
-
-// Filtrar por status
-function filterOrdersByStatus(status) {
-    currentFilter = status;
-    
-    // Atualizar botões
-    document.querySelectorAll('.status-filter').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.querySelector(`[data-status="${status}"]`).classList.add('active');
-    
-    renderOrders();
-}
-
-// Estado vazio
-function showEmptyState(message) {
-    const container = document.getElementById('ordersContainer');
-    container.innerHTML = `
-        <div class="empty-orders">
-            <i class="fa-solid fa-shopping-bag"></i>
-            <h3>${message || 'Nenhum pedido encontrado'}</h3>
-            <p>Você ainda não fez nenhum pedido</p>
-            <button class="btn-shop" onclick="navigateTo('home')">
-                <i class="fa-solid fa-shopping-cart"></i>
-                Começar a Comprar
-            </button>
-        </div>
     `;
 }
 
-// Ver detalhes
-function viewOrderDetails(orderId) {
-    window.location.href = `order_details.php?id=${orderId}`;
+function updateStats(total, pendentes, andamento, entregues) {
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-pendentes').textContent = pendentes;
+    document.getElementById('stat-andamento').textContent = andamento;
+    document.getElementById('stat-entregues').textContent = entregues;
 }
 
-// Cancelar pedido
-async function cancelOrder(orderId) {
-    if (!confirm('Tem certeza que deseja cancelar este pedido?')) {
-        return;
+function filterOrdersByStatus(status, button) {
+    currentFilter = status;
+    document.querySelectorAll('.filter-chip').forEach(chip => chip.classList.remove('active'));
+    if (button) button.classList.add('active');
+    
+    const cards = document.querySelectorAll('.order-card');
+    let visibleCount = 0;
+    
+    cards.forEach(card => {
+        const cardStatus = card.dataset.status;
+        if (status === 'all') {
+            card.style.display = 'block';
+            visibleCount++;
+        } else if (status.includes(',')) {
+            const statusList = status.split(',');
+            if (statusList.includes(cardStatus)) {
+                card.style.display = 'block';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        } else {
+            if (cardStatus === status) {
+                card.style.display = 'block';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        }
+    });
+    
+    const existingEmpty = document.querySelector('.filter-empty-state');
+    if (existingEmpty) existingEmpty.remove();
+    
+    if (visibleCount === 0) {
+        const container = document.getElementById('ordersList');
+        const emptyState = document.createElement('div');
+        emptyState.className = 'empty-state filter-empty-state';
+        emptyState.innerHTML = `
+            <i class="fa-solid fa-filter"></i>
+            <h2>Nenhum pedido encontrado</h2>
+            <p>Não há pedidos com o filtro selecionado</p>
+        `;
+        container.appendChild(emptyState);
     }
+}
+
+function searchOrdersByNumber() {
+    const searchTerm = document.getElementById('searchOrders').value.toLowerCase().trim();
+    const cards = document.querySelectorAll('.order-card');
+    
+    cards.forEach(card => {
+        const orderNumber = card.dataset.order.toLowerCase();
+        const cardStatus = card.dataset.status;
+        const matchesFilter = currentFilter === 'all' || 
+                             (currentFilter.includes(',') ? currentFilter.split(',').includes(cardStatus) : cardStatus === currentFilter);
+        
+        if (orderNumber.includes(searchTerm) && matchesFilter) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+async function viewOrderDetails(orderId) {
+    try {
+        const response = await fetch(`actions/get_order_details.php?id=${orderId}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showOrderDetailsModal(data.order);
+        } else {
+            showToast(`❌ ${data.message || 'Erro ao carregar detalhes'}`, 'error');
+        }
+    } catch (error) {
+        console.error('❌ Erro:', error);
+        showToast(`❌ Erro: ${error.message}`, 'error');
+    }
+}
+
+function showOrderDetailsModal(order) {
+    const items = order.items || [];
+    const statusInfo = statusMap[order.status] || {icon: '❓', label: order.status};
+    const paymentInfo = paymentStatusMap[order.payment_status] || {icon: '❓', label: order.payment_status};
+    
+    document.getElementById('modalDetailsTitle').textContent = `Pedido #${order.order_number}`;
+    
+    document.getElementById('modalDetailsContent').innerHTML = `
+        <div class="order-details-grid">
+            <div class="detail-section">
+                <h3>Informações do Pedido</h3>
+                <div class="detail-row">
+                    <span class="detail-label">Número:</span>
+                    <span class="detail-value">#${order.order_number}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Data:</span>
+                    <span class="detail-value">${formatDate(order.order_date)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value">${statusInfo.icon} ${statusInfo.label}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Pagamento:</span>
+                    <span class="detail-value">${paymentInfo.icon} ${paymentInfo.label}</span>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h3>Itens do Pedido</h3>
+                <div class="items-list">
+                    ${items.map(item => `
+                        <div class="item-card">
+                            <div class="item-info">
+                                <div class="item-name">${item.product_name}</div>
+                                <div class="item-meta">Quantidade: ${item.quantity} × ${formatPrice(item.unit_price)} MZN</div>
+                            </div>
+                            <div class="item-total">${formatPrice(item.total)} MZN</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h3>Totais</h3>
+                <div class="detail-row">
+                    <span class="detail-label">Subtotal:</span>
+                    <span class="detail-value">${formatPrice(order.subtotal || order.total)} MZN</span>
+                </div>
+                ${order.discount > 0 ? `
+                <div class="detail-row">
+                    <span class="detail-label">Desconto:</span>
+                    <span class="detail-value">-${formatPrice(order.discount)} MZN</span>
+                </div>
+                ` : ''}
+                ${order.shipping_cost > 0 ? `
+                <div class="detail-row">
+                    <span class="detail-label">Frete:</span>
+                    <span class="detail-value">${formatPrice(order.shipping_cost)} MZN</span>
+                </div>
+                ` : ''}
+                <div class="detail-row" style="border-top: 2px solid var(--border); padding-top: 12px; margin-top: 8px;">
+                    <span class="detail-label" style="font-weight: 700; color: var(--text-primary);">Total:</span>
+                    <span class="detail-value" style="font-size: 18px; color: var(--primary);">${formatPrice(order.total)} MZN</span>
+                </div>
+            </div>
+            
+            ${order.shipping_address ? `
+            <div class="detail-section">
+                <h3>Endereço de Entrega</h3>
+                <p style="color: var(--text-primary); line-height: 1.6;">
+                    ${order.shipping_address}${order.shipping_city ? `<br>${order.shipping_city}` : ''}
+                    ${order.shipping_phone ? `<br>Telefone: ${order.shipping_phone}` : ''}
+                </p>
+            </div>
+            ` : ''}
+        </div>
+    `;
+    
+    openModal('modalDetails');
+}
+
+function openCancelModal(orderId, orderNumber, total) {
+    currentOrderIdForAction = orderId;
+    document.getElementById('cancelOrderNumber').textContent = orderNumber;
+    document.getElementById('cancelOrderTotal').textContent = formatPrice(total) + ' MZN';
+    openModal('modalCancel');
+}
+
+async function confirmCancelOrder() {
+    if (!currentOrderIdForAction) return;
     
     try {
         const response = await fetch('actions/cancel_order.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ order_id: orderId })
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({order_id: currentOrderIdForAction})
         });
         
         const data = await response.json();
         
         if (data.success) {
-            alert('✅ Pedido cancelado com sucesso!');
-            loadOrders();
+            showToast('✅ Pedido cancelado com sucesso!', 'success');
+            closeModal('modalCancel');
+            setTimeout(() => location.reload(), 1500);
         } else {
-            alert('❌ Erro: ' + data.error);
+            showToast(`❌ ${data.message}`, 'error');
         }
     } catch (error) {
-        console.error('Erro:', error);
-        alert('❌ Erro ao cancelar pedido');
+        console.error('❌ Erro:', error);
+        showToast('❌ Erro ao cancelar pedido', 'error');
     }
 }
 
-// Formatar data
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric'
+function openConfirmPaymentModal(orderId, orderNumber, total) {
+    currentOrderIdForAction = orderId;
+    document.getElementById('paymentOrderNumber').textContent = orderNumber;
+    document.getElementById('paymentOrderTotal').textContent = formatPrice(total) + ' MZN';
+    document.getElementById('paymentNotes').value = '';
+    openModal('modalConfirmPayment');
+}
+
+async function confirmPayment() {
+    if (!currentOrderIdForAction) return;
+    
+    const notes = document.getElementById('paymentNotes').value.trim();
+    
+    try {
+        const response = await fetch('actions/confirm_payment.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                order_id: currentOrderIdForAction,
+                notes: notes
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('✅ Pagamento confirmado com sucesso!', 'success');
+            closeModal('modalConfirmPayment');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(`❌ ${data.message}`, 'error');
+        }
+    } catch (error) {
+        console.error('❌ Erro:', error);
+        showToast('❌ Erro ao confirmar pagamento', 'error');
+    }
+}
+
+function trackOrder(orderId) {
+    showToast('🚚 Função de rastreamento em desenvolvimento', 'info');
+}
+
+function openModal(modalId) {
+    document.getElementById(modalId).classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+    document.body.style.overflow = '';
+    currentOrderIdForAction = null;
+}
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal(this.id);
+        }
     });
+});
+
+function formatDate(dateString) {
+    if (!dateString) return 'Data inválida';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('pt-BR') + ' às ' + date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+    } catch (error) {
+        return dateString;
+    }
 }
 
-// Label de status
-function getStatusLabel(status) {
-    const labels = {
-        'pendente': 'Pendente',
-        'confirmado': 'Confirmado',
-        'processando': 'Em Preparo',
-        'enviado': 'Enviado',
-        'entregue': 'Entregue',
-        'cancelado': 'Cancelado'
-    };
-    return labels[status] || status;
+function formatPrice(price) {
+    if (price === null || price === undefined) return '0,00';
+    try {
+        return parseFloat(price).toLocaleString('pt-MZ', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    } catch (error) {
+        return String(price);
+    }
 }
 
-// Carregar ao iniciar
-loadOrders();
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+`;
+document.head.appendChild(style);
+
+renderOrders();
+console.log('✅ Módulo Meus Pedidos inicializado');
 </script>

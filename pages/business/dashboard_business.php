@@ -368,6 +368,7 @@ if ($isManager && $statusDoc === 'rejeitado') {
     <title>VisionGreen | <?= htmlspecialchars($displayName) ?></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/produtos.css">
     <style>
         /* ==================== VARIÁVEIS GITHUB DARK ==================== */
         :root {
@@ -1000,7 +1001,7 @@ if ($isManager && $statusDoc === 'rejeitado') {
     <?php if(canAccess('produtos', $minhaConfig)): ?>
         <a href="javascript:void(0)" onclick="loadContent('modules/produtos/produtos', this)" class="nav-item <?= $isEmployee ? 'active' : '' ?>">
             <div class="nav-icon-box"><i class="fa-solid fa-box"></i></div>
-            <span><?= $isEmployee ? 'Produtos' : 'Meus Produtos' ?></span>
+            <span><?= $isEmployee ? 'Produtos' : 'Produtos' ?></span>
             <?php if($stats['produtos_estoque_baixo'] > 0): ?>
                 <span class="notification-badge"><?= $stats['produtos_estoque_baixo'] ?></span>
             <?php endif; ?>

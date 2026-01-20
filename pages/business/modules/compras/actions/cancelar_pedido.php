@@ -11,16 +11,16 @@ if (!$isEmployee && !$isCompany) {
     exit;
 }
 
-$companyId = $isEmployee 
-    ? (int)$_SESSION['employee_auth']['empresa_id'] 
-    : (int)$_SESSION['auth']['user_id'];
-
-$userId = $isEmployee 
-    ? (int)$_SESSION['employee_auth']['employee_id']
-    : $companyId;
+if ($isEmployee) {
+    $companyId = (int)$_SESSION['employee_auth']['empresa_id'];
+    $userId = (int)$_SESSION['employee_auth']['employee_id'];
+} else {
+    $companyId = (int)$_SESSION['auth']['user_id'];
+    $userId = $companyId;
+}
 
 $id = (int)($_POST['id'] ?? 0);
-$reason = trim($_POST['reason'] ?? '');
+$reason = trim($_POST['reason'] ?? 'Cancelado pela empresa');
 
 if ($id <= 0) {
     echo json_encode(['success' => false, 'message' => 'ID inválido']);
@@ -28,89 +28,86 @@ if ($id <= 0) {
 }
 
 try {
-    // Verificar pedido
-    $stmt = $mysqli->prepare("
-        SELECT status FROM orders 
-        WHERE id = ? AND company_id = ? AND deleted_at IS NULL
-    ");
-    
-    $stmt->bind_param('ii', $id, $companyId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows === 0) {
-        $stmt->close();
-        echo json_encode(['success' => false, 'message' => 'Pedido não encontrado']);
-        exit;
-    }
-    
-    $order = $result->fetch_assoc();
-    $oldStatus = $order['status'];
-    $stmt->close();
-    
-    // Não pode cancelar se já foi entregue
-    if ($oldStatus === 'delivered') {
-        echo json_encode(['success' => false, 'message' => 'Não é possível cancelar pedido já entregue']);
-        exit;
-    }
-    
     $mysqli->begin_transaction();
     
-    // ============================================================
-    // 1. CANCELAR PEDIDO
-    // ============================================================
-    $stmtCancel = $mysqli->prepare("
-        UPDATE orders 
-        SET status = 'cancelled', internal_notes = CONCAT(COALESCE(internal_notes, ''), ?)
-        WHERE id = ? AND company_id = ?
+    // Verificar se pedido pode ser cancelado
+    $stmt = $mysqli->prepare("
+        SELECT status, payment_status 
+        FROM orders 
+        WHERE id = ? AND company_id = ? AND deleted_at IS NULL
     ");
+    $stmt->bind_param('ii', $id, $companyId);
+    $stmt->execute();
+    $order = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
     
-    $note = "\n[" . date('Y-m-d H:i:s') . "] Pedido cancelado: " . $reason;
-    $stmtCancel->bind_param('sii', $note, $id, $companyId);
-    $stmtCancel->execute();
-    $stmtCancel->close();
-    
-    // ============================================================
-    // 2. RESTAURAR STOCK (devolver produtos ao estoque)
-    // ============================================================
-    $stmtItems = $mysqli->prepare("
-        SELECT product_id, quantity 
-        FROM order_items 
-        WHERE order_id = ? AND product_id IS NOT NULL
-    ");
-    $stmtItems->bind_param('i', $id);
-    $stmtItems->execute();
-    $resultItems = $stmtItems->get_result();
-    
-    $stmtRestoreStock = $mysqli->prepare("
-        UPDATE products 
-        SET stock = stock + ? 
-        WHERE id = ? AND stock IS NOT NULL
-    ");
-    
-    while ($item = $resultItems->fetch_assoc()) {
-        $stmtRestoreStock->bind_param('ii', $item['quantity'], $item['product_id']);
-        $stmtRestoreStock->execute();
+    if (!$order) {
+        throw new Exception('Pedido não encontrado');
     }
     
-    $stmtItems->close();
-    $stmtRestoreStock->close();
+    if ($order['status'] === 'entregue') {
+        throw new Exception('Não é possível cancelar pedido já entregue');
+    }
     
-    // ============================================================
-    // 3. CRIAR HISTÓRICO
-    // ============================================================
-    $stmtHistory = $mysqli->prepare("
-        INSERT INTO order_status_history (order_id, status_from, status_to, notes, changed_by)
-        VALUES (?, ?, 'cancelled', ?, ?)
+    if ($order['status'] === 'cancelado') {
+        throw new Exception('Pedido já está cancelado');
+    }
+    
+    // Cancelar pedido
+    $stmt = $mysqli->prepare("
+        UPDATE orders 
+        SET status = 'cancelado',
+            payment_status = CASE WHEN payment_status = 'pago' THEN 'reembolsado' ELSE payment_status END,
+            internal_notes = CONCAT(COALESCE(internal_notes, ''), '
+[', NOW(), '] CANCELADO: ', ?)
+        WHERE id = ? AND company_id = ?
     ");
-    $stmtHistory->bind_param('issi', $id, $oldStatus, $reason, $userId);
-    $stmtHistory->execute();
-    $stmtHistory->close();
+    $stmt->bind_param('sii', $reason, $id, $companyId);
+    $stmt->execute();
+    $stmt->close();
     
-    // ============================================================
-    // 4. ATUALIZAR SALES_RECORDS
-    // ============================================================
-    $mysqli->query("UPDATE sales_records SET order_status = 'cancelled' WHERE order_id = $id");
+    // Registrar histórico
+    $stmt = $mysqli->prepare("
+        INSERT INTO order_status_history (order_id, status_from, status_to, notes, changed_by)
+        VALUES (?, ?, 'cancelado', ?, ?)
+    ");
+    $stmt->bind_param('issi', $id, $order['status'], $reason, $userId);
+    $stmt->execute();
+    $stmt->close();
+    
+    // Atualizar sales_records
+    $stmt = $mysqli->prepare("
+        UPDATE sales_records 
+        SET order_status = 'cancelado',
+            payment_status = CASE WHEN payment_status = 'pago' THEN 'reembolsado' ELSE payment_status END
+        WHERE order_id = ?
+    ");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $stmt->close();
+    
+    // Restaurar estoque
+    $stmt = $mysqli->prepare("
+        SELECT oi.product_id, oi.quantity 
+        FROM order_items oi
+        WHERE oi.order_id = ?
+    ");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    
+    foreach ($items as $item) {
+        $stmt = $mysqli->prepare("
+            UPDATE products 
+            SET stock = stock + ?,
+                status = CASE WHEN status = 'esgotado' THEN 'ativo' ELSE status END
+            WHERE id = ?
+        ");
+        $stmt->bind_param('ii', $item['quantity'], $item['product_id']);
+        $stmt->execute();
+        $stmt->close();
+    }
     
     $mysqli->commit();
     
@@ -118,6 +115,6 @@ try {
     
 } catch (Exception $e) {
     $mysqli->rollback();
-    error_log("Erro ao cancelar: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Erro ao cancelar pedido']);
+    error_log("Erro ao cancelar pedido: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

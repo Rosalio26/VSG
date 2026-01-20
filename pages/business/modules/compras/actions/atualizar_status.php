@@ -36,8 +36,8 @@ if ($isEmployee) {
 }
 
 $id = (int)($_POST['id'] ?? 0);
-$newStatus = trim($_POST['status'] ?? '');
-$newPaymentStatus = trim($_POST['payment_status'] ?? '');
+$newStatusEng = trim($_POST['status'] ?? '');
+$newPaymentStatusEng = trim($_POST['payment_status'] ?? '');
 $notes = trim($_POST['notes'] ?? '');
 
 if ($id <= 0) {
@@ -45,18 +45,41 @@ if ($id <= 0) {
     exit;
 }
 
-// Validar status
-$validStatus = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
-$validPaymentStatus = ['pending', 'paid', 'partial', 'refunded'];
+// Mapear status de inglês para português (DB usa português)
+$statusMap = [
+    'pending' => 'pendente',
+    'confirmed' => 'confirmado',
+    'processing' => 'processando',
+    'shipped' => 'enviado',
+    'delivered' => 'entregue',
+    'cancelled' => 'cancelado'
+];
 
-if ($newStatus && !in_array($newStatus, $validStatus)) {
-    echo json_encode(['success' => false, 'message' => 'Status inválido']);
-    exit;
+$paymentStatusMap = [
+    'pending' => 'pendente',
+    'paid' => 'pago',
+    'partial' => 'parcial',
+    'refunded' => 'reembolsado'
+];
+
+// Converter para português
+$newStatus = '';
+$newPaymentStatus = '';
+
+if ($newStatusEng) {
+    if (!isset($statusMap[$newStatusEng])) {
+        echo json_encode(['success' => false, 'message' => 'Status inválido']);
+        exit;
+    }
+    $newStatus = $statusMap[$newStatusEng];
 }
 
-if ($newPaymentStatus && !in_array($newPaymentStatus, $validPaymentStatus)) {
-    echo json_encode(['success' => false, 'message' => 'Status de pagamento inválido']);
-    exit;
+if ($newPaymentStatusEng) {
+    if (!isset($paymentStatusMap[$newPaymentStatusEng])) {
+        echo json_encode(['success' => false, 'message' => 'Status de pagamento inválido']);
+        exit;
+    }
+    $newPaymentStatus = $paymentStatusMap[$newPaymentStatusEng];
 }
 
 try {
@@ -96,8 +119,8 @@ try {
         $params[] = $newStatus;
         $types .= 's';
         
-        // Se status = delivered, definir delivered_at
-        if ($newStatus === 'delivered') {
+        // Se status = entregue, definir delivered_at
+        if ($newStatus === 'entregue') {
             $updates[] = "delivered_at = NOW()";
         }
     }
@@ -107,8 +130,8 @@ try {
         $params[] = $newPaymentStatus;
         $types .= 's';
         
-        // Se pagamento = paid, definir payment_date
-        if ($newPaymentStatus === 'paid') {
+        // Se pagamento = pago, definir payment_date
+        if ($newPaymentStatus === 'pago') {
             $updates[] = "payment_date = NOW()";
         }
     }
@@ -134,7 +157,7 @@ try {
     }
     
     // ============================================================
-    // 2. CRIAR HISTÓRICO DE STATUS (Manual - substitui trigger)
+    // 2. CRIAR HISTÓRICO DE STATUS
     // ============================================================
     if ($newStatus && $newStatus !== $oldStatus) {
         $stmtHistory = $mysqli->prepare("
@@ -147,7 +170,7 @@ try {
     }
     
     // ============================================================
-    // 3. ATUALIZAR SALES_RECORDS (Manual - substitui trigger)
+    // 3. ATUALIZAR SALES_RECORDS (manter português também)
     // ============================================================
     if ($newStatus || $newPaymentStatus) {
         $salesUpdates = [];
@@ -185,5 +208,5 @@ try {
 } catch (Exception $e) {
     $mysqli->rollback();
     error_log("Erro ao atualizar status: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Erro ao atualizar status']);
+    echo json_encode(['success' => false, 'message' => 'Erro ao atualizar status: ' . $e->getMessage()]);
 }

@@ -1,44 +1,18 @@
 <?php
 /**
- * ================================================================================
- * VISIONGREEN - ACTION: BUSCAR PRODUTOS
- * Arquivo: company/modules/produtos/actions/search_products.php
- * Descrição: Retorna produtos filtrados via AJAX
- * ATUALIZADO: Suporta empresa e funcionário
- * ================================================================================
+ * search_products.php - Busca de produtos
+ * CORRIGIDO 100% para estrutura SQL real da tabela products
  */
 
-header('Content-Type: application/json');
-
-// Iniciar sessão
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Verificar autenticação (empresa OU funcionário)
-$isEmployee = isset($_SESSION['employee_auth']['employee_id']);
-$isCompany = isset($_SESSION['auth']['user_id']) && isset($_SESSION['auth']['type']) && $_SESSION['auth']['type'] === 'company';
-
-if (!$isEmployee && !$isCompany) {
-    echo json_encode(['success' => false, 'message' => 'Sessão expirada']);
-    exit;
-}
-
-// Determinar userId (ID da empresa)
-if ($isEmployee) {
-    $userId = (int)$_SESSION['employee_auth']['empresa_id']; // ID da empresa
-    $employeeId = (int)$_SESSION['employee_auth']['employee_id'];
-    $userType = 'funcionario';
-} else {
-    $userId = (int)$_SESSION['auth']['user_id'];
-    $employeeId = null;
-    $userType = 'gestor';
-}
-
-// Conectar ao banco
+// Tentar múltiplos caminhos possíveis
 $db_paths = [
     __DIR__ . '/../../../../../registration/includes/db.php',
-    dirname(dirname(dirname(dirname(__FILE__)))) . '/registration/includes/db.php'
+    __DIR__ . '/../../../../registration/includes/db.php',
+    dirname(dirname(dirname(dirname(dirname(__DIR__))))) . '/registration/includes/db.php'
 ];
 
 $db_connected = false;
@@ -51,71 +25,122 @@ foreach ($db_paths as $path) {
 }
 
 if (!$db_connected || !isset($mysqli)) {
-    echo json_encode(['success' => false, 'message' => 'Erro de conexão']);
+    echo json_encode(['success' => false, 'message' => 'Erro de conexão com banco de dados']);
     exit;
 }
 
-// Parâmetros de busca
+header('Content-Type: application/json; charset=UTF-8');
+
+$isEmployee = isset($_SESSION['employee_auth']['employee_id']);
+$isCompany = isset($_SESSION['auth']['user_id']) && isset($_SESSION['auth']['type']) && $_SESSION['auth']['type'] === 'company';
+
+if (!$isEmployee && !$isCompany) {
+    echo json_encode(['success' => false, 'message' => 'Não autorizado']);
+    exit;
+}
+
+$userId = $isEmployee ? (int)$_SESSION['employee_auth']['empresa_id'] : (int)$_SESSION['auth']['user_id'];
+
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$category = isset($_GET['category']) ? $_GET['category'] : '';
-$status = isset($_GET['status']) ? $_GET['status'] : '';
+$category = isset($_GET['category']) ? trim($_GET['category']) : '';
+$status = isset($_GET['status']) ? trim($_GET['status']) : '';
 
-// Construir query
-$sql = "SELECT * FROM products WHERE user_id = ?";
-$params = [$userId];
-$types = "i";
-
-if (!empty($search)) {
-    $sql .= " AND (name LIKE ? OR description LIKE ?)";
-    $search_param = "%$search%";
-    $params[] = $search_param;
-    $params[] = $search_param;
-    $types .= "ss";
+try {
+    // Verificar se mysqli está disponível
+    if (!isset($mysqli) || !$mysqli) {
+        throw new Exception('Conexão com banco de dados não estabelecida');
+    }
+    
+    $sql = "
+        SELECT 
+            p.id,
+            p.nome,
+            p.descricao,
+            p.imagem,
+            p.image_path1,
+            p.image_path2,
+            p.image_path3,
+            p.image_path4,
+            p.categoria,
+            p.preco,
+            p.currency,
+            p.stock,
+            p.stock_minimo,
+            p.status,
+            p.visualizacoes,
+            p.created_at,
+            u.nome AS company_name
+        FROM products p
+        LEFT JOIN users u ON p.user_id = u.id
+        WHERE p.user_id = ? AND p.deleted_at IS NULL
+    ";
+    
+    $params = [$userId];
+    $types = 'i';
+    
+    if (!empty($search)) {
+        $sql .= " AND (p.nome LIKE ? OR p.descricao LIKE ?)";
+        $searchParam = "%{$search}%";
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+        $types .= 'ss';
+    }
+    
+    if (!empty($category)) {
+        $sql .= " AND p.categoria = ?";
+        $params[] = $category;
+        $types .= 's';
+    }
+    
+    if (!empty($status)) {
+        $sql .= " AND p.status = ?";
+        $params[] = $status;
+        $types .= 's';
+    }
+    
+    $sql .= " ORDER BY p.created_at DESC";
+    
+    $stmt = $mysqli->prepare($sql);
+    
+    if (!$stmt) {
+        throw new Exception('Erro ao preparar query: ' . $mysqli->error);
+    }
+    
+    $stmt->bind_param($types, ...$params);
+    
+    if (!$stmt->execute()) {
+        throw new Exception('Erro ao executar query: ' . $stmt->error);
+    }
+    
+    $result = $stmt->get_result();
+    
+    if (!$result) {
+        throw new Exception('Erro ao obter resultados: ' . $stmt->error);
+    }
+    
+    $products = [];
+    while ($row = $result->fetch_assoc()) {
+        $products[] = $row;
+    }
+    
+    $stmt->close();
+    
+    $total = count($products);
+    $active = count(array_filter($products, fn($p) => $p['status'] === 'ativo'));
+    
+    echo json_encode([
+        'success' => true,
+        'products' => $products,
+        'stats' => [
+            'total' => $total,
+            'active' => $active
+        ]
+    ], JSON_UNESCAPED_UNICODE);
+    
+} catch (Exception $e) {
+    error_log("Erro em search_products.php: " . $e->getMessage());
+    echo json_encode([
+        'success' => false,
+        'message' => 'Erro ao buscar produtos: ' . $e->getMessage()
+    ]);
 }
-
-if (!empty($category)) {
-    $sql .= " AND category = ?";
-    $params[] = $category;
-    $types .= "s";
-}
-
-if ($status === 'active') {
-    $sql .= " AND is_active = 1";
-} elseif ($status === 'inactive') {
-    $sql .= " AND is_active = 0";
-}
-
-$sql .= " ORDER BY created_at DESC";
-
-// Executar query
-$stmt = $mysqli->prepare($sql);
-$stmt->bind_param($types, ...$params);
-$stmt->execute();
-$result = $stmt->get_result();
-
-$products = [];
-while ($row = $result->fetch_assoc()) {
-    $products[] = $row;
-}
-
-// Estatísticas
-$stats_stmt = $mysqli->prepare("
-    SELECT 
-        COALESCE(COUNT(*), 0) as total,
-        COALESCE(SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END), 0) as active,
-        COALESCE(SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END), 0) as inactive,
-        COALESCE(SUM(CASE WHEN is_recurring = 1 THEN 1 ELSE 0 END), 0) as recurring
-    FROM products
-    WHERE user_id = ?
-");
-$stats_stmt->bind_param("i", $userId);
-$stats_stmt->execute();
-$stats = $stats_stmt->get_result()->fetch_assoc();
-
-echo json_encode([
-    'success' => true,
-    'products' => $products,
-    'stats' => $stats,
-    'user_type' => $userType, // Informação adicional
-    'user_id' => $userId
-]);

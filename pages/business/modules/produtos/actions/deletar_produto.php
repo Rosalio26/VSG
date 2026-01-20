@@ -1,8 +1,9 @@
 <?php
 /**
  * ================================================================================
- * VISIONGREEN - ACTION: DELETAR PRODUTO (SOFT DELETE)
- * ATUALIZADO: Suporta empresa e funcionário
+ * VISIONGREEN - DELETAR PRODUTO
+ * Arquivo: pages/business/modules/produtos/actions/deletar_produto.php
+ * ✅ CORRIGIDO: Soft delete usando deleted_at
  * ================================================================================
  */
 
@@ -12,7 +13,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Verificar autenticação (empresa OU funcionário)
 $isEmployee = isset($_SESSION['employee_auth']['employee_id']);
 $isCompany = isset($_SESSION['auth']['user_id']) && isset($_SESSION['auth']['type']) && $_SESSION['auth']['type'] === 'company';
 
@@ -21,44 +21,71 @@ if (!$isEmployee && !$isCompany) {
     exit;
 }
 
-// Determinar userId (ID da empresa)
 if ($isEmployee) {
     $userId = (int)$_SESSION['employee_auth']['empresa_id'];
     $employeeId = (int)$_SESSION['employee_auth']['employee_id'];
-    $canEdit = false; // Funcionários não podem deletar produtos
+    
+    $db_paths = [
+        __DIR__ . '/../../../../../registration/includes/db.php',
+        dirname(dirname(dirname(dirname(__FILE__)))) . '/registration/includes/db.php'
+    ];
+
+    $db_connected = false;
+    foreach ($db_paths as $path) {
+        if (file_exists($path)) {
+            require_once $path;
+            $db_connected = true;
+            break;
+        }
+    }
+
+    if (!$db_connected || !isset($mysqli)) {
+        echo json_encode(['success' => false, 'message' => 'Erro de conexão']);
+        exit;
+    }
+    
+    $stmt = $mysqli->prepare("
+        SELECT can_delete 
+        FROM employee_permissions 
+        WHERE employee_id = ? AND module = 'produtos'
+        LIMIT 1
+    ");
+    $stmt->bind_param('i', $employeeId);
+    $stmt->execute();
+    $permissions = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    
+    if (!$permissions || !$permissions['can_delete']) {
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Você não tem permissão para deletar produtos'
+        ]);
+        exit;
+    }
+    
 } else {
     $userId = (int)$_SESSION['auth']['user_id'];
-    $employeeId = null;
-    $canEdit = true;
 }
 
-// Verificar permissão
-if ($isEmployee && !$canEdit) {
-    echo json_encode([
-        'success' => false, 
-        'message' => 'Funcionários não têm permissão para deletar produtos'
-    ]);
-    exit;
-}
+if (!isset($mysqli)) {
+    $db_paths = [
+        __DIR__ . '/../../../../../registration/includes/db.php',
+        dirname(dirname(dirname(dirname(__FILE__)))) . '/registration/includes/db.php'
+    ];
 
-// Incluir banco de dados (usando seu padrão de paths)
-$db_paths = [
-    __DIR__ . '/../../../../../registration/includes/db.php',
-    dirname(dirname(dirname(dirname(__FILE__)))) . '/registration/includes/db.php'
-];
-
-$db_connected = false;
-foreach ($db_paths as $path) {
-    if (file_exists($path)) {
-        require_once $path;
-        $db_connected = true;
-        break;
+    $db_connected = false;
+    foreach ($db_paths as $path) {
+        if (file_exists($path)) {
+            require_once $path;
+            $db_connected = true;
+            break;
+        }
     }
-}
 
-if (!$db_connected || !isset($mysqli)) {
-    echo json_encode(['success' => false, 'message' => 'Erro de conexão']);
-    exit;
+    if (!$db_connected || !isset($mysqli)) {
+        echo json_encode(['success' => false, 'message' => 'Erro de conexão']);
+        exit;
+    }
 }
 
 try {
@@ -68,20 +95,24 @@ try {
     
     $id = intval($_POST['id']);
     
-    // Em vez de DELETE, usamos UPDATE para desativar o produto
-    // Preserva integridade referencial com product_purchases
-    $stmt = $mysqli->prepare("UPDATE products SET is_active = 0, deleted_at = NOW() WHERE id = ? AND user_id = ?");
+    $stmt = $mysqli->prepare("
+        UPDATE products 
+        SET deleted_at = NOW() 
+        WHERE id = ? AND user_id = ? AND deleted_at IS NULL
+    ");
     $stmt->bind_param("ii", $id, $userId);
     
     if ($stmt->execute()) {
         if ($stmt->affected_rows > 0) {
-            echo json_encode(['success' => true, 'message' => 'Produto removido do catálogo!']);
+            echo json_encode(['success' => true, 'message' => 'Produto removido!']);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Produto não encontrado ou já removido']);
+            echo json_encode(['success' => false, 'message' => 'Produto não encontrado']);
         }
     } else {
         throw new Exception($mysqli->error);
     }
+    
+    $stmt->close();
     
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);

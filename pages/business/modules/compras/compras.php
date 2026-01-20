@@ -3,8 +3,7 @@
  * ================================================================================
  * VISIONGREEN - MÓDULO DE PEDIDOS/VENDAS
  * Arquivo: pages/business/modules/compras/compras.php
- * Descrição: Visualização de pedidos que clientes fizeram dos produtos da empresa
- * Suporta: Empresa e Funcionário com verificação de permissões
+ * ✅ ATUALIZADO: Confirmação de pagamento manual incluída
  * ================================================================================
  */
 
@@ -14,7 +13,6 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once '../../../../registration/includes/db.php';
 
-// Verificar autenticação
 $isEmployee = isset($_SESSION['employee_auth']['employee_id']);
 $isCompany = isset($_SESSION['auth']['user_id']) && isset($_SESSION['auth']['type']) && $_SESSION['auth']['type'] === 'company';
 
@@ -27,7 +25,6 @@ if (!$isEmployee && !$isCompany) {
     exit;
 }
 
-// Determinar empresa_id e permissões
 if ($isEmployee) {
     $companyId = (int)$_SESSION['employee_auth']['empresa_id'];
     $employeeId = (int)$_SESSION['employee_auth']['employee_id'];
@@ -57,6 +54,14 @@ if ($isEmployee) {
     $canEdit = (bool)$permissions['can_edit'];
     $canDelete = (bool)$permissions['can_delete'];
     
+    // Verificar se pode confirmar pagamentos
+    $stmt = $mysqli->prepare("SELECT pode_confirmar_pagamentos FROM employees WHERE id = ?");
+    $stmt->bind_param('i', $employeeId);
+    $stmt->execute();
+    $empData = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    $canConfirmPayment = (bool)$empData['pode_confirmar_pagamentos'];
+    
 } else {
     $companyId = (int)$_SESSION['auth']['user_id'];
     $employeeId = null;
@@ -64,6 +69,7 @@ if ($isEmployee) {
     $canView = true;
     $canEdit = true;
     $canDelete = true;
+    $canConfirmPayment = true;
 }
 ?>
 
@@ -80,6 +86,7 @@ if ($isEmployee) {
     --gh-blue: #1f6feb;
     --gh-red: #da3633;
     --gh-orange: #d29922;
+    --gh-yellow: #e3b341;
 }
 
 .compras-header {
@@ -212,6 +219,17 @@ if ($isEmployee) {
     background: #b62324;
 }
 
+.btn-warning {
+    background: var(--gh-yellow);
+    border-color: rgba(240, 246, 252, 0.1);
+    color: #000;
+    font-weight: 600;
+}
+
+.btn-warning:hover {
+    background: #d4a537;
+}
+
 .btn-icon {
     height: 28px;
     width: 28px;
@@ -280,6 +298,19 @@ if ($isEmployee) {
 .badge-paid { background: rgba(46, 160, 67, 0.1); border-color: rgba(46, 160, 67, 0.4); color: #3fb950; }
 .badge-partial { background: rgba(210, 153, 34, 0.1); border-color: rgba(210, 153, 34, 0.4); color: #d29922; }
 .badge-refunded { background: rgba(248, 81, 73, 0.1); border-color: rgba(248, 81, 73, 0.4); color: #f85149; }
+
+.payment-alert {
+    background: rgba(227, 179, 65, 0.15);
+    border: 1px solid rgba(227, 179, 65, 0.5);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #e3b341;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
 
 .empty-state {
     padding: 60px 20px;
@@ -376,6 +407,11 @@ if ($isEmployee) {
     <p style="color: var(--gh-text); font-size: 14px; margin: 0;">
         <i class="fa-solid fa-info-circle"></i>
         <strong>Modo Funcionário:</strong> Visualizando pedidos/vendas da empresa.
+        <?php if ($canConfirmPayment): ?>
+            <span style="color: var(--gh-green); margin-left: 10px;">
+                <i class="fa-solid fa-check-circle"></i> Autorizado a confirmar pagamentos
+            </span>
+        <?php endif; ?>
     </p>
 </div>
 <?php endif; ?>
@@ -446,6 +482,7 @@ if ($isEmployee) {
     const companyId = <?= $companyId ?>;
     const canEdit = <?= $canEdit ? 'true' : 'false' ?>;
     const canDelete = <?= $canDelete ? 'true' : 'false' ?>;
+    const canConfirmPayment = <?= $canConfirmPayment ? 'true' : 'false' ?>;
     
     const state = {
         search: '',
@@ -515,6 +552,11 @@ if ($isEmployee) {
             pending: 'Pendente', paid: 'Pago', partial: 'Parcial', refunded: 'Reembolsado'
         };
         
+        const paymentMethodLabels = {
+            mpesa: 'M-Pesa', emola: 'E-Mola', visa: 'Visa', 
+            mastercard: 'Mastercard', manual: 'Manual'
+        };
+        
         let tableHTML = `
             <table class="table">
                 <thead>
@@ -533,12 +575,20 @@ if ($isEmployee) {
         `;
         
         compras.forEach(compra => {
+            const isManualPayment = compra.payment_method === 'manual';
+            const isCancelled = compra.status === 'cancelled';
+            const isPendingPayment = compra.payment_status === 'pending' && isManualPayment && !isCancelled;
+            
             tableHTML += `
-                <tr>
-                    <td><strong>${escapeHtml(compra.order_number)}</strong></td>
+                <tr ${isPendingPayment ? 'style="background: rgba(227, 179, 65, 0.05);"' : ''}>
+                    <td>
+                        <strong>${escapeHtml(compra.order_number)}</strong>
+                        ${isPendingPayment ? '<br><span class="payment-alert"><i class="fa-solid fa-exclamation-triangle"></i> Aguardando Confirmação</span>' : ''}
+                    </td>
                     <td>
                         <div>${escapeHtml(compra.customer_name)}</div>
                         <div style="font-size: 12px; color: var(--gh-text-secondary);">${escapeHtml(compra.customer_email)}</div>
+                        ${isManualPayment ? '<div style="font-size: 11px; color: var(--gh-yellow); margin-top: 2px;"><i class="fa-solid fa-hand-holding-dollar"></i> Pag. Manual</div>' : ''}
                     </td>
                     <td>${formatDate(compra.order_date)}</td>
                     <td>${compra.items_count || 0}</td>
@@ -546,20 +596,35 @@ if ($isEmployee) {
                     <td><span class="badge badge-${compra.status}">${statusLabels[compra.status]}</span></td>
                     <td><span class="badge badge-${compra.payment_status}">${paymentLabels[compra.payment_status]}</span></td>
                     <td>
-                        <div style="display: flex; gap: 4px;">
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                             <button class="btn btn-secondary btn-icon" onclick="window.ComprasModule.viewDetails(${compra.id})" title="Ver Detalhes">
                                 <i class="fa-solid fa-eye"></i>
                             </button>
+                            
+                            ${canConfirmPayment && isPendingPayment ? `
+                            <button class="btn btn-warning btn-icon" onclick="window.ComprasModule.confirmarPagamento(${compra.id})" title="Confirmar Pagamento Manual">
+                                <i class="fa-solid fa-check-circle"></i>
+                            </button>
+                            ` : ''}
+                            
+                            ${compra.payment_status === 'paid' ? `
+                            <button class="btn btn-secondary btn-icon" onclick="window.ComprasModule.gerarRecibo(${compra.id})" title="Gerar Recibo PDF">
+                                <i class="fa-solid fa-file-pdf"></i>
+                            </button>
+                            ` : ''}
+                            
                             ${canEdit ? `
                             <button class="btn btn-secondary btn-icon" onclick="window.ComprasModule.updateStatus(${compra.id}, '${compra.status}')" title="Atualizar Status">
                                 <i class="fa-solid fa-pen"></i>
                             </button>
                             ` : ''}
+                            
                             ${canEdit && compra.status !== 'delivered' && compra.status !== 'cancelled' ? `
                             <button class="btn btn-danger btn-icon" onclick="window.ComprasModule.cancelar(${compra.id})" title="Cancelar Pedido">
                                 <i class="fa-solid fa-ban"></i>
                             </button>
                             ` : ''}
+                            
                             ${canDelete && (compra.status === 'pending' || compra.status === 'cancelled') ? `
                             <button class="btn btn-danger btn-icon" onclick="window.ComprasModule.deletar(${compra.id})" title="Deletar">
                                 <i class="fa-solid fa-trash"></i>
@@ -619,14 +684,23 @@ if ($isEmployee) {
                 let msg = `PEDIDO: ${data.pedido.order_number}\n\n`;
                 msg += `Cliente: ${data.pedido.customer_name}\n`;
                 msg += `Email: ${data.pedido.customer_email}\n`;
+                msg += `Telefone: ${data.pedido.customer_phone || 'N/A'}\n`;
                 msg += `Data: ${formatDate(data.pedido.order_date)}\n`;
                 msg += `Total: ${formatMoney(data.pedido.total)} ${data.pedido.currency}\n`;
                 msg += `Status: ${data.pedido.status}\n`;
-                msg += `Pagamento: ${data.pedido.payment_status}\n\n`;
+                msg += `Pagamento: ${data.pedido.payment_status}\n`;
+                msg += `Método: ${data.pedido.payment_method}\n\n`;
+                
+                if (data.pedido.shipping_address) {
+                    msg += `Endereço: ${data.pedido.shipping_address}\n`;
+                    msg += `Cidade: ${data.pedido.shipping_city || 'N/A'}\n\n`;
+                }
+                
                 msg += `ITENS (${data.items.length}):\n`;
                 data.items.forEach(item => {
                     msg += `- ${item.product_name} (${item.quantity}x) = ${formatMoney(item.total)}\n`;
                 });
+                
                 alert(msg);
             } else {
                 showAlert('error', data.message);
@@ -634,6 +708,60 @@ if ($isEmployee) {
         } catch (error) {
             showAlert('error', 'Erro ao buscar detalhes');
         }
+    }
+    
+    async function confirmarPagamento(orderId) {
+        const receiptNumber = prompt('Número do comprovante/recibo (opcional):');
+        if (receiptNumber === null) return;
+        
+        const notes = prompt('Observações sobre o pagamento (opcional):');
+        if (notes === null) return;
+        
+        const formData = new FormData();
+        formData.append('order_id', orderId);
+        formData.append('receipt_number', receiptNumber);
+        formData.append('notes', notes);
+        
+        try {
+            const response = await fetch('modules/compras/actions/confirmar_pagamento.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            showAlert(result.success ? 'success' : 'error', result.message);
+            
+            if (result.success) loadCompras();
+        } catch (error) {
+            showAlert('error', 'Erro ao confirmar pagamento');
+        }
+    }
+    
+    function gerarRecibo(orderId) {
+        if (!confirm('Gerar recibo em PDF e enviar ao cliente?')) return;
+        
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'modules/compras/actions/gerar_recibo.php';
+        form.target = '_blank';
+        
+        const orderInput = document.createElement('input');
+        orderInput.type = 'hidden';
+        orderInput.name = 'order_id';
+        orderInput.value = orderId;
+        form.appendChild(orderInput);
+        
+        const autoSendInput = document.createElement('input');
+        autoSendInput.type = 'hidden';
+        autoSendInput.name = 'auto_send';
+        autoSendInput.value = 'true';
+        form.appendChild(autoSendInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+        
+        showAlert('success', 'Gerando recibo... O cliente receberá uma notificação.');
     }
     
     async function updateStatus(id, currentStatus) {
@@ -745,6 +873,8 @@ if ($isEmployee) {
     
     window.ComprasModule = {
         viewDetails,
+        confirmarPagamento,
+        gerarRecibo,
         updateStatus,
         cancelar,
         deletar,
