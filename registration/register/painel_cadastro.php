@@ -127,15 +127,54 @@ $csrf = csrf_generate();
 
             <div class="step-content" data-step="2">
                 <div class="section-title">Etapa 2 - 4: Localização & Fiscal</div>
-                <div class="person-field-input">
-                    <label>País</label>
-                    <select name="pais" id="select_pais" required style="width:100%; padding:12px; border-radius:6px; border:1px solid #ddd;">
-                        <option value="">Carregando lista de países...</option>
-                    </select>
-                </div>
                 
+                <!-- País -->
                 <div class="person-field-input">
-                    <label id="label_fiscal">Documento Fiscal (CNPJ / NUIT)</label>
+                    <label>País <span style="color: red;">*</span></label>
+                    <select name="pais" id="select_pais" required style="width:100%; padding:12px; border-radius:6px; border:1px solid #ddd;">
+                        <option value="">Selecione o país...</option>
+                    </select>
+                    <span class="error-message">Selecione um país.</span>
+                </div>
+
+                <!-- Província/Estado -->
+                <div class="person-field-input">
+                    <label id="label_state">Província/Estado <span style="color: red;">*</span></label>
+                    <input type="text" name="state" id="state_input" required placeholder="Digite a província ou estado">
+                    <span class="error-message">Este campo é obrigatório.</span>
+                </div>
+
+                <!-- Cidade -->
+                <div class="person-field-input">
+                    <label>Cidade <span style="color: red;">*</span></label>
+                    <input type="text" name="city" id="city_input" required placeholder="Digite a cidade">
+                    <span class="error-message">Este campo é obrigatório.</span>
+                </div>
+
+                <!-- Endereço Completo -->
+                <div class="person-field-input">
+                    <label>Endereço Completo</label>
+                    <input type="text" name="address" id="address_input" placeholder="Rua, número, bairro...">
+                    <button type="button" class="btn-location" onclick="openLocationModalForRegistration()">
+                        <i class="fa-solid fa-location-dot"></i>
+                        Usar Localização Atual
+                    </button>
+                </div>
+
+                <!-- Código Postal (Opcional) -->
+                <div class="person-field-input">
+                    <label>Código Postal / CEP</label>
+                    <input type="text" name="postal_code" id="postal_code_input" placeholder="Digite o código postal">
+                </div>
+
+                <!-- Campos Hidden para Coordenadas -->
+                <input type="hidden" name="latitude" id="latitude_input">
+                <input type="hidden" name="longitude" id="longitude_input">
+                <input type="hidden" name="country_code" id="country_code_input">
+
+                <!-- Documento Fiscal -->
+                <div class="person-field-input">
+                    <label id="label_fiscal">Documento Fiscal <span style="color: red;">*</span></label>
                     
                     <div class="fiscal-mode-selector">
                         <label>
@@ -148,26 +187,20 @@ $csrf = csrf_generate();
                         </label>
                     </div>
 
-                    <input type="text" name="tax_id" id="tax_id" placeholder="Digite o seu CNPJ / NUIT / NIF" required>
+                    <input type="text" name="tax_id" id="tax_id" placeholder="Digite o CNPJ / NUIT / NIF" required>
 
                     <label class="custom-file-upload" id="area_tax_file" style="display:none;">
                         <i>📁</i>
-                        <span>Clique para anexar o Comprovante do Tax ID</span>
+                        <span>Clique para anexar o Comprovante</span>
                         <input type="file" name="tax_id_file" id="tax_id_file" accept=".pdf,image/*" onchange="updateFileName(this)">
                         <div class="file-selected-name"></div>
                     </label>
 
-                    <small style="color: #070129ff; display: block; margin-top: 5px;">Se fizer upload, nosso Admin validará o número manualmente.</small>
+                    <small style="color: #070129ff; display: block; margin-top: 5px;">
+                        Se fizer upload, nosso Admin validará manualmente.
+                    </small>
                 </div>
 
-                <div class="person-field-input">
-                    <label>Região (Estado/Província)</label>
-                    <input type="text" name="regiao" id="regiao" required placeholder="Digite a sua provincia / Região">
-                </div>
-                <div class="person-field-input">
-                    <label>Cidade (Localidade/Município)</label>
-                    <input type="text" name="localidade" id="localidade" required placeholder="Digite a sua cidade ou localidade">
-                </div>
                 <div class="btn-navigation">
                     <button type="button" class="btn-prev" onclick="changeStep(2, 1)">Voltar</button>
                     <button type="button" class="btn-next" onclick="changeStep(2, 3)">Próxima Etapa</button>
@@ -243,35 +276,105 @@ $csrf = csrf_generate();
         <?php endif; ?>
         
         <?php if (in_array('pessoal', $tiposPermitidos, true)): ?>
-        <form id="formPessoa" method="post" action="../process/pessoa.store.php" novalidate <?= $tipoAtual === 'pessoal' ? '' : 'hidden' ?>>
-            <?= csrf_field(); ?>
-            <input type="hidden" name="tipo" value="person"> 
-            <div class="person-field-input">
-                <label>Nome Completo</label>
-                <input type="text" name="nome" required minlength="2">
-            </div>
-            <div class="person-field-input">
-                <label>Como quer ser chamado (Apelido)</label>
-                <input type="text" name="apelido" required minlength="2">
-            </div>
-            <div class="person-field-input">
-                <label>E-mail</label>
-                <input type="email" name="email" required>
-            </div>
-            <div class="person-field-input">
-                <label>Telefone</label>
-                <input type="tel" name="telefone" id="telefone_input" placeholder="Ex: +258 84 123 4567" required>
-            </div>
-            <div class="person-field-input">
-                <label>Senha</label>
-                <input type="password" name="password" required minlength="8">
-            </div>
-            <div class="person-field-input">
-                <label>Confirmar Senha</label>
-                <input type="password" name="password_confirm" required minlength="8">
-            </div>
-            <button type="submit" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">Continuar para Verificação</button>
-        </form>
+            <form id="formPessoa" method="post" action="../process/pessoa.store.php" novalidate <?= $tipoAtual === 'pessoal' ? '' : 'hidden' ?>>
+                <?= csrf_field(); ?>
+                <input type="hidden" name="tipo" value="person"> 
+
+                <!-- Dados Pessoais -->
+                <div class="section-title">Dados Pessoais</div>
+                
+                <div class="person-field-input">
+                    <label>Nome Completo <span style="color: red;">*</span></label>
+                    <input type="text" name="nome" id="nome_pessoa" required minlength="2" placeholder="Digite seu nome completo">
+                    <span class="error-message">Este campo é obrigatório.</span>
+                </div>
+
+                <div class="person-field-input">
+                    <label>Como quer ser chamado (Apelido) <span style="color: red;">*</span></label>
+                    <input type="text" name="apelido" id="apelido_pessoa" required minlength="2" placeholder="Ex: João, Maria">
+                    <span class="error-message">Este campo é obrigatório.</span>
+                </div>
+
+                <!-- Localização -->
+                <div class="section-title" style="margin-top: 30px;">Localização</div>
+
+                <div class="person-field-input">
+                    <label>País <span style="color: red;">*</span></label>
+                    <select name="country" id="select_pais_pessoa" required style="width:100%; padding:12px; border-radius:6px; border:1px solid #ddd;">
+                        <option value="">Selecione o país...</option>
+                    </select>
+                    <span class="error-message">Selecione um país.</span>
+                </div>
+
+                <div class="person-field-input">
+                    <label id="label_state_pessoa">Província/Estado <span style="color: red;">*</span></label>
+                    <input type="text" name="state" id="state_input_pessoa" required placeholder="Digite a província ou estado">
+                    <span class="error-message">Este campo é obrigatório.</span>
+                </div>
+
+                <div class="person-field-input">
+                    <label>Cidade <span style="color: red;">*</span></label>
+                    <input type="text" name="city" id="city_input_pessoa" required placeholder="Digite a cidade">
+                    <span class="error-message">Este campo é obrigatório.</span>
+                </div>
+
+                <div class="person-field-input">
+                    <label>Endereço Completo</label>
+                    <input type="text" name="address" id="address_input_pessoa" placeholder="Rua, número, bairro...">
+                    <button type="button" class="btn-location" onclick="openLocationModalForPerson()">
+                        <i class="fa-solid fa-location-dot"></i>
+                        Usar Minha Localização
+                    </button>
+                </div>
+
+                <div class="person-field-input">
+                    <label>Código Postal / CEP</label>
+                    <input type="text" name="postal_code" id="postal_code_input_pessoa" placeholder="Digite o código postal">
+                </div>
+
+                <!-- Campos Hidden para Coordenadas -->
+                <input type="hidden" name="latitude" id="latitude_input_pessoa">
+                <input type="hidden" name="longitude" id="longitude_input_pessoa">
+                <input type="hidden" name="country_code" id="country_code_input_pessoa">
+
+                <!-- Contato -->
+                <div class="section-title" style="margin-top: 30px;">Contato</div>
+
+                <div class="person-field-input">
+                    <label>E-mail <span style="color: red;">*</span></label>
+                    <input type="email" name="email" id="email_pessoa" required placeholder="exemplo@email.com">
+                    <span class="error-message">Digite um e-mail válido.</span>
+                </div>
+
+                <div class="person-field-input">
+                    <label>Telefone <span style="color: red;">*</span></label>
+                    <input type="tel" name="telefone" id="telefone_input" placeholder="Ex: +258 84 123 4567" required>
+                    <span class="error-message">Este campo é obrigatório.</span>
+                </div>
+
+                <!-- Segurança -->
+                <div class="section-title" style="margin-top: 30px;">Segurança</div>
+
+                <div class="person-field-input">
+                    <label>Senha <span style="color: red;">*</span></label>
+                    <input type="password" name="password" id="password_pessoa" required minlength="8" placeholder="Mínimo 8 caracteres" oninput="checkStrengthPessoa(this.value)">
+                    <div class="strength-meter">
+                        <div id="strengthBarPessoa" class="strength-bar"></div>
+                    </div>
+                    <small id="strengthTextPessoa" style="font-size: 11px; color: #666;">Força da senha</small>
+                    <span class="error-message">A senha deve ter no mínimo 8 caracteres.</span>
+                </div>
+
+                <div class="person-field-input">
+                    <label>Confirmar Senha <span style="color: red;">*</span></label>
+                    <input type="password" name="password_confirm" id="password_confirm_pessoa" required minlength="8" placeholder="Repita a senha">
+                    <span class="error-message">As senhas não coincidem.</span>
+                </div>
+
+                <button type="submit" style="width:100%; padding:14px; background:#28a745; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer; font-size: 15px; margin-top: 20px; transition: all 0.3s;">
+                    <i class="fa-solid fa-user-check"></i> Continuar para Verificação
+                </button>
+            </form>
         <?php endif; ?>
     </div>
 </div>

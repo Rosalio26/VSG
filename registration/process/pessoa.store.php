@@ -30,13 +30,24 @@ try {
         echo json_encode(['error' => 'Token inválido.']);
         exit;
     }
-/* ================= 2. COLETA E VALIDAÇÃO ================= */
+    
+    /* ================= 2. COLETA E VALIDAÇÃO ================= */
     $nome     = trim($_POST['nome'] ?? '');
     $apelido  = trim($_POST['apelido'] ?? '');
     $email    = strtolower(trim($_POST['email'] ?? ''));
     $telefone = trim($_POST['telefone'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirm  = $_POST['password_confirm'] ?? '';
+
+    // LOCALIZAÇÃO
+    $country        = trim($_POST['country'] ?? '');
+    $country_code   = trim($_POST['country_code'] ?? '');
+    $state          = trim($_POST['state'] ?? '');
+    $city           = trim($_POST['city'] ?? '');
+    $address        = trim($_POST['address'] ?? '');
+    $postal_code    = trim($_POST['postal_code'] ?? '');
+    $latitude       = !empty($_POST['latitude']) ? (float)$_POST['latitude'] : null;
+    $longitude      = !empty($_POST['longitude']) ? (float)$_POST['longitude'] : null;
 
     $errors = [];
 
@@ -46,6 +57,9 @@ try {
     if (empty($email)) $errors['email'] = 'O e-mail é obrigatório.';
     if (empty($telefone)) $errors['telefone'] = 'O telefone é obrigatório.';
     if (empty($password)) $errors['password'] = 'A senha é obrigatória.';
+    if (empty($country)) $errors['country'] = 'País é obrigatório.';
+    if (empty($state)) $errors['state'] = 'Estado/Província é obrigatório.';
+    if (empty($city)) $errors['city'] = 'Cidade é obrigatória.';
 
     // 2. VALIDAÇÕES ESPECÍFICAS (Só executa se o campo não estiver vazio)
     if (!isset($errors['nome']) && mb_strlen($nome) < 3) {
@@ -83,6 +97,7 @@ try {
         echo json_encode(['errors' => $errors]);
         exit;
     }
+    
     /* ================= 3. VERIFICAÇÃO DE DUPLICIDADE (SEPARADA) ================= */
     
     // 3.1 Verificar E-mail
@@ -108,6 +123,7 @@ try {
         echo json_encode(['errors' => $errors]);
         exit;
     }
+    
     /* ================= 4. DADOS PARA O BANCO (NOMES EXATOS) ================= */
     $passHash = password_hash($password, PASSWORD_DEFAULT);
     $token    = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
@@ -121,16 +137,17 @@ try {
     /* ================= 5. INSERÇÃO (PASSWORD_HASH) ================= */
     $sql = "INSERT INTO users (
                 type, nome, apelido, email, telefone, password_hash, 
-                status, registration_step, email_token, email_token_expires
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                status, registration_step, email_token, email_token_expires,
+                country, country_code, state, city, address, postal_code, latitude, longitude, location_updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
     $stmt = $mysqli->prepare($sql);
     
-    // "ssssssssss" = 10 strings
     $stmt->bind_param(
-        "ssssssssss", 
+        "ssssssssssssssssdd", 
         $type, $nome, $apelido, $email, $telefone, $passHash, 
-        $status, $step, $token, $expires
+        $status, $step, $token, $expires,
+        $country, $country_code, $state, $city, $address, $postal_code, $latitude, $longitude
     );
 
     $stmt->execute();

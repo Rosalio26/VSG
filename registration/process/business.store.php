@@ -50,10 +50,22 @@ try {
     $localidade     = trim($_POST['localidade'] ?? '');
     $no_logo        = isset($_POST['no_logo']);
 
+    // LOCALIZAÇÃO
+    $country        = trim($_POST['pais'] ?? '');
+    $country_code   = trim($_POST['country_code'] ?? '');
+    $state          = trim($_POST['state'] ?? '');
+    $city           = trim($_POST['city'] ?? '');
+    $address        = trim($_POST['address'] ?? '');
+    $postal_code    = trim($_POST['postal_code'] ?? '');
+    $latitude       = !empty($_POST['latitude']) ? (float)$_POST['latitude'] : null;
+    $longitude      = !empty($_POST['longitude']) ? (float)$_POST['longitude'] : null;
+
     if (empty($nome_empresa))   $errors['nome_empresa'] = 'A razão social é obrigatória.';
     if (empty($email_business)) $errors['email_business'] = 'O e-mail é obrigatório.';
     if (empty($telefone))       $errors['telefone'] = 'O telefone é obrigatório.';
-    if (empty($pais))           $errors['pais'] = 'Selecione o país.';
+    if (empty($country))        $errors['pais'] = 'Selecione o país.';
+    if (empty($state))          $errors['state'] = 'Estado/Província é obrigatório.';
+    if (empty($city))           $errors['city'] = 'Cidade é obrigatória.';
 
     if ($fiscal_mode === 'text' && empty($tax_id)) {
         $errors['tax_id'] = 'O código fiscal é obrigatório.';
@@ -179,11 +191,17 @@ try {
     $expires  = date('Y-m-d H:i:s', time() + 3600);
     $realPassHash = password_hash($password, PASSWORD_DEFAULT);
 
-    // Inserir User
-    $sqlUser = "INSERT INTO users (type, nome, email, telefone, password_hash, registration_step, email_token, email_token_expires) 
-                VALUES ('company', ?, ?, ?, ?, 'email_pending', ?, ?)";
+    // Inserir User com localização
+    $sqlUser = "INSERT INTO users (
+                    type, nome, email, telefone, password_hash, registration_step, 
+                    email_token, email_token_expires,
+                    country, country_code, state, city, address, postal_code, latitude, longitude, location_updated_at
+                ) VALUES ('company', ?, ?, ?, ?, 'email_pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
     $stmt = $mysqli->prepare($sqlUser);
-    $stmt->bind_param("ssssss", $nome_empresa, $email_business, $telefone, $realPassHash, $token, $expires);
+    $stmt->bind_param("ssssssssssssdd", 
+        $nome_empresa, $email_business, $telefone, $realPassHash, $token, $expires, 
+        $country, $country_code, $state, $city, $address, $postal_code, $latitude, $longitude
+    );
     $stmt->execute();
     $newUserId = $mysqli->insert_id; 
 
@@ -199,7 +217,7 @@ try {
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmtBus = $mysqli->prepare($sqlBus);
     $stmtBus->bind_param("isssssssss", 
-        $newUserId, $finalTaxIdText, $finalTaxIdFile, $tipo_empresa, $descricao, $pais, $regiao, $localidade, $pathLicenca, $pathLogo
+        $newUserId, $finalTaxIdText, $finalTaxIdFile, $tipo_empresa, $descricao, $country, $regiao, $localidade, $pathLicenca, $pathLogo
     );
     $stmtBus->execute();
 

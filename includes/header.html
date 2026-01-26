@@ -1,0 +1,89 @@
+<!-- Top Strip -->
+<div class="top-strip">
+    <div class="top-strip-content">
+        <div class="top-left-info">
+            <a href="#" class="top-link">
+                <i class="fa-solid fa-location-dot"></i>
+                Entregar em <span class="location-now"></span>
+            </a>
+        </div>
+        <ul class="top-right-nav">
+            <li><a href="#">Central de Ajuda</a></li>
+            <li><a href="#">Rastrear Pedido</a></li>
+        </ul>
+    </div>
+</div>
+
+<!-- Main Header -->
+    <header class="main-header">
+        <div class="header-main">
+            <a href="index.php" class="logo-container">
+                <div class="logo-text">
+                    VSG<span class="logo-accent">•</span>
+                </div>
+            </a>
+
+            <form action="marketplace.php" method="GET" class="search-section">
+                <select class="search-category" name="category" id="searchCategorySelect">
+                    <option value="" data-icon="">Todas Categorias</option>
+                    <?php foreach ($all_categories as $cat): ?>
+                        <option value="<?= $cat['id'] ?>" 
+                                data-icon="<?= htmlspecialchars($cat['icon']) ?>"
+                                <?= $selected_category_id == $cat['id'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($cat['name']) ?> (<?= $cat['product_count'] ?>)
+                        </option>
+                        <?php if (!empty($cat['subcategories'])): ?>
+                            <?php foreach ($cat['subcategories'] as $subcat): ?>
+                                <option value="<?= $subcat['id'] ?>" 
+                                        data-icon="<?= htmlspecialchars($subcat['icon']) ?>"
+                                        <?= $selected_category_id == $subcat['id'] ? 'selected' : '' ?>>
+                                    &nbsp;&nbsp;↳ <?= htmlspecialchars($subcat['name']) ?> (<?= $subcat['product_count'] ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </select>
+                <div class="search-input-wrapper">
+                    <input 
+                        type="text" 
+                        class="search-input" 
+                        name="q"
+                        value="<?= htmlspecialchars($search_query) ?>"
+                        placeholder="Buscar produtos sustentáveis..."
+                    >
+                </div>
+                <button type="submit" class="search-button">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+            </form>
+
+            <div class="header-actions">
+                <a href="<?= $user_logged_in ? 'pages/person/index.php?page=favoritos' : 'registration/login/login.php' ?>" class="header-action">
+                    <i class="fa-solid fa-heart action-icon"></i>
+                    <span>Favoritos</span>
+                </a>
+
+                <a href="<?= $user_logged_in ? 'pages/person/index.php?page=carrinho' : 'registration/login/login.php' ?>" class="header-action">
+                    <i class="fa-solid fa-cart-shopping action-icon"></i>
+                    <?php if ($cart_count > 0): ?>
+                        <span class="cart-badge"><?= $cart_count ?></span>
+                    <?php endif; ?>
+                    <span>Carrinho</span>
+                </a>
+
+                <?php if ($user_logged_in): ?>
+                    <a href="pages/person/index.php" class="header-action" target="_blank">
+                        <img src="<?= htmlspecialchars($displayAvatar) ?>" 
+                             alt="<?= htmlspecialchars($displayName) ?>" 
+                             style="width: 32px; height: 32px; border-radius: 50%; margin-bottom: 4px;">
+                        <span><?= htmlspecialchars($displayName) ?></span>
+                    </a>
+                <?php else: ?>
+                    <a href="registration/login/login.php" class="header-action">
+                        <i class="fa-solid fa-user action-icon"></i>
+                        <span>Entrar</span>
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </header>
