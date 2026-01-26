@@ -116,3 +116,33 @@ Array
     [total] => 123.00
 )
 
+[2026-01-21 12:59:22] Buscando detalhes do pedido
+Array
+(
+    [userId] => 1
+    [orderId] => 9
+)
+
+[2026-01-21 12:59:22] Pedido carregado com sucesso
+Array
+(
+    [orderId] => 9
+    [itemsCount] => 1
+    [total] => 66.00
+)
+
+[2026-01-21 13:34:59] Buscando detalhes do pedido
+Array
+(
+    [userId] => 1
+    [orderId] => 1
+)
+
+[2026-01-21 13:34:59] Pedido carregado com sucesso
+Array
+(
+    [orderId] => 1
+    [itemsCount] => 1
+    [total] => 123.00
+)
+

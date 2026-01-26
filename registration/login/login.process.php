@@ -282,7 +282,7 @@ try {
 
     // Redirecionamento final
     if ($user['type'] === 'person') {
-        header("Location: ../../pages/person/dashboard_person.php");
+        header("Location: ../../pages/person/index.php");
     } elseif ($user['type'] === 'company') {
         header("Location: ../../pages/business/dashboard_business.php");
     } else {

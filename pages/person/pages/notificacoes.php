@@ -1,9 +1,9 @@
 <div class="page-container">
-    <div class="page-header whatsapp-header">
+    <div class="page-header notification-header">
         <div class="page-header-content">
             <div class="page-title-group">
-                <div class="whatsapp-icon-wrapper">
-                    <i class="fa-brands fa-whatsapp"></i>
+                <div class="notification-icon-wrapper">
+                    <i class="fa-solid fa-bell"></i>
                 </div>
                 <div>
                     <h1>Notificações</h1>
@@ -28,7 +28,7 @@
         </div>
     </div>
 
-    <div class="filters-bar whatsapp-filters">
+    <div class="filters-bar notification-filters">
         <div class="filter-group">
             <button class="filter-chip active" data-filter="all" onclick="NotificationsModule.filterNotifications('all', this)">
                 <i class="fa-solid fa-list"></i> Todas
@@ -48,40 +48,39 @@
         </div>
         
         <div style="display: flex; gap: 8px;">
-            <button class="btn-whatsapp" onclick="NotificationsModule.markAllAsRead()">
+            <button class="btn-action-primary" onclick="NotificationsModule.markAllAsRead()">
                 <i class="fa-solid fa-check-double"></i>
                 Marcar Todas como Lidas
             </button>
         </div>
     </div>
 
-    <div class="notifications-list whatsapp-list" id="notificationsList">
-        <div class="empty-state whatsapp-empty">
+    <div class="notifications-list" id="notificationsList">
+        <div class="empty-state">
             <i class="fa-solid fa-spinner fa-spin"></i>
-            <h2>Carregando notificações...</h2>
+            <h3>Carregando notificações...</h3>
             <p>Aguarde um momento</p>
         </div>
     </div>
 </div>
 
-<!-- Modal Notificação WhatsApp Style -->
-<div class="modal-overlay whatsapp-modal-overlay" id="modalNotification">
-    <div class="modal-container whatsapp-modal">
-        <div class="modal-header whatsapp-modal-header">
+<div class="modal-overlay" id="modalNotification">
+    <div class="modal-container notification-modal">
+        <div class="modal-header notification-modal-header">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <div class="whatsapp-avatar-modal" id="modalAvatar">💬</div>
+                <div class="notification-avatar-modal" id="modalAvatar">💬</div>
                 <div>
                     <h2 class="modal-title" id="modalNotificationTitle">Mensagem</h2>
                     <p class="modal-subtitle" id="modalNotificationSubtitle">VisionGreen</p>
                 </div>
             </div>
-            <button class="modal-close whatsapp-close" onclick="NotificationsModule.closeNotificationModal()">
+            <button class="modal-close" onclick="NotificationsModule.closeNotificationModal()">
                 <i class="fa-solid fa-times"></i>
             </button>
         </div>
-        <div class="modal-body whatsapp-modal-body" id="modalNotificationContent"></div>
-        <div class="modal-footer whatsapp-modal-footer">
-            <button class="btn-whatsapp btn-primary" onclick="NotificationsModule.closeNotificationModal()">
+        <div class="modal-body notification-modal-body" id="modalNotificationContent"></div>
+        <div class="modal-footer notification-modal-footer">
+            <button class="btn-action-primary" onclick="NotificationsModule.closeNotificationModal()">
                 <i class="fa-solid fa-check"></i>
                 Fechar
             </button>
@@ -90,84 +89,77 @@
 </div>
 
 <style>
-/* ========================================
-   WHATSAPP DESIGN SYSTEM
-   ======================================== */
-
 :root {
-    --whatsapp-primary: #25D366;
-    --whatsapp-primary-dark: #1DA851;
-    --whatsapp-primary-light: #E7F5EC;
-    --whatsapp-bg: #0B141A;
-    --whatsapp-surface: #111B21;
-    --whatsapp-surface-light: #1F2C34;
-    --whatsapp-border: #2A3942;
-    --whatsapp-text: #E9EDEF;
-    --whatsapp-text-secondary: #8696A0;
-    --whatsapp-bubble-sent: #005C4B;
-    --whatsapp-bubble-received: #202C33;
-    --whatsapp-unread: #25D366;
-    --whatsapp-shadow: rgba(0, 0, 0, 0.4);
+    --notif-primary: #00ff88;
+    --notif-primary-dark: #00cc6a;
+    --notif-primary-light: #e7fff4;
+    --notif-bg: #0a0f0d;
+    --notif-surface: #0f1612;
+    --notif-surface-light: #1a231d;
+    --notif-border: #243329;
+    --notif-text: #e9f5ed;
+    --notif-text-secondary: #8a9e8f;
+    --notif-bubble-sent: #004d3d;
+    --notif-bubble-received: #1d2822;
+    --notif-unread: #00ff88;
+    --notif-shadow: rgba(0, 0, 0, 0.4);
 }
 
-/* Header WhatsApp */
-.whatsapp-header {
-    background: linear-gradient(135deg, var(--whatsapp-surface) 0%, var(--whatsapp-bg) 100%);
-    border-bottom: 1px solid var(--whatsapp-border);
+.notification-header {
+    background: linear-gradient(135deg, var(--notif-surface) 0%, var(--notif-bg) 100%);
+    border-bottom: 1px solid var(--notif-border);
 }
 
-.whatsapp-icon-wrapper {
+.notification-icon-wrapper {
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, var(--whatsapp-primary) 0%, var(--whatsapp-primary-dark) 100%);
+    background: linear-gradient(135deg, var(--notif-primary) 0%, var(--notif-primary-dark) 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
 }
 
-.whatsapp-icon-wrapper i {
+.notification-icon-wrapper i {
     font-size: 28px;
-    color: white;
+    color: #000;
 }
 
-/* Filters WhatsApp Style */
-.whatsapp-filters {
-    background: var(--whatsapp-surface);
-    border-bottom: 1px solid var(--whatsapp-border);
+.notification-filters {
+    background: var(--notif-surface);
+    border-bottom: 1px solid var(--notif-border);
 }
 
 .filter-chip {
-    background: var(--whatsapp-surface-light);
-    border: 1px solid var(--whatsapp-border);
-    color: var(--whatsapp-text-secondary);
+    background: var(--notif-surface-light);
+    border: 1px solid var(--notif-border);
+    color: var(--notif-text-secondary);
     transition: all 0.2s ease;
 }
 
 .filter-chip:hover {
-    background: var(--whatsapp-bubble-received);
-    border-color: var(--whatsapp-primary);
-    color: var(--whatsapp-text);
+    background: var(--notif-bubble-received);
+    border-color: var(--notif-primary);
+    color: var(--notif-text);
 }
 
 .filter-chip.active {
-    background: var(--whatsapp-primary);
-    border-color: var(--whatsapp-primary);
-    color: white;
+    background: var(--notif-primary);
+    border-color: var(--notif-primary);
+    color: #000;
     font-weight: 600;
 }
 
-/* Botão WhatsApp */
-.btn-whatsapp {
+.btn-action-primary {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: var(--whatsapp-surface-light);
-    border: 1px solid var(--whatsapp-border);
+    background: var(--notif-surface-light);
+    border: 1px solid var(--notif-border);
     border-radius: 8px;
-    color: var(--whatsapp-text);
+    color: var(--notif-text);
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -175,31 +167,21 @@
     height: 36px;
 }
 
-.btn-whatsapp:hover {
-    background: var(--whatsapp-bubble-received);
-    border-color: var(--whatsapp-primary);
+.btn-action-primary:hover {
+    background: var(--notif-bubble-received);
+    border-color: var(--notif-primary);
     transform: translateY(-1px);
 }
 
-.btn-whatsapp.btn-primary {
-    background: var(--whatsapp-primary);
-    border-color: var(--whatsapp-primary);
-    color: white;
-}
-
-.btn-whatsapp.btn-primary:hover {
-    background: var(--whatsapp-primary-dark);
-}
-
-/* Lista WhatsApp */
-.whatsapp-list {
-    background: var(--whatsapp-bg);
+.notifications-list {
+    background: var(--notif-bg);
     padding: 8px;
+    max-height: calc(100vh - 280px);
+    overflow-y: auto;
 }
 
-/* Cards de Notificação - WhatsApp Style */
 .notification-card {
-    background: var(--whatsapp-surface);
+    background: var(--notif-surface);
     border: none;
     border-left: 4px solid transparent;
     border-radius: 12px;
@@ -211,7 +193,7 @@
     display: flex;
     gap: 12px;
     align-items: flex-start;
-    box-shadow: 0 1px 2px var(--whatsapp-shadow);
+    box-shadow: 0 1px 2px var(--notif-shadow);
 }
 
 .notification-card::before {
@@ -227,23 +209,23 @@
 }
 
 .notification-card:hover {
-    background: var(--whatsapp-surface-light);
+    background: var(--notif-surface-light);
     transform: translateX(4px);
-    box-shadow: 0 4px 12px var(--whatsapp-shadow);
+    box-shadow: 0 4px 12px var(--notif-shadow);
 }
 
 .notification-card:hover::before {
-    background: var(--whatsapp-primary);
+    background: var(--notif-primary);
 }
 
 .notification-card.unread {
-    background: var(--whatsapp-surface-light);
-    border-left-color: var(--whatsapp-unread);
+    background: var(--notif-surface-light);
+    border-left-color: var(--notif-unread);
 }
 
 .notification-card.unread::before {
-    background: var(--whatsapp-unread);
-    box-shadow: 0 0 8px rgba(37, 211, 102, 0.4);
+    background: var(--notif-unread);
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.4);
 }
 
 .notification-card.unread::after {
@@ -253,19 +235,19 @@
     top: 16px;
     width: 24px;
     height: 24px;
-    background: var(--whatsapp-unread);
+    background: var(--notif-unread);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 11px;
     font-weight: 700;
-    color: white;
-    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.4);
-    animation: pulseWhatsApp 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    color: #000;
+    box-shadow: 0 2px 8px rgba(0, 255, 136, 0.4);
+    animation: pulseNotif 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@keyframes pulseWhatsApp {
+@keyframes pulseNotif {
     0%, 100% { 
         transform: scale(1);
         opacity: 1;
@@ -276,7 +258,6 @@
     }
 }
 
-/* Avatar/Ícone WhatsApp */
 .notification-icon {
     width: 52px;
     height: 52px;
@@ -296,8 +277,8 @@
 }
 
 .notification-icon.compra_confirmada { 
-    background: linear-gradient(135deg, #25D366 0%, #1DA851 100%);
-    color: white;
+    background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+    color: #000;
 }
 
 .notification-icon.compra_pendente {
@@ -307,7 +288,7 @@
 
 .notification-icon.pagamento { 
     background: linear-gradient(135deg, #FFD54F 0%, #FFC107 100%);
-    color: #1F2C34;
+    color: #1a231d;
 }
 
 .notification-icon.pagamento_manual {
@@ -327,17 +308,16 @@
 
 .notification-icon.alerta {
     background: linear-gradient(135deg, #FFEE58 0%, #FDD835 100%);
-    color: #1F2C34;
+    color: #1a231d;
 }
 
-/* Conteúdo */
 .notification-content {
     flex: 1;
     min-width: 0;
     padding-right: 32px;
 }
 
-.notification-header {
+.notification-header-content {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -347,31 +327,31 @@
 
 .notification-sender {
     font-weight: 600;
-    color: var(--whatsapp-text);
+    color: var(--notif-text);
     font-size: 16px;
 }
 
 .notification-card.unread .notification-sender {
-    color: var(--whatsapp-primary);
+    color: var(--notif-primary);
 }
 
 .notification-date {
     font-size: 12px;
-    color: var(--whatsapp-text-secondary);
+    color: var(--notif-text-secondary);
     white-space: nowrap;
 }
 
 .notification-subject {
     font-size: 14px;
     font-weight: 500;
-    color: var(--whatsapp-text);
+    color: var(--notif-text);
     margin-bottom: 4px;
     line-height: 1.4;
 }
 
 .notification-message {
     font-size: 13px;
-    color: var(--whatsapp-text-secondary);
+    color: var(--notif-text-secondary);
     line-height: 1.5;
     max-height: 40px;
     overflow: hidden;
@@ -381,74 +361,72 @@
     -webkit-box-orient: vertical;
 }
 
-/* Ticks WhatsApp */
-.whatsapp-ticks {
+.notification-ticks {
     display: inline-flex;
     gap: 2px;
     margin-left: 4px;
-    color: var(--whatsapp-text-secondary);
+    color: var(--notif-text-secondary);
     font-size: 14px;
 }
 
-.notification-card.unread .whatsapp-ticks {
-    color: var(--whatsapp-text-secondary);
+.notification-card.unread .notification-ticks {
+    color: var(--notif-text-secondary);
 }
 
-/* Modal WhatsApp */
-.whatsapp-modal-overlay {
+.modal-overlay {
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(8px);
 }
 
-.whatsapp-modal {
-    background: var(--whatsapp-surface);
-    border: 1px solid var(--whatsapp-border);
+.notification-modal {
+    background: var(--notif-surface);
+    border: 1px solid var(--notif-border);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     border-radius: 16px;
     overflow: hidden;
 }
 
-.whatsapp-modal-header {
-    background: var(--whatsapp-surface-light);
-    border-bottom: 1px solid var(--whatsapp-border);
+.notification-modal-header {
+    background: var(--notif-surface-light);
+    border-bottom: 1px solid var(--notif-border);
     padding: 16px 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 
-.whatsapp-avatar-modal {
+.notification-avatar-modal {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--whatsapp-primary) 0%, var(--whatsapp-primary-dark) 100%);
+    background: linear-gradient(135deg, var(--notif-primary) 0%, var(--notif-primary-dark) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 24px;
-    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 255, 136, 0.3);
 }
 
 .modal-title {
     font-size: 18px;
     font-weight: 600;
-    color: var(--whatsapp-text);
+    color: var(--notif-text);
     margin: 0;
 }
 
 .modal-subtitle {
     font-size: 13px;
-    color: var(--whatsapp-text-secondary);
+    color: var(--notif-text-secondary);
     margin: 2px 0 0 0;
 }
 
-.whatsapp-close {
+.modal-close {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     background: transparent;
     border: none;
-    color: var(--whatsapp-text-secondary);
+    color: var(--notif-text-secondary);
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
@@ -456,22 +434,21 @@
     justify-content: center;
 }
 
-.whatsapp-close:hover {
+.modal-close:hover {
     background: rgba(255, 255, 255, 0.1);
-    color: var(--whatsapp-text);
+    color: var(--notif-text);
     transform: rotate(90deg);
 }
 
-.whatsapp-modal-body {
+.notification-modal-body {
     padding: 24px;
-    background: var(--whatsapp-bg);
+    background: var(--notif-bg);
     max-height: 70vh;
     overflow-y: auto;
 }
 
-/* Balão de Mensagem WhatsApp */
 .message-bubble {
-    background: var(--whatsapp-bubble-received);
+    background: var(--notif-bubble-received);
     border-radius: 12px;
     padding: 12px 16px;
     margin: 16px 0;
@@ -488,11 +465,11 @@
     height: 0;
     border-style: solid;
     border-width: 0 8px 8px 0;
-    border-color: transparent var(--whatsapp-bubble-received) transparent transparent;
+    border-color: transparent var(--notif-bubble-received) transparent transparent;
 }
 
 .message-content {
-    color: var(--whatsapp-text);
+    color: var(--notif-text);
     font-size: 14px;
     line-height: 1.6;
     white-space: pre-wrap;
@@ -506,13 +483,12 @@
     justify-content: flex-end;
     margin-top: 8px;
     font-size: 11px;
-    color: var(--whatsapp-text-secondary);
+    color: var(--notif-text-secondary);
 }
 
-/* Info da Mensagem */
 .message-info {
-    background: var(--whatsapp-surface-light);
-    border: 1px solid var(--whatsapp-border);
+    background: var(--notif-surface-light);
+    border: 1px solid var(--notif-border);
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 16px;
@@ -522,7 +498,7 @@
     display: flex;
     justify-content: space-between;
     padding: 10px 0;
-    border-bottom: 1px solid var(--whatsapp-border);
+    border-bottom: 1px solid var(--notif-border);
 }
 
 .message-info-row:last-child {
@@ -531,132 +507,128 @@
 }
 
 .message-info-label {
-    color: var(--whatsapp-text-secondary);
+    color: var(--notif-text-secondary);
     font-size: 13px;
 }
 
 .message-info-value {
-    color: var(--whatsapp-text);
+    color: var(--notif-text);
     font-weight: 600;
     font-size: 13px;
 }
 
-/* Anexo WhatsApp */
-.whatsapp-attachment {
+.notification-attachment {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 12px;
-    background: var(--whatsapp-surface-light);
-    border: 1px solid var(--whatsapp-border);
+    background: var(--notif-surface-light);
+    border: 1px solid var(--notif-border);
     border-radius: 12px;
     margin-top: 16px;
     transition: all 0.2s;
     text-decoration: none;
 }
 
-.whatsapp-attachment:hover {
-    background: var(--whatsapp-bubble-received);
-    border-color: var(--whatsapp-primary);
+.notification-attachment:hover {
+    background: var(--notif-bubble-received);
+    border-color: var(--notif-primary);
     transform: translateX(4px);
 }
 
-.whatsapp-attachment-icon {
+.notification-attachment-icon {
     width: 48px;
     height: 48px;
-    background: var(--whatsapp-primary);
+    background: var(--notif-primary);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: #000;
     font-size: 20px;
 }
 
-.whatsapp-attachment-info {
+.notification-attachment-info {
     flex: 1;
 }
 
-.whatsapp-attachment-name {
-    color: var(--whatsapp-text);
+.notification-attachment-name {
+    color: var(--notif-text);
     font-size: 14px;
     font-weight: 500;
     margin-bottom: 2px;
 }
 
-.whatsapp-attachment-size {
-    color: var(--whatsapp-text-secondary);
+.notification-attachment-size {
+    color: var(--notif-text-secondary);
     font-size: 12px;
 }
 
-.whatsapp-attachment-download {
-    color: var(--whatsapp-primary);
+.notification-attachment-download {
+    color: var(--notif-primary);
     font-size: 20px;
 }
 
-.whatsapp-modal-footer {
-    background: var(--whatsapp-surface-light);
-    border-top: 1px solid var(--whatsapp-border);
+.notification-modal-footer {
+    background: var(--notif-surface-light);
+    border-top: 1px solid var(--notif-border);
     padding: 16px 20px;
 }
 
-/* Empty State WhatsApp */
-.whatsapp-empty {
-    background: var(--whatsapp-surface);
-    border: 2px dashed var(--whatsapp-border);
+.empty-state {
+    background: var(--notif-surface);
+    border: 2px dashed var(--notif-border);
     border-radius: 16px;
     padding: 64px 32px;
     text-align: center;
 }
 
-.whatsapp-empty i {
+.empty-state i {
     font-size: 64px;
-    color: var(--whatsapp-text-secondary);
+    color: var(--notif-text-secondary);
     margin-bottom: 16px;
     opacity: 0.6;
 }
 
-.whatsapp-empty i.fa-spin {
-    color: var(--whatsapp-primary);
+.empty-state i.fa-spin {
+    color: var(--notif-primary);
     opacity: 1;
 }
 
-.whatsapp-empty h2 {
-    color: var(--whatsapp-text);
+.empty-state h3 {
+    color: var(--notif-text);
     font-size: 20px;
     font-weight: 600;
     margin-bottom: 8px;
 }
 
-.whatsapp-empty p {
-    color: var(--whatsapp-text-secondary);
+.empty-state p {
+    color: var(--notif-text-secondary);
     font-size: 14px;
 }
 
-/* Scrollbar WhatsApp */
-.whatsapp-list::-webkit-scrollbar,
-.whatsapp-modal-body::-webkit-scrollbar {
+.notifications-list::-webkit-scrollbar,
+.notification-modal-body::-webkit-scrollbar {
     width: 8px;
 }
 
-.whatsapp-list::-webkit-scrollbar-track,
-.whatsapp-modal-body::-webkit-scrollbar-track {
-    background: var(--whatsapp-bg);
+.notifications-list::-webkit-scrollbar-track,
+.notification-modal-body::-webkit-scrollbar-track {
+    background: var(--notif-bg);
 }
 
-.whatsapp-list::-webkit-scrollbar-thumb,
-.whatsapp-modal-body::-webkit-scrollbar-thumb {
-    background: var(--whatsapp-border);
+.notifications-list::-webkit-scrollbar-thumb,
+.notification-modal-body::-webkit-scrollbar-thumb {
+    background: var(--notif-border);
     border-radius: 4px;
 }
 
-.whatsapp-list::-webkit-scrollbar-thumb:hover,
-.whatsapp-modal-body::-webkit-scrollbar-thumb:hover {
-    background: var(--whatsapp-surface-light);
+.notifications-list::-webkit-scrollbar-thumb:hover,
+.notification-modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--notif-surface-light);
 }
 
-/* Animações */
-@keyframes slideInWhatsApp {
+@keyframes slideInNotif {
     from {
         opacity: 0;
         transform: translateX(-20px);
@@ -668,7 +640,7 @@
 }
 
 .notification-card {
-    animation: slideInWhatsApp 0.3s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+    animation: slideInNotif 0.3s cubic-bezier(0.4, 0, 0.2, 1) backwards;
 }
 
 .notification-card:nth-child(1) { animation-delay: 0.05s; }
@@ -677,7 +649,6 @@
 .notification-card:nth-child(4) { animation-delay: 0.2s; }
 .notification-card:nth-child(5) { animation-delay: 0.25s; }
 
-/* Responsivo */
 @media (max-width: 768px) {
     .notification-card {
         padding: 12px;
@@ -703,11 +674,11 @@
         font-size: 12px;
     }
     
-    .whatsapp-list {
+    .notifications-list {
         padding: 4px;
     }
     
-    .whatsapp-modal {
+    .notification-modal {
         margin: 16px;
         max-width: calc(100% - 32px);
     }
@@ -719,39 +690,47 @@
 </style>
 
 <script>
-// Encapsular tudo em um módulo para evitar conflitos
 (function() {
     'use strict';
     
-    // Verificar se o módulo já foi inicializado
     if (window.NotificationsModule) {
-        console.log('⚠️ Módulo de Notificações já inicializado, pulando reinicialização');
         return;
     }
     
-    // Estado do módulo
     const state = {
         allNotifications: [],
-        currentFilter: 'all'
+        currentFilter: 'all',
+        updateInterval: null,
+        lastUpdate: 0
     };
 
-    // Funções principais
-    async function loadNotifications() {
+    async function loadNotifications(silent = false) {
         try {
             const response = await fetch('actions/get_notifications.php');
             const data = await response.json();
             
             if (data.success) {
+                const hasChanges = JSON.stringify(state.allNotifications) !== JSON.stringify(data.notifications);
                 state.allNotifications = data.notifications;
-                renderNotifications();
-                updateNotificationStats();
-                clearNotificationBadges();
-            } else {
+                
+                if (!silent || hasChanges) {
+                    renderNotifications();
+                    updateNotificationStats();
+                }
+                
+                if (!silent) {
+                    clearNotificationBadges();
+                }
+                
+                state.lastUpdate = Date.now();
+            } else if (!silent) {
                 showError('Erro ao carregar notificações');
             }
         } catch (error) {
-            console.error('Erro ao carregar notificações:', error);
-            showError('Erro de conexão. Verifique sua internet.');
+            if (!silent) {
+                console.error('Erro ao carregar notificações:', error);
+                showError('Erro de conexão. Verifique sua internet.');
+            }
         }
     }
 
@@ -761,9 +740,9 @@
         
         if (!state.allNotifications || state.allNotifications.length === 0) {
             container.innerHTML = `
-                <div class="empty-state whatsapp-empty">
-                    <i class="fa-brands fa-whatsapp"></i>
-                    <h2>Nenhuma notificação</h2>
+                <div class="empty-state">
+                    <i class="fa-solid fa-bell"></i>
+                    <h3>Nenhuma notificação</h3>
                     <p>Você está em dia com suas mensagens</p>
                 </div>
             `;
@@ -782,9 +761,9 @@
         
         if (filtered.length === 0) {
             container.innerHTML = `
-                <div class="empty-state whatsapp-empty">
+                <div class="empty-state">
                     <i class="fa-solid fa-filter"></i>
-                    <h2>Nenhuma notificação encontrada</h2>
+                    <h3>Nenhuma notificação encontrada</h3>
                     <p>Não há notificações com o filtro selecionado</p>
                 </div>
             `;
@@ -811,8 +790,8 @@
         const icon = iconMap[notif.category] || '💬';
         
         const ticks = isUnread 
-            ? '<span class="whatsapp-ticks"><i class="fa-solid fa-check"></i></span>'
-            : '<span class="whatsapp-ticks"><i class="fa-solid fa-check-double"></i></span>';
+            ? '<span class="notification-ticks"><i class="fa-solid fa-check"></i></span>'
+            : '<span class="notification-ticks"><i class="fa-solid fa-check-double"></i></span>';
         
         return `
             <div class="notification-card ${isUnread ? 'unread' : ''}" 
@@ -822,9 +801,9 @@
                  onclick="NotificationsModule.openNotification(${notif.id})">
                 <div class="notification-icon ${iconClass}">${icon}</div>
                 <div class="notification-content">
-                    <div class="notification-header">
+                    <div class="notification-header-content">
                         <span class="notification-sender">${escapeHtml(notif.sender_name || 'VisionGreen')}</span>
-                        <span class="notification-date">${formatDateWhatsApp(notif.created_at)}</span>
+                        <span class="notification-date">${formatDate(notif.created_at)}</span>
                     </div>
                     <div class="notification-subject">${escapeHtml(notif.subject)}</div>
                     <div class="notification-message">
@@ -845,9 +824,15 @@
         const statNaoLidas = document.getElementById('stat-nao-lidas');
         const statLidas = document.getElementById('stat-lidas');
         
-        if (statTotal) statTotal.textContent = total;
-        if (statNaoLidas) statNaoLidas.textContent = naoLidas;
-        if (statLidas) statLidas.textContent = lidas;
+        if (statTotal && statTotal.textContent !== total.toString()) {
+            statTotal.textContent = total;
+        }
+        if (statNaoLidas && statNaoLidas.textContent !== naoLidas.toString()) {
+            statNaoLidas.textContent = naoLidas;
+        }
+        if (statLidas && statLidas.textContent !== lidas.toString()) {
+            statLidas.textContent = lidas;
+        }
     }
 
     function filterNotifications(filter, button) {
@@ -899,15 +884,15 @@
             const fileName = notif.attachment_url.split('/').pop();
             const fileSize = '245 KB';
             attachmentHtml = `
-                <a href="${escapeHtml(notif.attachment_url)}" download class="whatsapp-attachment" target="_blank">
-                    <div class="whatsapp-attachment-icon">
+                <a href="${escapeHtml(notif.attachment_url)}" download class="notification-attachment" target="_blank">
+                    <div class="notification-attachment-icon">
                         <i class="fa-solid fa-file-pdf"></i>
                     </div>
-                    <div class="whatsapp-attachment-info">
-                        <div class="whatsapp-attachment-name">${escapeHtml(fileName)}</div>
-                        <div class="whatsapp-attachment-size">${fileSize}</div>
+                    <div class="notification-attachment-info">
+                        <div class="notification-attachment-name">${escapeHtml(fileName)}</div>
+                        <div class="notification-attachment-size">${fileSize}</div>
                     </div>
-                    <i class="fa-solid fa-download whatsapp-attachment-download"></i>
+                    <i class="fa-solid fa-download notification-attachment-download"></i>
                 </a>
             `;
         }
@@ -920,7 +905,7 @@
                 </div>
                 <div class="message-info-row">
                     <span class="message-info-label">Data:</span>
-                    <span class="message-info-value">${formatDateWhatsApp(notif.created_at)}</span>
+                    <span class="message-info-value">${formatDate(notif.created_at)}</span>
                 </div>
                 ${notif.related_order_number ? `
                 <div class="message-info-row">
@@ -933,8 +918,8 @@
             <div class="message-bubble">
                 <div class="message-content">${escapeHtml(notif.message)}</div>
                 <div class="message-time">
-                    ${formatTimeWhatsApp(notif.created_at)}
-                    <i class="fa-solid fa-check-double" style="color: var(--whatsapp-primary);"></i>
+                    ${formatTime(notif.created_at)}
+                    <i class="fa-solid fa-check-double" style="color: var(--notif-primary);"></i>
                 </div>
             </div>
             
@@ -1039,11 +1024,11 @@
         if (!container) return;
         
         container.innerHTML = `
-            <div class="empty-state whatsapp-empty">
+            <div class="empty-state">
                 <i class="fa-solid fa-exclamation-triangle"></i>
-                <h2>Erro ao Carregar</h2>
+                <h3>Erro ao Carregar</h3>
                 <p>${escapeHtml(message)}</p>
-                <button class="btn-whatsapp btn-primary" onclick="NotificationsModule.loadNotifications()" style="margin-top: 24px;">
+                <button class="btn-action-primary" onclick="NotificationsModule.loadNotifications()" style="margin-top: 24px;">
                     <i class="fa-solid fa-rotate-right"></i>
                     Tentar Novamente
                 </button>
@@ -1051,7 +1036,7 @@
         `;
     }
 
-    function formatDateWhatsApp(dateStr) {
+    function formatDate(dateStr) {
         if (!dateStr) return '';
         
         try {
@@ -1072,12 +1057,11 @@
                 return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
             }
         } catch (error) {
-            console.error('Erro ao formatar data:', error);
             return '';
         }
     }
 
-    function formatTimeWhatsApp(dateStr) {
+    function formatTime(dateStr) {
         if (!dateStr) return '';
         
         try {
@@ -1095,9 +1079,7 @@
         return div.innerHTML;
     }
 
-    // Event Listeners
     function setupEventListeners() {
-        // Fechar modal ao clicar fora
         const overlay = document.getElementById('modalNotification');
         if (overlay) {
             overlay.addEventListener('click', function(e) {
@@ -1107,37 +1089,45 @@
             });
         }
         
-        // Fechar modal com ESC
-        const escHandler = function(e) {
+        document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeNotificationModal();
             }
-        };
-        
-        // Remover listener anterior se existir
-        document.removeEventListener('keydown', escHandler);
-        document.addEventListener('keydown', escHandler);
+        });
     }
 
-    // API pública do módulo
+    function startAutoUpdate() {
+        if (state.updateInterval) {
+            clearInterval(state.updateInterval);
+        }
+        
+        state.updateInterval = setInterval(() => {
+            loadNotifications(true);
+        }, 1000);
+    }
+
+    function stopAutoUpdate() {
+        if (state.updateInterval) {
+            clearInterval(state.updateInterval);
+            state.updateInterval = null;
+        }
+    }
+
     window.NotificationsModule = {
-        loadNotifications,
+        loadNotifications: (silent) => loadNotifications(silent || false),
         filterNotifications,
         openNotification,
         closeNotificationModal,
         markAllAsRead,
-        state: state
+        state
     };
 
-    // Inicializar
     setTimeout(() => {
         setupEventListeners();
         loadNotifications();
-        
-        // Auto-refresh a cada 2 minutos
-        setInterval(loadNotifications, 120000);
-        
-        console.log('✅ Módulo de Notificações WhatsApp inicializado');
+        startAutoUpdate();
     }, 100);
+
+    window.addEventListener('beforeunload', stopAutoUpdate);
 })();
 </script>

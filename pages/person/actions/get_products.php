@@ -1,15 +1,17 @@
 <?php
 header('Content-Type: application/json');
+header('Cache-Control: no-cache, must-revalidate');
+header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+
 require_once '../../../registration/includes/db.php';
 require_once '../../../registration/includes/security.php';
 
-// Iniciar sessão se necessário
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Verificar autenticação
 if (!isset($_SESSION['auth']['user_id'])) {
+    http_response_code(401);
     echo json_encode([
         'success' => false,
         'error' => 'Não autenticado'
@@ -18,16 +20,11 @@ if (!isset($_SESSION['auth']['user_id'])) {
 }
 
 try {
-    // Pegar parâmetros de filtro
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-    $categories = isset($_GET['categories']) ? explode(',', $_GET['categories']) : [];
-    $priceRange = isset($_GET['price_range']) ? $_GET['price_range'] : '';
+    $categories = isset($_GET['categories']) ? array_filter(explode(',', $_GET['categories'])) : [];
+    $priceRange = isset($_GET['price_range']) ? trim($_GET['price_range']) : '';
     $inStock = isset($_GET['in_stock']) && $_GET['in_stock'] === '1';
     
-    // Filtrar categorias vazias
-    $categories = array_filter($categories);
-    
-    // Construir query base
     $sql = "SELECT 
                 p.id,
                 p.nome,
@@ -40,6 +37,7 @@ try {
                 p.stock_minimo,
                 p.status,
                 p.visualizacoes,
+                p.created_at,
                 u.nome AS empresa_nome,
                 u.public_id AS empresa_id
             FROM products p
@@ -51,7 +49,6 @@ try {
     $params = [];
     $types = '';
     
-    // Filtro de busca
     if (!empty($search)) {
         $sql .= " AND (p.nome LIKE ? OR p.descricao LIKE ?)";
         $searchParam = "%{$search}%";
@@ -60,7 +57,6 @@ try {
         $types .= 'ss';
     }
     
-    // Filtro de categorias
     if (!empty($categories)) {
         $placeholders = str_repeat('?,', count($categories) - 1) . '?';
         $sql .= " AND p.categoria IN ($placeholders)";
@@ -70,7 +66,6 @@ try {
         }
     }
     
-    // Filtro de faixa de preço
     if (!empty($priceRange) && strpos($priceRange, '-') !== false) {
         list($minPrice, $maxPrice) = explode('-', $priceRange);
         $sql .= " AND p.preco BETWEEN ? AND ?";
@@ -79,27 +74,30 @@ try {
         $types .= 'dd';
     }
     
-    // Filtro de estoque
     if ($inStock) {
         $sql .= " AND p.stock > 0";
     }
     
-    // Ordenar por produtos mais recentes
     $sql .= " ORDER BY p.created_at DESC LIMIT 50";
     
-    // Preparar e executar query
     $stmt = $mysqli->prepare($sql);
+    
+    if (!$stmt) {
+        throw new Exception("Erro ao preparar query: " . $mysqli->error);
+    }
     
     if (!empty($params)) {
         $stmt->bind_param($types, ...$params);
     }
     
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        throw new Exception("Erro ao executar query: " . $stmt->error);
+    }
+    
     $result = $stmt->get_result();
     
     $products = [];
     while ($row = $result->fetch_assoc()) {
-        // Formatar dados do produto
         $products[] = [
             'id' => (int)$row['id'],
             'nome' => $row['nome'],
@@ -113,32 +111,26 @@ try {
             'status' => $row['status'],
             'visualizacoes' => (int)$row['visualizacoes'],
             'empresa_nome' => $row['empresa_nome'],
-            'empresa_id' => $row['empresa_id']
+            'empresa_id' => $row['empresa_id'],
+            'created_at' => $row['created_at']
         ];
     }
     
     $stmt->close();
     
-    // Retornar resposta
     echo json_encode([
         'success' => true,
         'products' => $products,
-        'total' => count($products),
-        'filters' => [
-            'search' => $search,
-            'categories' => $categories,
-            'price_range' => $priceRange,
-            'in_stock' => $inStock
-        ]
+        'total' => count($products)
     ], JSON_UNESCAPED_UNICODE);
     
 } catch (Exception $e) {
     error_log("Erro em get_products.php: " . $e->getMessage());
+    http_response_code(500);
     
     echo json_encode([
         'success' => false,
-        'error' => 'Erro ao buscar produtos',
-        'message' => $e->getMessage()
+        'error' => 'Erro ao buscar produtos'
     ]);
 }
 ?>

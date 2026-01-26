@@ -1,5 +1,4 @@
 <?php
-// Não precisa de session ou auth, já está dentro do dashboard
 ?>
 <div class="page-container">
     <div class="page-header">
@@ -19,7 +18,6 @@
     </div>
 
     <div class="cart-container">
-        <!-- Carrinho Vazio -->
         <div id="emptyCart" class="empty-cart" style="display: none;">
             <i class="fa-solid fa-cart-shopping"></i>
             <h2>Seu carrinho está vazio</h2>
@@ -30,11 +28,8 @@
             </button>
         </div>
 
-        <!-- Carrinho com Produtos -->
         <div id="cartContent" class="cart-content">
-            <div class="cart-items" id="cartItems">
-                <!-- Items serão inseridos aqui via JS -->
-            </div>
+            <div class="cart-items" id="cartItems"></div>
 
             <div class="cart-summary">
                 <div class="summary-card">
@@ -62,12 +57,12 @@
                         <span id="totalValue">0,00 MZN</span>
                     </div>
                     
-                    <button class="btn-checkout" onclick="proceedToCheckout()">
+                    <button class="btn-checkout" onclick="CartModule.proceedToCheckout()">
                         <i class="fa-solid fa-credit-card"></i>
                         <span>Finalizar Compra</span>
                     </button>
                     
-                    <button class="btn-clear-cart" onclick="clearCart()">
+                    <button class="btn-clear-cart" onclick="CartModule.clearCart()">
                         <i class="fa-solid fa-trash"></i>
                         <span>Limpar Carrinho</span>
                     </button>
@@ -92,20 +87,18 @@
     </div>
 </div>
 
-<!-- Modal de Método de Pagamento -->
 <div id="paymentMethodModal" class="payment-modal" style="display: none;">
     <div class="payment-modal-content">
         <div class="payment-modal-header">
-            <h2>Escolha o Método de Pagamento</h2>
-            <button class="payment-btn-close" onclick="closePaymentModal()">
+            <h2><i class="fa-solid fa-credit-card"></i> Escolha o Método de Pagamento</h2>
+            <button class="payment-btn-close" onclick="CartModule.closePaymentModal()">
                 <i class="fa-solid fa-times"></i>
             </button>
         </div>
         
         <div class="payment-modal-body">
             <div class="payment-methods-grid">
-                <!-- Pagamento Manual -->
-                <div class="payment-method-card" onclick="selectPaymentMethod('manual')">
+                <div class="payment-method-card" onclick="CartModule.selectPaymentMethod('manual')">
                     <div class="payment-icon manual">
                         <i class="fa-solid fa-hand-holding-dollar"></i>
                     </div>
@@ -117,8 +110,7 @@
                     </div>
                 </div>
                 
-                <!-- M-Pesa -->
-                <div class="payment-method-card" onclick="selectPaymentMethod('mpesa')">
+                <div class="payment-method-card" onclick="CartModule.selectPaymentMethod('mpesa')">
                     <div class="payment-icon mpesa">
                         <i class="fa-solid fa-mobile-screen"></i>
                     </div>
@@ -130,8 +122,7 @@
                     </div>
                 </div>
                 
-                <!-- E-Mola -->
-                <div class="payment-method-card" onclick="selectPaymentMethod('emola')">
+                <div class="payment-method-card" onclick="CartModule.selectPaymentMethod('emola')">
                     <div class="payment-icon emola">
                         <i class="fa-solid fa-wallet"></i>
                     </div>
@@ -143,8 +134,7 @@
                     </div>
                 </div>
                 
-                <!-- Cartão -->
-                <div class="payment-method-card" onclick="selectPaymentMethod('card')">
+                <div class="payment-method-card" onclick="CartModule.selectPaymentMethod('card')">
                     <div class="payment-icon card">
                         <i class="fa-solid fa-credit-card"></i>
                     </div>
@@ -161,7 +151,6 @@
 </div>
 
 <style>
-/* Estilos do Modal de Pagamento */
 .payment-modal {
     position: fixed;
     top: 0;
@@ -175,10 +164,10 @@
     align-items: center;
     justify-content: center;
     padding: 20px;
-    animation: fadeIn 0.3s ease;
+    animation: fadeInModal 0.3s ease;
 }
 
-@keyframes fadeIn {
+@keyframes fadeInModal {
     from { opacity: 0; }
     to { opacity: 1; }
 }
@@ -192,10 +181,10 @@
     max-height: 90vh;
     overflow: auto;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideUpModal 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes slideUp {
+@keyframes slideUpModal {
     from {
         opacity: 0;
         transform: translateY(40px) scale(0.95);
@@ -212,7 +201,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: linear-gradient(135deg, rgba(35, 134, 54, 0.05), transparent);
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.05), transparent);
 }
 
 .payment-modal-header h2 {
@@ -223,6 +212,10 @@
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.payment-modal-header h2 i {
+    color: #00ff88;
 }
 
 .payment-btn-close {
@@ -276,15 +269,15 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(35, 134, 54, 0.1), transparent);
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), transparent);
     opacity: 0;
     transition: opacity 0.3s ease;
 }
 
 .payment-method-card:hover {
-    border-color: #238636;
+    border-color: #00ff88;
     transform: translateY(-4px);
-    box-shadow: 0 12px 30px rgba(35, 134, 54, 0.2);
+    box-shadow: 0 12px 30px rgba(0, 255, 136, 0.2);
 }
 
 .payment-method-card:hover::before {
@@ -305,27 +298,27 @@
 }
 
 .payment-icon.manual {
-    background: linear-gradient(135deg, rgba(210, 153, 34, 0.2), rgba(210, 153, 34, 0.05));
-    border: 2px solid rgba(210, 153, 34, 0.3);
-    color: #d29922;
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 193, 7, 0.05));
+    border: 2px solid rgba(255, 193, 7, 0.3);
+    color: #ffc107;
 }
 
 .payment-icon.mpesa {
-    background: linear-gradient(135deg, rgba(35, 134, 54, 0.2), rgba(35, 134, 54, 0.05));
-    border: 2px solid rgba(35, 134, 54, 0.3);
-    color: #238636;
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 255, 136, 0.05));
+    border: 2px solid rgba(0, 255, 136, 0.3);
+    color: #00ff88;
 }
 
 .payment-icon.emola {
-    background: linear-gradient(135deg, rgba(88, 166, 255, 0.2), rgba(88, 166, 255, 0.05));
-    border: 2px solid rgba(88, 166, 255, 0.3);
-    color: #58a6ff;
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.2), rgba(33, 150, 243, 0.05));
+    border: 2px solid rgba(33, 150, 243, 0.3);
+    color: #2196f3;
 }
 
 .payment-icon.card {
-    background: linear-gradient(135deg, rgba(163, 113, 247, 0.2), rgba(163, 113, 247, 0.05));
-    border: 2px solid rgba(163, 113, 247, 0.3);
-    color: #a371f7;
+    background: linear-gradient(135deg, rgba(156, 39, 176, 0.2), rgba(156, 39, 176, 0.05));
+    border: 2px solid rgba(156, 39, 176, 0.3);
+    color: #9c27b0;
 }
 
 .payment-method-card h3 {
@@ -346,15 +339,14 @@
     align-items: center;
     gap: 6px;
     padding: 6px 14px;
-    background: rgba(35, 134, 54, 0.1);
-    border: 1px solid rgba(35, 134, 54, 0.2);
+    background: rgba(0, 255, 136, 0.1);
+    border: 1px solid rgba(0, 255, 136, 0.2);
     border-radius: 20px;
     font-size: 12px;
     font-weight: 600;
-    color: #238636;
+    color: #00ff88;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
     .payment-methods-grid {
         grid-template-columns: 1fr;
@@ -371,154 +363,239 @@
 </style>
 
 <script>
-function loadCartItems() {
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const emptyCart = document.getElementById('emptyCart');
-    const cartContent = document.getElementById('cartContent');
-    const cartItems = document.getElementById('cartItems');
-
-    if (cart.length === 0) {
-        emptyCart.style.display = 'block';
-        cartContent.style.display = 'none';
+(function() {
+    'use strict';
+    
+    if (window.CartModule) {
         return;
     }
-
-    emptyCart.style.display = 'none';
-    cartContent.style.display = 'grid';
-
-    cartItems.innerHTML = cart.map(item => `
-        <div class="cart-item" data-id="${item.id}">
-            <div class="item-image">
-                <i class="fa-solid fa-leaf"></i>
-            </div>
-            
-            <div class="item-details">
-                <div class="item-name">${item.name}</div>
-                <span class="item-category">🌱 Produto Ecológico</span>
-                <div class="item-price">
-                    ${formatPrice(item.price)}
-                    <small>MZN</small>
-                </div>
-                
-                <div class="quantity-controls">
-                    <button class="qty-btn" onclick="updateQuantity(${item.id}, -1)">
-                        <i class="fa-solid fa-minus"></i>
-                    </button>
-                    <span class="qty-display">${item.quantity}</span>
-                    <button class="qty-btn" onclick="updateQuantity(${item.id}, 1)">
-                        <i class="fa-solid fa-plus"></i>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="item-actions">
-                <button class="btn-remove" onclick="removeFromCart(${item.id})">
-                    <i class="fa-solid fa-trash"></i>
-                    <span>Remover</span>
-                </button>
-                <div class="item-total">${formatPrice(item.price * item.quantity)} MZN</div>
-            </div>
-        </div>
-    `).join('');
-
-    updateCartSummary();
-}
-
-function updateQuantity(productId, change) {
-    let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const item = cart.find(i => i.id === productId);
     
-    if (item) {
-        item.quantity += change;
-        
-        if (item.quantity <= 0) {
-            removeFromCart(productId);
+    const state = {
+        updateInterval: null
+    };
+
+    function loadCartItems() {
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const emptyCart = document.getElementById('emptyCart');
+        const cartContent = document.getElementById('cartContent');
+        const cartItems = document.getElementById('cartItems');
+
+        if (cart.length === 0) {
+            emptyCart.style.display = 'block';
+            cartContent.style.display = 'none';
             return;
         }
+
+        emptyCart.style.display = 'none';
+        cartContent.style.display = 'grid';
+
+        cartItems.innerHTML = cart.map(item => `
+            <div class="cart-item" data-id="${item.id}">
+                <div class="item-image">
+                    <i class="fa-solid fa-leaf"></i>
+                </div>
+                
+                <div class="item-details">
+                    <div class="item-name">${item.name}</div>
+                    <span class="item-category">🌱 Produto Ecológico</span>
+                    <div class="item-price">
+                        ${formatPrice(item.price)}
+                        <small>MZN</small>
+                    </div>
+                    
+                    <div class="quantity-controls">
+                        <button class="qty-btn" onclick="CartModule.updateQuantity(${item.id}, -1)">
+                            <i class="fa-solid fa-minus"></i>
+                        </button>
+                        <span class="qty-display">${item.quantity}</span>
+                        <button class="qty-btn" onclick="CartModule.updateQuantity(${item.id}, 1)">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="item-actions">
+                    <button class="btn-remove" onclick="CartModule.removeFromCart(${item.id})">
+                        <i class="fa-solid fa-trash"></i>
+                        <span>Remover</span>
+                    </button>
+                    <div class="item-total">${formatPrice(item.price * item.quantity)} MZN</div>
+                </div>
+            </div>
+        `).join('');
+
+        updateCartSummary();
+    }
+
+    function updateQuantity(productId, change) {
+        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const item = cart.find(i => i.id === productId);
+        
+        if (item) {
+            item.quantity += change;
+            
+            if (item.quantity <= 0) {
+                removeFromCart(productId);
+                return;
+            }
+            
+            localStorage.setItem('cart', JSON.stringify(cart));
+            loadCartItems();
+            if (typeof updateCartBadge === 'function') {
+                updateCartBadge();
+            }
+        }
+    }
+
+    function removeFromCart(productId) {
+        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        cart = cart.filter(item => item.id !== productId);
         
         localStorage.setItem('cart', JSON.stringify(cart));
         loadCartItems();
-        updateCartBadge();
+        if (typeof updateCartBadge === 'function') {
+            updateCartBadge();
+        }
+        if (typeof showToast === 'function') {
+            showToast('🗑️ Produto removido do carrinho', 'warning');
+        }
     }
-}
 
-function removeFromCart(productId) {
-    let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    cart = cart.filter(item => item.id !== productId);
-    
-    localStorage.setItem('cart', JSON.stringify(cart));
-    loadCartItems();
-    updateCartBadge();
-    showToast('🗑️ Produto removido do carrinho', 'warning');
-}
-
-function clearCart() {
-    if (confirm('Tem certeza que deseja limpar todo o carrinho?')) {
-        localStorage.setItem('cart', JSON.stringify([]));
-        loadCartItems();
-        updateCartBadge();
-        showToast('🗑️ Carrinho limpo com sucesso', 'success');
+    function clearCart() {
+        if (confirm('Tem certeza que deseja limpar todo o carrinho?')) {
+            localStorage.setItem('cart', JSON.stringify([]));
+            loadCartItems();
+            if (typeof updateCartBadge === 'function') {
+                updateCartBadge();
+            }
+            if (typeof showToast === 'function') {
+                showToast('🗑️ Carrinho limpo com sucesso', 'success');
+            }
+        }
     }
-}
 
-function updateCartSummary() {
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    document.getElementById('totalItems').textContent = totalItems;
-    document.getElementById('subtotalValue').textContent = formatPrice(subtotal) + ' MZN';
-    document.getElementById('totalValue').textContent = formatPrice(subtotal) + ' MZN';
-}
-
-function proceedToCheckout() {
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    
-    if (cart.length === 0) {
-        showToast('⚠️ Seu carrinho está vazio', 'warning');
-        return;
+    function updateCartSummary() {
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        const totalItemsEl = document.getElementById('totalItems');
+        const subtotalValueEl = document.getElementById('subtotalValue');
+        const totalValueEl = document.getElementById('totalValue');
+        
+        if (totalItemsEl) totalItemsEl.textContent = totalItems;
+        if (subtotalValueEl) subtotalValueEl.textContent = formatPrice(subtotal) + ' MZN';
+        if (totalValueEl) totalValueEl.textContent = formatPrice(subtotal) + ' MZN';
     }
-    
-    // Abrir modal de método de pagamento
-    document.getElementById('paymentMethodModal').style.display = 'flex';
-}
 
-function closePaymentModal() {
-    document.getElementById('paymentMethodModal').style.display = 'none';
-}
+    function proceedToCheckout() {
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        
+        if (cart.length === 0) {
+            if (typeof showToast === 'function') {
+                showToast('⚠️ Seu carrinho está vazio', 'warning');
+            }
+            return;
+        }
+        
+        document.getElementById('paymentMethodModal').style.display = 'flex';
+    }
 
-function selectPaymentMethod(method) {
-    closePaymentModal();
-    
-    const methodNames = {
-        'manual': 'Pagamento Manual',
-        'mpesa': 'M-Pesa',
-        'emola': 'E-Mola',
-        'card': 'Cartão de Crédito'
-    };
-    
-    showToast(`💳 ${methodNames[method]} selecionado. Redirecionando...`, 'info');
-    
-    setTimeout(() => {
-        window.location.href = `checkout.php?method=${method}`;
-    }, 800);
-}
+    function closePaymentModal() {
+        document.getElementById('paymentMethodModal').style.display = 'none';
+    }
 
-function formatPrice(price) {
-    return parseFloat(price).toLocaleString('pt-MZ', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-}
-
-// Carregar ao abrir a página
-loadCartItems();
-
-// Fechar modal ao clicar fora
-document.addEventListener('click', function(e) {
-    const modal = document.getElementById('paymentMethodModal');
-    if (e.target === modal) {
+    function selectPaymentMethod(method) {
         closePaymentModal();
+        
+        const methodNames = {
+            'manual': 'Pagamento Manual',
+            'mpesa': 'M-Pesa',
+            'emola': 'E-Mola',
+            'card': 'Cartão de Crédito'
+        };
+        
+        if (typeof showToast === 'function') {
+            showToast(`💳 ${methodNames[method]} selecionado. Redirecionando...`, 'info');
+        }
+        
+        setTimeout(() => {
+            window.location.href = `checkout.php?method=${method}`;
+        }, 800);
     }
-});
+
+    function formatPrice(price) {
+        return parseFloat(price).toLocaleString('pt-MZ', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function autoUpdateCart() {
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        const totalItemsEl = document.getElementById('totalItems');
+        const subtotalValueEl = document.getElementById('subtotalValue');
+        const totalValueEl = document.getElementById('totalValue');
+        
+        if (totalItemsEl && totalItemsEl.textContent !== totalItems.toString()) {
+            totalItemsEl.textContent = totalItems;
+        }
+        
+        const formattedSubtotal = formatPrice(subtotal) + ' MZN';
+        if (subtotalValueEl && subtotalValueEl.textContent !== formattedSubtotal) {
+            subtotalValueEl.textContent = formattedSubtotal;
+        }
+        if (totalValueEl && totalValueEl.textContent !== formattedSubtotal) {
+            totalValueEl.textContent = formattedSubtotal;
+        }
+    }
+
+    function startAutoUpdate() {
+        if (state.updateInterval) {
+            clearInterval(state.updateInterval);
+        }
+        
+        state.updateInterval = setInterval(() => {
+            autoUpdateCart();
+        }, 1000);
+    }
+
+    function stopAutoUpdate() {
+        if (state.updateInterval) {
+            clearInterval(state.updateInterval);
+            state.updateInterval = null;
+        }
+    }
+
+    function setupEventListeners() {
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('paymentMethodModal');
+            if (e.target === modal) {
+                closePaymentModal();
+            }
+        });
+    }
+
+    window.CartModule = {
+        loadCartItems,
+        updateQuantity,
+        removeFromCart,
+        clearCart,
+        proceedToCheckout,
+        closePaymentModal,
+        selectPaymentMethod,
+        state
+    };
+
+    setTimeout(() => {
+        setupEventListeners();
+        loadCartItems();
+        startAutoUpdate();
+    }, 100);
+
+    window.addEventListener('beforeunload', stopAutoUpdate);
+})();
 </script>

@@ -15,7 +15,7 @@ if (!empty($_SESSION['auth']['user_id'])) {
     if ($res && $res['type'] === 'company') {
         header("Location: ../../pages/business/dashboard_business.php");
     } else {
-        header("Location: ../../pages/person/dashboard_person.php");
+        header("Location: ../../pages/person/index.php");
     }
     exit;
 }

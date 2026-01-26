@@ -32,26 +32,26 @@
 
     <div class="filters-bar">
         <div class="filter-group">
-            <button class="filter-chip active" data-status="all" onclick="filterOrdersByStatus('all', this)">
+            <button class="filter-chip active" data-status="all" onclick="OrdersModule.filterOrdersByStatus('all', this)">
                 <i class="fa-solid fa-list"></i> Todos
             </button>
-            <button class="filter-chip" data-status="pendente" onclick="filterOrdersByStatus('pendente', this)">
+            <button class="filter-chip" data-status="pendente" onclick="OrdersModule.filterOrdersByStatus('pendente', this)">
                 ⏳ Pendentes
             </button>
-            <button class="filter-chip" data-status="confirmado" onclick="filterOrdersByStatus('confirmado', this)">
+            <button class="filter-chip" data-status="confirmado" onclick="OrdersModule.filterOrdersByStatus('confirmado', this)">
                 ✓ Confirmados
             </button>
-            <button class="filter-chip" data-status="entregue_pago" onclick="filterOrdersByStatus('entregue_pago', this)">
+            <button class="filter-chip" data-status="entregue_pago" onclick="OrdersModule.filterOrdersByStatus('entregue_pago', this)">
                 ✅ Entregues e Pagos
             </button>
-            <button class="filter-chip" data-status="cancelado" onclick="filterOrdersByStatus('cancelado', this)">
+            <button class="filter-chip" data-status="cancelado" onclick="OrdersModule.filterOrdersByStatus('cancelado', this)">
                 ❌ Cancelados
             </button>
         </div>
         
         <div class="search-filter">
             <i class="fa-solid fa-search"></i>
-            <input type="text" id="searchOrders" placeholder="Buscar por número do pedido..." onkeyup="searchOrdersByNumber()">
+            <input type="text" id="searchOrders" placeholder="Buscar por número do pedido..." onkeyup="OrdersModule.searchOrdersByNumber()">
         </div>
     </div>
 
@@ -64,7 +64,6 @@
     </div>
 </div>
 
-<!-- Modal Detalhes -->
 <div class="modal-overlay" id="modalDetails">
     <div class="modal-container">
         <div class="modal-header">
@@ -72,13 +71,13 @@
                 <i class="fa-solid fa-file-invoice"></i>
                 <span id="modalDetailsTitle">Detalhes do Pedido</span>
             </h2>
-            <button class="modal-close" onclick="closeModal('modalDetails')">
+            <button class="modal-close" onclick="OrdersModule.closeModal('modalDetails')">
                 <i class="fa-solid fa-times"></i>
             </button>
         </div>
         <div class="modal-body" id="modalDetailsContent"></div>
         <div class="modal-footer">
-            <button class="btn-action btn-view" onclick="closeModal('modalDetails')">
+            <button class="btn-action btn-view" onclick="OrdersModule.closeModal('modalDetails')">
                 <i class="fa-solid fa-check"></i>
                 Fechar
             </button>
@@ -309,6 +308,11 @@
     }
 }
 
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 @media (max-width: 768px) {
     .modal-container {
         max-width: 100%;
@@ -339,415 +343,508 @@
 </style>
 
 <script>
-let currentFilter = 'all';
-let currentOrders = [];
-
-function renderOrders() {
-    console.log('🔄 Iniciando renderização de pedidos...');
-    const container = document.getElementById('ordersList');
+(function() {
+    'use strict';
     
-    if (typeof ordersData === 'undefined') {
-        console.error('❌ ordersData não está definido');
-        container.innerHTML = `
-            <div class="error-state">
-                <h3><i class="fa-solid fa-triangle-exclamation"></i> Erro de Dados</h3>
-                <p>Os dados dos pedidos não foram carregados. Recarregue a página.</p>
-            </div>
-        `;
+    if (window.OrdersModule) {
         return;
     }
     
-    currentOrders = ordersData;
-    
-    if (!ordersData || ordersData.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fa-solid fa-shopping-bag"></i>
+    const state = {
+        currentFilter: 'all',
+        currentOrders: [],
+        updateInterval: null,
+        lastUpdate: 0
+    };
+
+    async function loadOrders(silent = false) {
+        try {
+            const response = await fetch('actions/get_order_total.php');
+            const data = await response.json();
+            
+            if (data.success) {
+                const hasChanges = JSON.stringify(state.currentOrders) !== JSON.stringify(data.orders);
+                state.currentOrders = data.orders;
+                
+                if (!silent || hasChanges) {
+                    renderOrders();
+                }
+                
+                state.lastUpdate = Date.now();
+            } else if (!silent) {
+                showError('Erro ao carregar pedidos');
+            }
+        } catch (error) {
+            if (!silent) {
+                console.error('Erro ao carregar pedidos:', error);
+                showError('Erro de conexão');
+            }
+        }
+    }
+
+    function renderOrders() {
+        const container = document.getElementById('ordersList');
+        
+        if (typeof ordersData === 'undefined' && state.currentOrders.length === 0) {
+            container.innerHTML = `
+                <div class="error-state">
+                    <h3><i class="fa-solid fa-triangle-exclamation"></i> Erro de Dados</h3>
+                    <p>Os dados dos pedidos não foram carregados. Recarregue a página.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const orders = state.currentOrders.length > 0 ? state.currentOrders : (typeof ordersData !== 'undefined' ? ordersData : []);
+        
+        if (!orders || orders.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fa-solid fa-shopping-bag"></i>
+                    <h2>Nenhum pedido encontrado</h2>
+                    <p>Você ainda não realizou nenhuma compra</p>
+                    <button class="btn-action btn-view" onclick="navigateTo('home')" style="margin-top: 20px;">
+                        <i class="fa-solid fa-store"></i>
+                        Explorar Produtos
+                    </button>
+                </div>
+            `;
+            updateStats(0, 0, 0, 0);
+            return;
+        }
+        
+        const pendentes = orders.filter(o => o.status === 'pendente').length;
+        const confirmados = orders.filter(o => o.status === 'confirmado' || o.status === 'processando' || o.status === 'enviado').length;
+        const entreguesPagos = orders.filter(o => o.payment_method === 'manual' && o.payment_status === 'pago').length;
+        
+        updateStats(orders.length, pendentes, confirmados, entreguesPagos);
+        
+        try {
+            container.innerHTML = orders.map((order, index) => renderOrderCard(order, index)).join('');
+        } catch (error) {
+            container.innerHTML = `<div class="error-state"><h3>Erro de Renderização</h3><p>${error.message}</p></div>`;
+        }
+    }
+
+    function renderOrderCard(order, index) {
+        const statusInfo = statusMap[order.status] || {icon: '❓', label: order.status, color: 'warning'};
+        const paymentInfo = paymentStatusMap[order.payment_status] || {icon: '❓', label: order.payment_status, color: 'warning'};
+        const methodInfo = paymentMethodMap[order.payment_method] || {icon: '💳', label: order.payment_method};
+        
+        const shippingAddress = order.shipping_address && order.shipping_address !== 'null' ? order.shipping_address : null;
+        const shippingCity = order.shipping_city && order.shipping_city !== 'null' ? order.shipping_city : null;
+        
+        return `
+            <div class="order-card" data-status="${order.status}" data-payment="${order.payment_status}" data-method="${order.payment_method}" data-order="${order.order_number}" style="animation: fadeInUp 0.5s ease ${index * 0.1}s backwards;">
+                <div class="order-header">
+                    <div class="order-number">
+                        <i class="fa-solid fa-hashtag"></i>
+                        <strong>${order.order_number || 'N/A'}</strong>
+                    </div>
+                    <div class="order-date">
+                        <i class="fa-regular fa-calendar"></i>
+                        ${formatDate(order.order_date)}
+                    </div>
+                    <div class="order-company">
+                        <i class="fa-solid fa-store"></i>
+                        ${order.empresa_nome || 'VisionGreen'}
+                    </div>
+                </div>
+                <div class="order-body">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Status do Pedido</span>
+                            <span class="status-badge status-${statusInfo.color}">
+                                ${statusInfo.icon} ${statusInfo.label}
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Pagamento</span>
+                            <span class="status-badge status-${paymentInfo.color}">
+                                ${paymentInfo.icon} ${paymentInfo.label}
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Método</span>
+                            <span class="info-value">${methodInfo.icon} ${methodInfo.label}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Itens</span>
+                            <span class="info-value">${order.total_items || order.items_count || 0} produto(s)</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Total</span>
+                            <span class="order-total">${formatPrice(order.total)} ${order.currency || 'MZN'}</span>
+                        </div>
+                    </div>
+                    ${shippingAddress || shippingCity ? `
+                    <div class="shipping-info">
+                        <i class="fa-solid fa-location-dot"></i>
+                        ${shippingAddress ? `<span>${shippingAddress}</span>` : ''}
+                        ${shippingCity ? `<span>${shippingAddress ? '•' : ''} ${shippingCity}</span>` : ''}
+                    </div>
+                    ` : ''}
+                    <div class="order-actions">
+                        <button class="btn-action btn-view" onclick="OrdersModule.viewOrderDetails(${order.id})">
+                            <i class="fa-solid fa-eye"></i>
+                            Ver Detalhes
+                        </button>
+                        ${order.status === 'enviado' || order.status === 'processando' ? `
+                        <button class="btn-action btn-track" onclick="OrdersModule.trackOrder(${order.id})">
+                            <i class="fa-solid fa-truck"></i>
+                            Rastrear
+                        </button>
+                        ` : ''}
+                        ${order.status === 'entregue' ? `
+                        <button class="btn-action btn-track" onclick="OrdersModule.contactSupport('${order.order_number}')">
+                            <i class="fa-solid fa-headset"></i>
+                            Suporte
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function updateStats(total, pendentes, confirmados, entreguesPagos) {
+        const statTotal = document.getElementById('stat-total');
+        const statPendentes = document.getElementById('stat-pendentes');
+        const statConfirmados = document.getElementById('stat-confirmados');
+        const statEntregues = document.getElementById('stat-entregues');
+        
+        if (statTotal && statTotal.textContent !== total.toString()) {
+            statTotal.textContent = total;
+        }
+        if (statPendentes && statPendentes.textContent !== pendentes.toString()) {
+            statPendentes.textContent = pendentes;
+        }
+        if (statConfirmados && statConfirmados.textContent !== confirmados.toString()) {
+            statConfirmados.textContent = confirmados;
+        }
+        if (statEntregues && statEntregues.textContent !== entreguesPagos.toString()) {
+            statEntregues.textContent = entreguesPagos;
+        }
+    }
+
+    function filterOrdersByStatus(status, button) {
+        state.currentFilter = status;
+        document.querySelectorAll('.filter-chip').forEach(chip => chip.classList.remove('active'));
+        if (button) button.classList.add('active');
+        
+        const cards = document.querySelectorAll('.order-card');
+        let visibleCount = 0;
+        
+        cards.forEach(card => {
+            const cardStatus = card.dataset.status;
+            const cardPayment = card.dataset.payment;
+            let shouldShow = false;
+            
+            if (status === 'all') {
+                shouldShow = true;
+            } else if (status === 'entregue_pago') {
+                shouldShow = cardPayment === 'pago' && card.dataset.method === 'manual';
+            } else if (status === 'confirmado') {
+                shouldShow = cardStatus === 'confirmado' || cardStatus === 'processando' || cardStatus === 'enviado';
+            } else {
+                shouldShow = cardStatus === status;
+            }
+            
+            if (shouldShow) {
+                card.style.display = 'block';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        const existingEmpty = document.querySelector('.filter-empty-state');
+        if (existingEmpty) existingEmpty.remove();
+        
+        if (visibleCount === 0) {
+            const container = document.getElementById('ordersList');
+            const emptyState = document.createElement('div');
+            emptyState.className = 'empty-state filter-empty-state';
+            emptyState.innerHTML = `
+                <i class="fa-solid fa-filter"></i>
                 <h2>Nenhum pedido encontrado</h2>
-                <p>Você ainda não realizou nenhuma compra</p>
-                <button class="btn-action btn-view" onclick="navigateTo('home')" style="margin-top: 20px;">
-                    <i class="fa-solid fa-store"></i>
-                    Explorar Produtos
+                <p>Não há pedidos com o filtro selecionado</p>
+            `;
+            container.appendChild(emptyState);
+        }
+    }
+
+    function searchOrdersByNumber() {
+        const searchTerm = document.getElementById('searchOrders').value.toLowerCase().trim();
+        const cards = document.querySelectorAll('.order-card');
+        let visibleCount = 0;
+        
+        cards.forEach(card => {
+            const orderNumber = card.dataset.order.toLowerCase();
+            const cardStatus = card.dataset.status;
+            const cardPayment = card.dataset.payment;
+            const cardMethod = card.dataset.method;
+            
+            let matchesFilter = false;
+            if (state.currentFilter === 'all') {
+                matchesFilter = true;
+            } else if (state.currentFilter === 'entregue_pago') {
+                matchesFilter = cardPayment === 'pago' && cardMethod === 'manual';
+            } else if (state.currentFilter === 'confirmado') {
+                matchesFilter = cardStatus === 'confirmado' || cardStatus === 'processando' || cardStatus === 'enviado';
+            } else {
+                matchesFilter = cardStatus === state.currentFilter;
+            }
+            
+            if (orderNumber.includes(searchTerm) && matchesFilter) {
+                card.style.display = 'block';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        const existingEmpty = document.querySelector('.search-empty-state');
+        if (existingEmpty) existingEmpty.remove();
+        
+        if (visibleCount === 0 && searchTerm.length > 0) {
+            const container = document.getElementById('ordersList');
+            const emptyState = document.createElement('div');
+            emptyState.className = 'empty-state search-empty-state';
+            emptyState.innerHTML = `
+                <i class="fa-solid fa-search"></i>
+                <h2>Nenhum pedido encontrado</h2>
+                <p>Não há pedidos com o número "<strong>${searchTerm}</strong>"</p>
+                <button class="btn-action btn-view" onclick="OrdersModule.clearSearch()" style="margin-top: 20px;">
+                    <i class="fa-solid fa-times"></i>
+                    Limpar Busca
+                </button>
+            `;
+            container.appendChild(emptyState);
+        }
+    }
+
+    function clearSearch() {
+        document.getElementById('searchOrders').value = '';
+        searchOrdersByNumber();
+    }
+
+    async function viewOrderDetails(orderId) {
+        try {
+            const response = await fetch(`actions/get_order_details.php?id=${orderId}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showOrderDetailsModal(data.order);
+            } else {
+                if (typeof showToast === 'function') {
+                    showToast(`❌ ${data.message || 'Erro ao carregar detalhes'}`, 'error');
+                }
+            }
+        } catch (error) {
+            if (typeof showToast === 'function') {
+                showToast(`❌ Erro: ${error.message}`, 'error');
+            }
+        }
+    }
+
+    function showOrderDetailsModal(order) {
+        const items = order.items || [];
+        const statusInfo = statusMap[order.status] || {icon: '❓', label: order.status};
+        const paymentInfo = paymentStatusMap[order.payment_status] || {icon: '❓', label: order.payment_status};
+        
+        document.getElementById('modalDetailsTitle').textContent = `Pedido #${order.order_number}`;
+        
+        document.getElementById('modalDetailsContent').innerHTML = `
+            <div class="order-details-grid">
+                <div class="detail-section">
+                    <h3>Informações do Pedido</h3>
+                    <div class="detail-row">
+                        <span class="detail-label">Número:</span>
+                        <span class="detail-value">#${order.order_number}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Data:</span>
+                        <span class="detail-value">${formatDate(order.order_date)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Empresa:</span>
+                        <span class="detail-value">${order.company_name || 'VisionGreen'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status:</span>
+                        <span class="detail-value">${statusInfo.icon} ${statusInfo.label}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Pagamento:</span>
+                        <span class="detail-value">${paymentInfo.icon} ${paymentInfo.label}</span>
+                    </div>
+                </div>
+                
+                <div class="detail-section">
+                    <h3>Itens do Pedido</h3>
+                    <div class="items-list">
+                        ${items.map(item => `
+                            <div class="item-card">
+                                <div class="item-info">
+                                    <div class="item-name">${item.product_name}</div>
+                                    <div class="item-meta">Quantidade: ${item.quantity} × ${formatPrice(item.unit_price)} MZN</div>
+                                </div>
+                                <div class="item-total">${formatPrice(item.total)} MZN</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="detail-section">
+                    <h3>Totais</h3>
+                    <div class="detail-row">
+                        <span class="detail-label">Subtotal:</span>
+                        <span class="detail-value">${formatPrice(order.subtotal || order.total)} MZN</span>
+                    </div>
+                    ${order.discount > 0 ? `
+                    <div class="detail-row">
+                        <span class="detail-label">Desconto:</span>
+                        <span class="detail-value">-${formatPrice(order.discount)} MZN</span>
+                    </div>
+                    ` : ''}
+                    ${order.shipping_cost > 0 ? `
+                    <div class="detail-row">
+                        <span class="detail-label">Frete:</span>
+                        <span class="detail-value">${formatPrice(order.shipping_cost)} MZN</span>
+                    </div>
+                    ` : ''}
+                    <div class="detail-row" style="border-top: 2px solid var(--border); padding-top: 12px; margin-top: 8px;">
+                        <span class="detail-label" style="font-weight: 700; color: var(--text-primary);">Total:</span>
+                        <span class="detail-value" style="font-size: 18px; color: var(--primary);">${formatPrice(order.total)} MZN</span>
+                    </div>
+                </div>
+                
+                ${order.shipping_address ? `
+                <div class="detail-section">
+                    <h3>Endereço de Entrega</h3>
+                    <p style="color: var(--text-primary); line-height: 1.6;">
+                        ${order.shipping_address}${order.shipping_city ? `<br>${order.shipping_city}` : ''}
+                        ${order.shipping_phone ? `<br>Telefone: ${order.shipping_phone}` : ''}
+                    </p>
+                </div>
+                ` : ''}
+                
+                ${order.customer_notes ? `
+                <div class="detail-section">
+                    <h3>Observações do Cliente</h3>
+                    <p style="color: var(--text-secondary); line-height: 1.6;">${order.customer_notes}</p>
+                </div>
+                ` : ''}
+            </div>
+        `;
+        
+        openModal('modalDetails');
+    }
+
+    function trackOrder(orderId) {
+        if (typeof showToast === 'function') {
+            showToast('🚚 Função de rastreamento em desenvolvimento', 'info');
+        }
+    }
+
+    function contactSupport(orderNumber) {
+        if (typeof showToast === 'function') {
+            showToast(`📞 Entre em contato com o suporte mencionando o pedido #${orderNumber}`, 'info');
+        }
+    }
+
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    function showError(message) {
+        const container = document.getElementById('ordersList');
+        container.innerHTML = `
+            <div class="error-state">
+                <i class="fa-solid fa-exclamation-triangle"></i>
+                <h3>Erro ao Carregar</h3>
+                <p>${message}</p>
+                <button class="btn-action btn-view" onclick="OrdersModule.loadOrders()" style="margin-top: 24px;">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    Tentar Novamente
                 </button>
             </div>
         `;
-        updateStats(0, 0, 0, 0);
-        return;
     }
-    
-    const pendentes = ordersData.filter(o => o.status === 'pendente').length;
-    const confirmados = ordersData.filter(o => o.status === 'confirmado' || o.status === 'processando' || o.status === 'enviado').length;
-    const entreguesPagos = ordersData.filter(o => o.payment_method === 'manual' && o.payment_status === 'pago').length;
-    
-    updateStats(ordersData.length, pendentes, confirmados, entreguesPagos);
-    
-    try {
-        container.innerHTML = ordersData.map((order, index) => renderOrderCard(order, index)).join('');
-        console.log(`✅ ${ordersData.length} pedidos renderizados`);
-    } catch (error) {
-        console.error('❌ Erro:', error);
-        container.innerHTML = `<div class="error-state"><h3>Erro de Renderização</h3><p>${error.message}</p></div>`;
+
+    function formatDate(dateString) {
+        if (!dateString) return 'Data inválida';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR') + ' às ' + date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+        } catch (error) {
+            return dateString;
+        }
     }
-}
 
-function renderOrderCard(order, index) {
-    const statusInfo = statusMap[order.status] || {icon: '❓', label: order.status, color: 'warning'};
-    const paymentInfo = paymentStatusMap[order.payment_status] || {icon: '❓', label: order.payment_status, color: 'warning'};
-    const methodInfo = paymentMethodMap[order.payment_method] || {icon: '💳', label: order.payment_method};
-    
-    const shippingAddress = order.shipping_address && order.shipping_address !== 'null' ? order.shipping_address : null;
-    const shippingCity = order.shipping_city && order.shipping_city !== 'null' ? order.shipping_city : null;
-    
-    return `
-        <div class="order-card" data-status="${order.status}" data-payment="${order.payment_status}" data-method="${order.payment_method}" data-order="${order.order_number}" style="animation: fadeInUp 0.5s ease ${index * 0.1}s backwards;">
-            <div class="order-header">
-                <div class="order-number">
-                    <i class="fa-solid fa-hashtag"></i>
-                    <strong>${order.order_number || 'N/A'}</strong>
-                </div>
-                <div class="order-date">
-                    <i class="fa-regular fa-calendar"></i>
-                    ${formatDate(order.order_date)}
-                </div>
-                <div class="order-company">
-                    <i class="fa-solid fa-store"></i>
-                    ${order.empresa_nome || 'VisionGreen'}
-                </div>
-            </div>
-            <div class="order-body">
-                <div class="info-grid">
-                    <div class="info-item">
-                        <span class="info-label">Status do Pedido</span>
-                        <span class="status-badge status-${statusInfo.color}">
-                            ${statusInfo.icon} ${statusInfo.label}
-                        </span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Pagamento</span>
-                        <span class="status-badge status-${paymentInfo.color}">
-                            ${paymentInfo.icon} ${paymentInfo.label}
-                        </span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Método</span>
-                        <span class="info-value">${methodInfo.icon} ${methodInfo.label}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Itens</span>
-                        <span class="info-value">${order.total_items || order.items_count || 0} produto(s)</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Total</span>
-                        <span class="order-total">${formatPrice(order.total)} ${order.currency || 'MZN'}</span>
-                    </div>
-                </div>
-                ${shippingAddress || shippingCity ? `
-                <div class="shipping-info">
-                    <i class="fa-solid fa-location-dot"></i>
-                    ${shippingAddress ? `<span>${shippingAddress}</span>` : ''}
-                    ${shippingCity ? `<span>${shippingAddress ? '•' : ''} ${shippingCity}</span>` : ''}
-                </div>
-                ` : ''}
-                <div class="order-actions">
-                    <button class="btn-action btn-view" onclick="viewOrderDetails(${order.id})">
-                        <i class="fa-solid fa-eye"></i>
-                        Ver Detalhes
-                    </button>
-                    ${order.status === 'enviado' || order.status === 'processando' ? `
-                    <button class="btn-action btn-track" onclick="trackOrder(${order.id})">
-                        <i class="fa-solid fa-truck"></i>
-                        Rastrear
-                    </button>
-                    ` : ''}
-                    ${order.status === 'entregue' ? `
-                    <button class="btn-action btn-track" onclick="contactSupport('${order.order_number}')">
-                        <i class="fa-solid fa-headset"></i>
-                        Suporte
-                    </button>
-                    ` : ''}
-                </div>
-            </div>
-        </div>
-    `;
-}
+    function formatPrice(price) {
+        if (price === null || price === undefined) return '0,00';
+        try {
+            return parseFloat(price).toLocaleString('pt-MZ', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        } catch (error) {
+            return String(price);
+        }
+    }
 
-function updateStats(total, pendentes, confirmados, entreguesPagos) {
-    document.getElementById('stat-total').textContent = total;
-    document.getElementById('stat-pendentes').textContent = pendentes;
-    document.getElementById('stat-confirmados').textContent = confirmados;
-    document.getElementById('stat-entregues').textContent = entreguesPagos;
-}
+    function setupEventListeners() {
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal(this.id);
+                }
+            });
+        });
+    }
 
-function filterOrdersByStatus(status, button) {
-    currentFilter = status;
-    document.querySelectorAll('.filter-chip').forEach(chip => chip.classList.remove('active'));
-    if (button) button.classList.add('active');
-    
-    const cards = document.querySelectorAll('.order-card');
-    let visibleCount = 0;
-    
-    cards.forEach(card => {
-        const cardStatus = card.dataset.status;
-        const cardPayment = card.dataset.payment;
-        let shouldShow = false;
-        
-        if (status === 'all') {
-            shouldShow = true;
-        } else if (status === 'entregue_pago') {
-            shouldShow = cardPayment === 'pago' && card.dataset.method === 'manual';
-        } else if (status === 'confirmado') {
-            shouldShow = cardStatus === 'confirmado' || cardStatus === 'processando' || cardStatus === 'enviado';
-        } else {
-            shouldShow = cardStatus === status;
+    function startAutoUpdate() {
+        if (state.updateInterval) {
+            clearInterval(state.updateInterval);
         }
         
-        if (shouldShow) {
-            card.style.display = 'block';
-            visibleCount++;
-        } else {
-            card.style.display = 'none';
+        state.updateInterval = setInterval(() => {
+            loadOrders(true);
+        }, 1000);
+    }
+
+    function stopAutoUpdate() {
+        if (state.updateInterval) {
+            clearInterval(state.updateInterval);
+            state.updateInterval = null;
         }
-    });
-    
-    const existingEmpty = document.querySelector('.filter-empty-state');
-    if (existingEmpty) existingEmpty.remove();
-    
-    if (visibleCount === 0) {
-        const container = document.getElementById('ordersList');
-        const emptyState = document.createElement('div');
-        emptyState.className = 'empty-state filter-empty-state';
-        emptyState.innerHTML = `
-            <i class="fa-solid fa-filter"></i>
-            <h2>Nenhum pedido encontrado</h2>
-            <p>Não há pedidos com o filtro selecionado</p>
-        `;
-        container.appendChild(emptyState);
     }
-}
 
-function searchOrdersByNumber() {
-    const searchTerm = document.getElementById('searchOrders').value.toLowerCase().trim();
-    const cards = document.querySelectorAll('.order-card');
-    let visibleCount = 0;
-    
-    cards.forEach(card => {
-        const orderNumber = card.dataset.order.toLowerCase();
-        const cardStatus = card.dataset.status;
-        const cardPayment = card.dataset.payment;
-        const cardMethod = card.dataset.method;
-        
-        let matchesFilter = false;
-        if (currentFilter === 'all') {
-            matchesFilter = true;
-        } else if (currentFilter === 'entregue_pago') {
-            matchesFilter = cardPayment === 'pago' && cardMethod === 'manual';
-        } else if (currentFilter === 'confirmado') {
-            matchesFilter = cardStatus === 'confirmado' || cardStatus === 'processando' || cardStatus === 'enviado';
-        } else {
-            matchesFilter = cardStatus === currentFilter;
-        }
-        
-        if (orderNumber.includes(searchTerm) && matchesFilter) {
-            card.style.display = 'block';
-            visibleCount++;
-        } else {
-            card.style.display = 'none';
-        }
-    });
-    
-    // Remover empty state anterior se existir
-    const existingEmpty = document.querySelector('.search-empty-state');
-    if (existingEmpty) existingEmpty.remove();
-    
-    // Mostrar mensagem se nenhum resultado
-    if (visibleCount === 0 && searchTerm.length > 0) {
-        const container = document.getElementById('ordersList');
-        const emptyState = document.createElement('div');
-        emptyState.className = 'empty-state search-empty-state';
-        emptyState.innerHTML = `
-            <i class="fa-solid fa-search"></i>
-            <h2>Nenhum pedido encontrado</h2>
-            <p>Não há pedidos com o número "<strong>${searchTerm}</strong>"</p>
-            <button class="btn-action btn-view" onclick="clearSearch()" style="margin-top: 20px;">
-                <i class="fa-solid fa-times"></i>
-                Limpar Busca
-            </button>
-        `;
-        container.appendChild(emptyState);
-    }
-}
+    window.OrdersModule = {
+        loadOrders: (silent) => loadOrders(silent || false),
+        filterOrdersByStatus,
+        searchOrdersByNumber,
+        clearSearch,
+        viewOrderDetails,
+        trackOrder,
+        contactSupport,
+        closeModal,
+        state
+    };
 
-function clearSearch() {
-    document.getElementById('searchOrders').value = '';
-    searchOrdersByNumber();
-}
+    setTimeout(() => {
+        setupEventListeners();
+        renderOrders();
+        startAutoUpdate();
+    }, 100);
 
-async function viewOrderDetails(orderId) {
-    try {
-        const response = await fetch(`actions/get_order_details.php?id=${orderId}`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showOrderDetailsModal(data.order);
-        } else {
-            showToast(`❌ ${data.message || 'Erro ao carregar detalhes'}`, 'error');
-        }
-    } catch (error) {
-        console.error('❌ Erro:', error);
-        showToast(`❌ Erro: ${error.message}`, 'error');
-    }
-}
-
-function showOrderDetailsModal(order) {
-    const items = order.items || [];
-    const statusInfo = statusMap[order.status] || {icon: '❓', label: order.status};
-    const paymentInfo = paymentStatusMap[order.payment_status] || {icon: '❓', label: order.payment_status};
-    
-    document.getElementById('modalDetailsTitle').textContent = `Pedido #${order.order_number}`;
-    
-    document.getElementById('modalDetailsContent').innerHTML = `
-        <div class="order-details-grid">
-            <div class="detail-section">
-                <h3>Informações do Pedido</h3>
-                <div class="detail-row">
-                    <span class="detail-label">Número:</span>
-                    <span class="detail-value">#${order.order_number}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Data:</span>
-                    <span class="detail-value">${formatDate(order.order_date)}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Empresa:</span>
-                    <span class="detail-value">${order.company_name || 'VisionGreen'}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Status:</span>
-                    <span class="detail-value">${statusInfo.icon} ${statusInfo.label}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Pagamento:</span>
-                    <span class="detail-value">${paymentInfo.icon} ${paymentInfo.label}</span>
-                </div>
-            </div>
-            
-            <div class="detail-section">
-                <h3>Itens do Pedido</h3>
-                <div class="items-list">
-                    ${items.map(item => `
-                        <div class="item-card">
-                            <div class="item-info">
-                                <div class="item-name">${item.product_name}</div>
-                                <div class="item-meta">Quantidade: ${item.quantity} × ${formatPrice(item.unit_price)} MZN</div>
-                            </div>
-                            <div class="item-total">${formatPrice(item.total)} MZN</div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            
-            <div class="detail-section">
-                <h3>Totais</h3>
-                <div class="detail-row">
-                    <span class="detail-label">Subtotal:</span>
-                    <span class="detail-value">${formatPrice(order.subtotal || order.total)} MZN</span>
-                </div>
-                ${order.discount > 0 ? `
-                <div class="detail-row">
-                    <span class="detail-label">Desconto:</span>
-                    <span class="detail-value">-${formatPrice(order.discount)} MZN</span>
-                </div>
-                ` : ''}
-                ${order.shipping_cost > 0 ? `
-                <div class="detail-row">
-                    <span class="detail-label">Frete:</span>
-                    <span class="detail-value">${formatPrice(order.shipping_cost)} MZN</span>
-                </div>
-                ` : ''}
-                <div class="detail-row" style="border-top: 2px solid var(--border); padding-top: 12px; margin-top: 8px;">
-                    <span class="detail-label" style="font-weight: 700; color: var(--text-primary);">Total:</span>
-                    <span class="detail-value" style="font-size: 18px; color: var(--primary);">${formatPrice(order.total)} MZN</span>
-                </div>
-            </div>
-            
-            ${order.shipping_address ? `
-            <div class="detail-section">
-                <h3>Endereço de Entrega</h3>
-                <p style="color: var(--text-primary); line-height: 1.6;">
-                    ${order.shipping_address}${order.shipping_city ? `<br>${order.shipping_city}` : ''}
-                    ${order.shipping_phone ? `<br>Telefone: ${order.shipping_phone}` : ''}
-                </p>
-            </div>
-            ` : ''}
-            
-            ${order.customer_notes ? `
-            <div class="detail-section">
-                <h3>Observações do Cliente</h3>
-                <p style="color: var(--text-secondary); line-height: 1.6;">${order.customer_notes}</p>
-            </div>
-            ` : ''}
-        </div>
-    `;
-    
-    openModal('modalDetails');
-}
-
-function trackOrder(orderId) {
-    showToast('🚚 Função de rastreamento em desenvolvimento', 'info');
-}
-
-function contactSupport(orderNumber) {
-    showToast(`📞 Entre em contato com o suporte mencionando o pedido #${orderNumber}`, 'info');
-}
-
-function openModal(modalId) {
-    document.getElementById(modalId).classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('active');
-    document.body.style.overflow = '';
-}
-
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeModal(this.id);
-        }
-    });
-});
-
-function formatDate(dateString) {
-    if (!dateString) return 'Data inválida';
-    try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR') + ' às ' + date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
-    } catch (error) {
-        return dateString;
-    }
-}
-
-function formatPrice(price) {
-    if (price === null || price === undefined) return '0,00';
-    try {
-        return parseFloat(price).toLocaleString('pt-MZ', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    } catch (error) {
-        return String(price);
-    }
-}
-
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-`;
-document.head.appendChild(style);
-
-renderOrders();
-console.log('✅ Módulo Meus Pedidos inicializado (versão cliente)');
+    window.addEventListener('beforeunload', stopAutoUpdate);
+})();
 </script>

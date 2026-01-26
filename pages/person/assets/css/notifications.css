@@ -1,0 +1,673 @@
+/* =========================================
+   SISTEMA DE NOTIFICAÇÕES - CSS COMPLETO
+   ========================================= */
+
+/* ========================================
+   MODAL OVERLAY
+======================================== */
+
+@import url(../css/painel_cliente.css);
+
+.modal-overlay {
+    border-radius: 20px 0px 0px 20px;
+    position: fixed;
+    top: 8.8%;
+    right: 0%;
+    width: 40vw;
+    height: 90vh;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+    overflow: hidden;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* ========================================
+   MODAL CONTAINER
+======================================== */
+.modal-container {
+    background: var(--gray-300);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideDown 0.3s ease;
+    padding: 10px 0px;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========================================
+   MODAL HEADER
+======================================== */
+.modal-header {
+    padding: 24px 28px;
+    border-bottom: 1px solid var(--gray-600);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+}
+
+.modal-header h3 i {
+    color: #00b96b;
+    font-size: 22px;
+}
+
+.badge-count {
+    background: #00b96b;
+    color: white;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 12px;
+    margin-left: 8px;
+}
+
+.modal-header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #6b7280;
+}
+
+.btn-icon:hover {
+    background: #f3f4f6;
+    color: #00b96b;
+}
+
+#close-modal:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* ========================================
+   MODAL BODY
+======================================== */
+.modal-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ========================================
+   NOTIFICATION TABS
+======================================== */
+.notification-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--gray-600);
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.notification-tabs::-webkit-scrollbar {
+    height: 4px;
+}
+
+.notification-tabs::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+}
+
+.tab-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--gray-600);
+    background: white;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    border-color: #00b96b;
+    color: #00b96b;
+    background: #f0fdf4;
+}
+
+.tab-btn.active {
+    background: #00b96b;
+    color: white;
+    border-color: #00b96b;
+}
+
+/* ========================================
+   NOTIFICATIONS LIST
+======================================== */
+.notifications-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 24px;
+}
+
+.notifications-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notifications-list::-webkit-scrollbar-track {
+    background: #f3f4f6;
+}
+
+.notifications-list::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+}
+
+.notifications-list::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+/* ========================================
+   NOTIFICATION ITEM
+======================================== */
+.notification-item {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    background: white;
+    border: 1px solid var(--gray-600);
+    transition: all 0.3s;
+    cursor: pointer;
+    position: relative;
+}
+
+.notification-item:hover {
+    background: #f9fafb;
+    border-color: #00b96b;
+    box-shadow: 0 4px 12px rgba(0, 185, 107, 0.1);
+    transform: translateX(4px);
+}
+
+.notification-item.unread {
+    background: #f0fdf4;
+    border-color: #00b96b;
+}
+
+.notification-item.unread::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #00b96b;
+    border-radius: 10px 0 0 10px;
+}
+
+/* ========================================
+   NOTIFICATION ICON
+======================================== */
+.notif-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 20px;
+}
+
+.icon-primary {
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.icon-success {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.icon-warning {
+    background: #fef3c7;
+    color: #f59e0b;
+}
+
+.icon-danger {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.icon-info {
+    background: #f0f9ff;
+    color: #0284c7;
+}
+
+.icon-secondary {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.icon-critical {
+    background: #fce7f3;
+    color: #ec4899;
+}
+
+/* ========================================
+   NOTIFICATION CONTENT
+======================================== */
+.notif-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notif-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.notif-header h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.notif-time {
+    font-size: 12px;
+    color: #9ca3af;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.notif-message {
+    font-size: 14px;
+    color: #4b5563;
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+
+/* ========================================
+   BADGES
+======================================== */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 8px;
+}
+
+.badge-critical {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.badge-high {
+    background: #fef3c7;
+    color: #f59e0b;
+}
+
+.badge-medium {
+    background: #dbeafe;
+    color: #3b82f6;
+}
+
+/* ========================================
+   NOTIFICATION META
+======================================== */
+.notif-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #6b7280;
+    margin-right: 12px;
+    padding: 4px 8px;
+    background: #f3f4f6;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.notif-meta i {
+    color: #00b96b;
+    font-size: 11px;
+}
+
+/* ========================================
+   NOTIFICATION ACTIONS
+======================================== */
+.notif-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.notification-item:hover .notif-actions {
+    opacity: 1;
+}
+
+.btn-notif-action {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.btn-notif-action:hover {
+    background: #00b96b;
+    color: white;
+    border-color: #00b96b;
+    transform: scale(1.1);
+}
+
+.btn-notif-action:last-child:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+}
+
+/* ========================================
+   EMPTY STATE
+======================================== */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #9ca3af;
+}
+
+.empty-state i {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* ========================================
+   NOTIFICATION BADGE (Header)
+======================================== */
+.notification-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #dc2626;
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.9;
+    }
+}
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+@media (max-width: 768px) {
+    .modal-container {
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+        margin: 0;
+    }
+
+    .modal-header {
+        padding: 20px;
+        border-radius: 0;
+    }
+
+    .modal-header h3 {
+        font-size: 18px;
+    }
+
+    .notification-tabs {
+        padding: 12px 20px;
+    }
+
+    .tab-btn {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+
+    .notifications-list {
+        padding: 12px 20px;
+    }
+
+    .notification-item {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .notif-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+
+    .notif-header {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .notif-time {
+        align-self: flex-start;
+    }
+
+    .notif-actions {
+        flex-direction: row;
+        opacity: 1;
+        justify-content: flex-end;
+    }
+}
+
+/* ========================================
+   LOADING STATE
+======================================== */
+.loading-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f4f6;
+    border-top-color: #00b96b;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========================================
+   NOTIFICATION DETAIL MODAL (Opcional)
+======================================== */
+.notification-detail {
+    padding: 24px;
+}
+
+.notification-detail-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.notification-detail-header h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.notification-detail-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.notification-detail-body {
+    font-size: 15px;
+    line-height: 1.8;
+    color: #374151;
+    margin-bottom: 20px;
+}
+
+.notification-detail-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.btn-reply {
+    padding: 10px 20px;
+    background: #00b96b;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-reply:hover {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 185, 107, 0.3);
+}
+
+.btn-close-detail {
+    padding: 10px 20px;
+    background: #f3f4f6;
+    color: #374151;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-close-detail:hover {
+    background: #e5e7eb;
+}
+
+/* ========================================
+   ANIMATIONS
+======================================== */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.notification-item {
+    animation: slideInRight 0.3s ease;
+}
+
+.notification-item:nth-child(1) { animation-delay: 0.05s; }
+.notification-item:nth-child(2) { animation-delay: 0.1s; }
+.notification-item:nth-child(3) { animation-delay: 0.15s; }
+.notification-item:nth-child(4) { animation-delay: 0.2s; }
+.notification-item:nth-child(5) { animation-delay: 0.25s; }
+
+/* ========================================
+   DARK MODE (Opcional - Futuro)
+======================================== */
+@media (prefers-color-scheme: dark) {
+    /* Adicionar estilos dark mode aqui se necessário */
+}
+
+/* ========================================
+   PRINT (Esconder modal ao imprimir)
+======================================== */
+@media print {
+    .modal-overlay {
+        display: none !important;
+    }
+}

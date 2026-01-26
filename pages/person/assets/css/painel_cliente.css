@@ -1,0 +1,754 @@
+:root {
+    /* Paleta VSG Verde Sustentável */
+    --primary-green: #00b96b;
+    --primary-blue: #0066c0;
+    --secondary-green: #059669;
+    --secondary-blue: #232f3e;
+    --light-green: #f0fdf4;
+    
+    /* Neutros Clean */
+    --white: #ffffff;
+    --gray-50: #fafafa;
+    --gray-100: #f5f5f5;
+    --gray-200: #eeeeee;
+    --gray-300: #e0e0e0;
+    --gray-400: #bdbdbd;
+    --gray-600: #757575;
+    --gray-800: #424242;
+    --gray-900: #212121;
+    
+    /* Status Colors */
+    --status-success: #10b981;
+    --status-warning: #f59e0b;
+    --status-danger: #ef4444;
+    --status-info: #3b82f6;
+    
+    /* Sombras */
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.15);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: var(--gray-100);
+    color: var(--gray-900);
+    line-height: 1.5;
+}
+
+.body-index {
+    width: 100vw;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-layout {
+    flex: 1;
+}
+
+/* ========================================
+    TOP HEADER
+======================================== */
+.top-header {
+    background: var(--secondary-blue);
+    color: white;
+    padding: 12px 0;
+    box-shadow: var(--shadow-md);
+}
+
+.top-header-content {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: white;
+    text-decoration: none;
+    display: flex;
+    align-items: baseline;
+}
+
+.logo-accent {
+    color: var(--primary-green);
+    font-size: 28px;
+    margin-left: 2px;
+}
+
+.title-panel {
+    font-size: .9rem;
+    font-weight: 100;
+    letter-spacing: 1px;
+}
+
+/* Search no Header */
+.header-search {
+    flex: 1;
+    max-width: 600px;
+    margin: 0 40px;
+}
+
+.search-wrapper {
+    display: flex;
+    background: white;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.search-input {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    outline: none;
+    font-size: 14px;
+}
+
+.search-btn {
+    background: var(--primary-green);
+    border: none;
+    padding: 0 20px;
+    cursor: pointer;
+    color: white;
+    transition: background 0.2s;
+}
+
+.search-btn:hover {
+    background: var(--secondary-green);
+}
+/* Header Actions */
+.header-actions {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+}
+
+.header-action-btn {
+    position: relative;
+    color: white;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.header-action-btn:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+
+.header-action-btn i {
+    font-size: 18px;
+}
+
+.notification-badge {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    background: var(--status-danger);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.user-menu:hover {
+    background: rgba(255,255,255,0.15);
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    background: var(--primary-green);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.app-circle-btn {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px;
+}
+
+.app-circle-btn:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.cnt-circle-app {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.circle-app {
+    background-color: var(--gray-300);
+    width: 6px; height: 6px;
+    border-radius: 10px;
+}
+
+/* ========================================
+    LAYOUT COM SIDEBAR
+======================================== */
+.dashboard-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* SIDEBAR */
+/* ========================================
+   SIDEBAR - ESTADOS ATIVOS E HOVER
+======================================== */
+
+.sidebar {
+    background: white;
+    border-right: 1px solid var(--gray-200);
+    padding: 20px 4px;
+    overflow-y: auto;
+    position: sticky;
+    top: 0;
+}
+
+.sidebar-section {
+    margin-bottom: 32px;
+}
+
+.sidebar-title {
+    padding: 0 20px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-item {
+    margin-bottom: 4px;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: var(--gray-800);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    margin: 0 8px;
+    position: relative;
+}
+
+/* Hover State */
+.sidebar-link:hover {
+    background: var(--gray-100);
+    color: var(--primary-green);
+}
+
+/* Active State - ESTILO PRINCIPAL */
+.sidebar-link.active {
+    background: linear-gradient(90deg, #dcfce7 0%, #f0fdf4 100%);
+    color: var(--primary-green);
+    font-weight: 700;
+    border-left: 4px solid var(--primary-green);
+    padding-left: 16px;
+    box-shadow: 0 2px 8px rgba(0, 185, 107, 0.1);
+}
+
+/* Ícone no estado ativo */
+.sidebar-link.active i {
+    color: var(--primary-green);
+    transform: scale(1.1);
+}
+
+/* Ícone normal */
+.sidebar-link i {
+    width: 20px;
+    text-align: center;
+    font-size: 16px;
+    transition: all 0.2s ease;
+}
+
+/* Badge de notificação */
+.sidebar-badge {
+    margin-left: auto;
+    background: var(--primary-green);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* Badge quando link está ativo */
+.sidebar-link.active .sidebar-badge {
+    background: var(--primary-green);
+    animation: pulse 2s infinite;
+}
+
+/* Animação do badge */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Responsivo */
+@media (max-width: 1024px) {
+    .sidebar {
+        position: fixed;
+        left: -280px;
+        top: 60px;
+        height: calc(100vh - 60px);
+        z-index: 1000;
+        transition: left 0.3s ease;
+    }
+    
+    .sidebar.open {
+        left: 0;
+    }
+}
+
+/* MAIN CONTENT */
+.main-content {
+    padding: 24px;
+    background: var(--gray-50);
+}
+
+/* ========================================
+   DASHBOARD FOOTER - ESTILO MODERNO
+======================================== */
+
+.dashboard-footer {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2d5a7b 50%, #1a5c4e 100%);
+    color: white;
+    border-top: 4px solid var(--primary-green);
+}
+
+.footer-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* ========================================
+   FOOTER TOP - COLUNAS
+======================================== */
+
+.footer-top {
+    display: grid;
+    grid-template-columns: 2fr repeat(4, 1fr);
+    gap: 40px;
+    padding: 60px 0 40px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Coluna de Brand */
+.footer-brand {
+    padding-right: 20px;
+}
+
+.footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    font-size: 28px;
+}
+
+.footer-logo i {
+    color: var(--primary-green);
+    font-size: 32px;
+}
+
+.footer-logo-text {
+    font-weight: 900;
+    font-size: 24px;
+    letter-spacing: 0.5px;
+}
+
+.logo-highlight {
+    color: var(--primary-green);
+}
+
+.footer-description {
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 20px;
+}
+
+/* Social Links */
+.footer-social {
+    display: flex;
+    gap: 12px;
+}
+
+.social-link {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 16px;
+}
+
+.social-link:hover {
+    background: var(--primary-green);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 185, 107, 0.4);
+}
+
+/* Colunas de Links */
+.footer-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.footer-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: white;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+.footer-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40px;
+    height: 3px;
+    background: var(--primary-green);
+    border-radius: 2px;
+}
+
+.footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.footer-links li {
+    margin-bottom: 12px;
+}
+
+.footer-links a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    display: inline-block;
+}
+
+.footer-links a:hover {
+    color: var(--primary-green);
+    transform: translateX(5px);
+}
+
+/* Newsletter */
+.footer-newsletter {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.newsletter-description {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.newsletter-form {
+    margin-bottom: 20px;
+}
+
+.input-group {
+    display: flex;
+    gap: 8px;
+}
+
+.newsletter-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.newsletter-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.newsletter-input:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--primary-green);
+}
+
+.newsletter-btn {
+    padding: 12px 20px;
+    background: var(--primary-green);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 16px;
+}
+
+.newsletter-btn:hover {
+    background: var(--secondary-green);
+    transform: scale(1.05);
+}
+
+/* Footer Badges */
+.footer-badges {
+    display: flex;
+    gap: 16px;
+}
+
+.badge-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.badge-item i {
+    color: var(--primary-green);
+    font-size: 16px;
+}
+
+/* ========================================
+   FOOTER BOTTOM - COPYRIGHT
+======================================== */
+
+.footer-bottom {
+    padding: 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.footer-bottom-left,
+.footer-bottom-center,
+.footer-bottom-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.copyright,
+.powered-by {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+}
+
+.footer-legal-link {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 0.2s ease;
+}
+
+.footer-legal-link:hover {
+    color: var(--primary-green);
+}
+
+.separator {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 12px;
+}
+
+.powered-by strong {
+    color: var(--primary-green);
+}
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+
+@media (max-width: 1200px) {
+    .footer-top {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .footer-brand {
+        grid-column: 1 / -1;
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .footer-top {
+        grid-template-columns: 1fr;
+        gap: 32px;
+        padding: 40px 0 30px;
+    }
+    
+    .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+        gap: 16px;
+    }
+    
+    .footer-bottom-center {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .footer-newsletter {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .input-group {
+        flex-direction: column;
+    }
+    
+    .newsletter-btn {
+        width: 100%;
+    }
+    
+    .footer-social {
+        justify-content: center;
+    }
+}
+
+/* ========================================
+   SCROLL TO TOP BUTTON (OPCIONAL)
+======================================== */
+
+.scroll-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    background: var(--primary-green);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    z-index: 999;
+}
+
+.scroll-to-top:hover {
+    background: var(--secondary-green);
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.scroll-to-top.visible {
+    display: flex;
+}
+
+/* Badges na sidebar */
+.sidebar-link .badge {
+    margin-left: auto;
+    background: var(--primary-green);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    min-width: 20px;
+    text-align: center;
+}
+
+.sidebar-link .badge-warning {
+    background: #f59e0b;
+}
+
+.sidebar-link .badge-info {
+    background: #3b82f6;
+}
