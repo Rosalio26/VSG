@@ -71,6 +71,11 @@
                     <span>Carrinho</span>
                 </a>
 
+                <a href="registration/login/logout.php" class="user-dropdown-item logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    Sair
+                </a>
+
                 <?php if ($user_logged_in): ?>
                     <a href="pages/person/index.php" class="header-action" target="_blank">
                         <img src="<?= htmlspecialchars($displayAvatar) ?>" 

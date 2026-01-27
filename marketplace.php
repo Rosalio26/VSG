@@ -1,9 +1,156 @@
 <?php
-    session_start();
+session_start();
 
-    // Arquivos de configuração e segurança
-    require_once 'registration/includes/db.php';
-    require_once 'registration/includes/security.php';
+// Arquivos de configuração e segurança
+require_once 'registration/includes/db.php';
+require_once 'registration/includes/security.php';
+
+/* ===============================================
+   CONTROLE DE ACESSO - APENAS USUÁRIOS LOGADOS
+=============================================== */
+if (!isset($_SESSION['auth']['user_id'])) {
+    // Salva a URL que o usuário tentou acessar
+    $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
+    
+    // Redireciona para login
+    header("Location: registration/login/login.php?info=login_required");
+    exit;
+}
+
+// Verifica se o usuário está bloqueado ou com problemas
+$userId = (int) $_SESSION['auth']['user_id'];
+
+$stmt = $mysqli->prepare("
+    SELECT nome, apelido, email, telefone, public_id, status, registration_step, 
+        email_verified_at, created_at, type, role
+    FROM users WHERE id = ? LIMIT 1
+");
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$user = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if (!$user) {
+    // Usuário não existe mais
+    session_destroy();
+    header("Location: registration/login/login.php?error=user_not_found");
+    exit;
+}
+
+// Verifica status do usuário
+if ($user['status'] === 'blocked') {
+    session_destroy();
+    header("Location: registration/login/login.php?error=conta_bloqueada");
+    exit;
+}
+
+if ($user['status'] === 'pending') {
+    header("Location: registration/process/verify_email.php?info=complete_registration");
+    exit;
+}
+
+// Verifica se o email foi verificado
+if (!$user['email_verified_at']) {
+    header("Location: registration/process/verify_email.php");
+    exit;
+}
+
+// Verifica se tem public_id
+if (!$user['public_id']) {
+    header("Location: registration/register/gerar_uid.php");
+    exit;
+}
+
+// Redireciona empresas para dashboard próprio
+if ($user['type'] === 'company') {
+    header("Location: pages/business/dashboard_business.php");
+    exit;
+}
+
+// Redireciona admins para painel administrativo
+if (isset($_SESSION['auth']['role']) && in_array($_SESSION['auth']['role'], ['admin', 'superadmin'])) {
+    header("Location: pages/admin/dashboard_admin.php");
+    exit;
+}
+
+// Define variáveis do usuário
+$user_logged_in = true;
+$displayName = $user['apelido'] ?: $user['nome'];
+$displayAvatar = "https://ui-avatars.com/api/?name=" . urlencode($displayName) . "&background=00ff88&color=000&bold=true";
+
+// Busca contagem do carrinho
+$cart_query = "SELECT COALESCE(SUM(ci.quantity), 0) as cart_count 
+    FROM shopping_carts sc
+    LEFT JOIN cart_items ci ON sc.id = ci.cart_id
+    WHERE sc.user_id = ? AND sc.status = 'active'";
+$stmt_cart = $mysqli->prepare($cart_query);
+$stmt_cart->bind_param('i', $userId);
+$stmt_cart->execute();
+$cart_count = $stmt_cart->get_result()->fetch_assoc()['cart_count'];
+$stmt_cart->close();
+
+/* ===============================================
+   FIM DO CONTROLE DE ACESSO
+=============================================== */
+
+/* ===============================================
+   CONTROLE DE INATIVIDADE - LOGOUT AUTOMÁTICO
+=============================================== */
+$timeout_inatividade = 600; // 10 minutos em segundos
+
+// Verifica se existe timestamp de última atividade
+if (isset($_SESSION['ultima_atividade'])) {
+    $tempo_inativo = time() - $_SESSION['ultima_atividade'];
+    
+    if ($tempo_inativo > $timeout_inatividade) {
+        // Usuário ficou inativo por mais de 10 minutos
+        
+        // Remove token "remember me" se existir
+        if (isset($_COOKIE['remember_token'])) {
+            $token_hash = hash('sha256', $_COOKIE['remember_token']);
+            $stmt = $mysqli->prepare("DELETE FROM remember_me WHERE token_hash = ?");
+            $stmt->bind_param('s', $token_hash);
+            $stmt->execute();
+            $stmt->close();
+            
+            setcookie('remember_token', '', time() - 3600, '/', '', true, true);
+        }
+        
+        // Registra logout por inatividade
+        $stmt = $mysqli->prepare("
+            INSERT INTO activity_logs (user_id, action, ip_address, details, created_at) 
+            VALUES (?, 'logout_inactivity', ?, 'Logout automático após 10 minutos de inatividade', NOW())
+        ");
+        $ip = $_SERVER['REMOTE_ADDR'];
+        $stmt->bind_param('is', $userId, $ip);
+        $stmt->execute();
+        $stmt->close();
+        
+        // Salva URL atual para retornar após login
+        $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
+        
+        // Destroi sessão
+        session_unset();
+        session_destroy();
+        
+        // Redireciona para login com mensagem
+        header("Location: registration/login/login.php?info=session_timeout");
+        exit;
+    }
+}
+
+// Atualiza timestamp de última atividade
+$_SESSION['ultima_atividade'] = time();
+
+/* ===============================================
+   FIM DO CONTROLE DE INATIVIDADE
+=============================================== */
+
+// Configuração de paginação
+$items_per_page = 21;
+$current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($current_page - 1) * $items_per_page;
+
 
     // Configuração de paginação
     $items_per_page = 21;
@@ -287,72 +434,6 @@
     $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
 
-    // ========================================
-    // VERIFICAR USUÁRIO LOGADO
-    // ========================================
-    $user_logged_in = isset($_SESSION['auth']['user_id']);
-    $user = null;
-    $displayName = 'Visitante';
-    $displayAvatar = "https://ui-avatars.com/api/?name=Visitante&background=00b96b&color=fff&bold=true";
-    $cart_count = 0;
-
-    if ($user_logged_in) {
-        $userId = (int) $_SESSION['auth']['user_id'];
-        
-        $stmt = $mysqli->prepare("
-            SELECT nome, apelido, email, telefone, public_id, status, registration_step, 
-                email_verified_at, created_at, type
-            FROM users WHERE id = ? LIMIT 1
-        ");
-        $stmt->bind_param('i', $userId);
-        $stmt->execute();
-        $user = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
-        
-        if ($user) {
-            if ($user['status'] === 'blocked') {
-                session_destroy();
-                header("Location: ../../registration/login/login.php?error=conta_bloqueada");
-                exit;
-            }
-            
-            if (!$user['email_verified_at']) {
-                header("Location: ../../registration/process/verify_email.php");
-                exit;
-            }
-            
-            if (!$user['public_id']) {
-                header("Location: ../../registration/register/gerar_uid.php");
-                exit;
-            }
-            
-            if ($user['type'] === 'company') {
-                header("Location: ../business/dashboard_business.php");
-                exit;
-            }
-            
-            if (isset($_SESSION['auth']['role']) && in_array($_SESSION['auth']['role'], ['admin', 'superadmin'])) {
-                header("Location: ../../pages/admin/dashboard.php");
-                exit;
-            }
-            
-            $displayName = $user['apelido'] ?: $user['nome'];
-            $displayAvatar = "https://ui-avatars.com/api/?name=" . urlencode($displayName) . "&background=00ff88&color=000&bold=true";
-            
-            $cart_query = "SELECT COALESCE(SUM(ci.quantity), 0) as cart_count 
-                FROM shopping_carts sc
-                LEFT JOIN cart_items ci ON sc.id = ci.cart_id
-                WHERE sc.user_id = ? AND sc.status = 'active'";
-            $stmt_cart = $mysqli->prepare($cart_query);
-            $stmt_cart->bind_param('i', $userId);
-            $stmt_cart->execute();
-            $cart_count = $stmt_cart->get_result()->fetch_assoc()['cart_count'];
-            $stmt_cart->close();
-        } else {
-            session_destroy();
-            $user_logged_in = false;
-        }
-    }
 
     // ========================================
     // VERIFICAR FAVORITOS DO USUÁRIO LOGADO
@@ -467,8 +548,186 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <link rel="stylesheet" href="assets/style/marketplace.css">
+    <link rel="stylesheet" href="assets/style/footer.css">
 
 </head>
+<style>
+    /* Menu de Usuário */
+.user-menu-container {
+    position: relative;
+}
+
+.user-menu-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: 1px solid var(--gray-300);
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.user-menu-trigger:hover {
+    background: var(--gray-50);
+    border-color: var(--primary-green);
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-900);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-menu-trigger i {
+    font-size: 12px;
+    color: var(--gray-600);
+    transition: transform 0.3s ease;
+}
+
+.user-menu-container:hover .user-menu-trigger i {
+    transform: rotate(180deg);
+}
+
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    min-width: 240px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.user-menu-container:hover .user-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.user-dropdown-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.user-dropdown-header img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+}
+
+.user-dropdown-header div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.user-dropdown-header strong {
+    font-size: 14px;
+    color: var(--gray-900);
+    font-weight: 700;
+}
+
+.user-dropdown-header span {
+    font-size: 12px;
+    color: var(--gray-600);
+}
+
+.user-dropdown-divider {
+    height: 1px;
+    background: var(--gray-200);
+    margin: 8px 0;
+}
+
+.user-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: var(--gray-700);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.user-dropdown-item:hover {
+    background: var(--gray-50);
+    color: var(--primary-green);
+}
+
+.user-dropdown-item i {
+    width: 20px;
+    text-align: center;
+    font-size: 16px;
+}
+
+.user-dropdown-item.logout {
+    color: var(--error-red);
+}
+
+.user-dropdown-item.logout:hover {
+    background: #fef2f2;
+    color: var(--error-red);
+}
+
+/* Botões de Login/Registro */
+.header-btn-login,
+.header-btn-register {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.header-btn-login {
+    background: transparent;
+    color: var(--primary-green);
+    border: 1px solid var(--primary-green);
+}
+
+.header-btn-login:hover {
+    background: var(--primary-green);
+    color: white;
+}
+
+.header-btn-register {
+    background: var(--primary-green);
+    color: white;
+    border: 1px solid var(--primary-green);
+}
+
+.header-btn-register:hover {
+    background: var(--secondary-green);
+    border-color: var(--secondary-green);
+}
+</style>
 
 <body>
     <?php include 'includes/header.html'; ?>
@@ -768,6 +1027,296 @@
 
     <?php include 'includes/footer.html'; ?>
     <script src="assets/scripts/marketplace.js"> </script>
+    <!-- Sistema de Logout Automático por Inatividade -->
+<script>
+(function() {
+    const TIMEOUT_MINUTOS = 10;
+    const TIMEOUT_MS = TIMEOUT_MINUTOS * 60 * 1000; // 10 minutos em milissegundos
+    const WARNING_MS = (TIMEOUT_MINUTOS - 1) * 60 * 1000; // Aviso 1 minuto antes
+    
+    let activityTimer;
+    let warningTimer;
+    let warningShown = false;
+    
+    // Função para fazer ping ao servidor (mantém sessão ativa)
+    function pingServer() {
+        fetch('registration/ajax/keep_alive.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin'
+        }).catch(err => console.log('Keep-alive error:', err));
+    }
+    
+    // Função para mostrar aviso
+    function showWarning() {
+        if (warningShown) return;
+        warningShown = true;
+        
+        const warning = document.createElement('div');
+        warning.id = 'inactivity-warning';
+        warning.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 20px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
+            z-index: 10000;
+            max-width: 400px;
+            animation: slideInRight 0.4s ease-out;
+            font-family: 'Inter', -apple-system, sans-serif;
+        `;
+        
+        warning.innerHTML = `
+            <div style="display: flex; align-items: start; gap: 12px;">
+                <i class="fa-solid fa-clock" style="font-size: 24px; color: #fecaca;"></i>
+                <div style="flex: 1;">
+                    <div style="font-weight: 700; font-size: 16px; margin-bottom: 6px;">
+                        Sessão Expirando
+                    </div>
+                    <div style="font-size: 14px; line-height: 1.5; margin-bottom: 12px; opacity: 0.95;">
+                        Sua sessão expirará em <strong>1 minuto</strong> devido à inatividade.
+                    </div>
+                    <button onclick="extendSession()" style="
+                        background: white;
+                        color: #ef4444;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 8px;
+                        font-weight: 700;
+                        font-size: 14px;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        width: 100%;
+                    ">
+                        <i class="fa-solid fa-rotate-right"></i> Continuar Navegando
+                    </button>
+                </div>
+                <button onclick="closeWarning()" style="
+                    background: transparent;
+                    border: none;
+                    color: white;
+                    cursor: pointer;
+                    font-size: 18px;
+                    padding: 0;
+                    width: 24px;
+                    height: 24px;
+                ">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(warning);
+    }
+    
+    // Função para fechar aviso
+    window.closeWarning = function() {
+        const warning = document.getElementById('inactivity-warning');
+        if (warning) {
+            warning.style.animation = 'slideOutRight 0.4s ease-in';
+            setTimeout(() => warning.remove(), 400);
+        }
+        warningShown = false;
+    };
+    
+    // Função para estender sessão
+    window.extendSession = function() {
+        resetTimers();
+        closeWarning();
+        pingServer();
+        
+        // Toast de confirmação
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            z-index: 10001;
+            font-weight: 600;
+            animation: slideInRight 0.3s ease-out;
+        `;
+        toast.innerHTML = '<i class="fa-solid fa-check-circle"></i> Sessão renovada!';
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+    
+    // Função para fazer logout
+    function doLogout() {
+        // Mostra overlay de logout
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10002;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+        `;
+        
+        overlay.innerHTML = `
+            <div style="
+                background: white;
+                padding: 40px;
+                border-radius: 16px;
+                text-align: center;
+                max-width: 400px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            ">
+                <div style="
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 20px;
+                ">
+                    <i class="fa-solid fa-clock" style="font-size: 40px; color: white;"></i>
+                </div>
+                <h3 style="font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 12px;">
+                    Sessão Expirada
+                </h3>
+                <p style="font-size: 16px; color: #6b7280; margin-bottom: 24px;">
+                    Você ficou inativo por 10 minutos. Redirecionando para login...
+                </p>
+                <div style="
+                    width: 40px;
+                    height: 40px;
+                    border: 4px solid #f3f4f6;
+                    border-top-color: #ef4444;
+                    border-radius: 50%;
+                    margin: 0 auto;
+                    animation: spin 1s linear infinite;
+                "></div>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        // Redireciona após 2 segundos
+        setTimeout(() => {
+            window.location.href = 'registration/login/logout.php?reason=inactivity';
+        }, 2000);
+    }
+    
+    // Resetar timers
+    function resetTimers() {
+        clearTimeout(activityTimer);
+        clearTimeout(warningTimer);
+        
+        // Timer de aviso (9 minutos)
+        warningTimer = setTimeout(showWarning, WARNING_MS);
+        
+        // Timer de logout (10 minutos)
+        activityTimer = setTimeout(doLogout, TIMEOUT_MS);
+        
+        warningShown = false;
+    }
+    
+    // Eventos que indicam atividade do usuário
+    const activityEvents = [
+        'mousedown',
+        'mousemove',
+        'keypress',
+        'scroll',
+        'touchstart',
+        'click'
+    ];
+    
+    // Variável para throttle (evitar muitos resets)
+    let lastActivity = Date.now();
+    
+    function handleActivity() {
+        const now = Date.now();
+        
+        // Throttle: só reseta se passou mais de 1 segundo desde a última atividade
+        if (now - lastActivity > 1000) {
+            lastActivity = now;
+            resetTimers();
+            
+            // Fecha aviso se estiver aberto
+            if (warningShown) {
+                closeWarning();
+            }
+        }
+    }
+    
+    // Adiciona listeners de atividade
+    activityEvents.forEach(event => {
+        document.addEventListener(event, handleActivity, { passive: true });
+    });
+    
+    // Ping periódico a cada 5 minutos para manter sessão
+    setInterval(pingServer, 5 * 60 * 1000);
+    
+    // Inicia os timers
+    resetTimers();
+    
+    // Adiciona CSS de animações
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    console.log('✅ Sistema de logout automático inicializado (10 minutos)');
+})();
+</script>
 
 </body>
 </html>

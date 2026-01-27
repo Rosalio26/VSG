@@ -1,11 +1,6 @@
 <?php
 session_start();
 
-/**
- * Arquivo: pessoa.store.php
- * Sincronizado com a tabela 'users' (password_hash e ENUMs corretos)
- */
-
 ini_set('display_errors', 0);
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
@@ -51,7 +46,7 @@ try {
 
     $errors = [];
 
-    // 1. VALIDAÇÃO DE CAMPOS VAZIOS (Obrigatórios)
+    // VALIDAÇÃO DE CAMPOS OBRIGATÓRIOS
     if (empty($nome)) $errors['nome'] = 'O nome é obrigatório.';
     if (empty($apelido)) $errors['apelido'] = 'O apelido é obrigatório.';
     if (empty($email)) $errors['email'] = 'O e-mail é obrigatório.';
@@ -61,7 +56,7 @@ try {
     if (empty($state)) $errors['state'] = 'Estado/Província é obrigatório.';
     if (empty($city)) $errors['city'] = 'Cidade é obrigatória.';
 
-    // 2. VALIDAÇÕES ESPECÍFICAS (Só executa se o campo não estiver vazio)
+    // VALIDAÇÕES ESPECÍFICAS
     if (!isset($errors['nome']) && mb_strlen($nome) < 3) {
         $errors['nome'] = 'Nome muito curto (mínimo 3 letras).';
     }
@@ -74,12 +69,38 @@ try {
         $errors['email'] = 'Formato de e-mail inválido.';
     }
 
-    // Validação de Telefone (verifica se tem o código do país e número mínimo)
+    // ========== VALIDAÇÃO DE PROVEDORES PERMITIDOS ==========
+    if (!isset($errors['email']) && !empty($email)) {
+        $provedoresPermitidos = [
+            // Google
+            'gmail.com',
+            'googlemail.com',
+            
+            // Microsoft
+            'outlook.com',
+            'hotmail.com',
+            'live.com',
+            'msn.com',
+            
+            // Apple
+            'icloud.com',
+            'me.com',
+            'mac.com'
+        ];
+
+        $dominio = substr(strrchr($email, "@"), 1);
+        
+        if (!in_array(strtolower($dominio), $provedoresPermitidos)) {
+            $errors['email'] = 'Desculpe tipo de email nao valido. Estamos trabalhando para adicionar outros provedores de emails em breve.';
+        }
+    }
+    // ========== FIM DA VALIDAÇÃO ==========
+
     if (!isset($errors['telefone'])) {
         if (strlen($telefone) < 8) {
             $errors['telefone'] = 'Número de telefone incompleto.';
         } elseif (!preg_match('/^\+/', $telefone)) {
-            $errors['telefone'] = 'Código do país ausente.';
+            $errors['telefone'] = 'Inclua o código do país (ex: +258).';
         }
     }
 
@@ -91,54 +112,52 @@ try {
         $errors['password_confirm'] = 'As senhas não coincidem.';
     }
 
-    /* ================= ENVIO DA RESPOSTA ================= */
-    if ($errors) {
-        header('Content-Type: application/json');
-        echo json_encode(['errors' => $errors]);
-        exit;
-    }
-    
-    /* ================= 3. VERIFICAÇÃO DE DUPLICIDADE (SEPARADA) ================= */
-    
-    // 3.1 Verificar E-mail
-    $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
-    $stmt->bind_param('s', $email);
-    $stmt->execute();
-    if ($stmt->get_result()->num_rows > 0) {
-        $errors['email'] = 'Este e-mail já está em uso.';
-    }
-    $stmt->close();
-
-    // 3.2 Verificar Telefone
-    $stmt = $mysqli->prepare("SELECT id FROM users WHERE telefone = ? LIMIT 1");
-    $stmt->bind_param('s', $telefone);
-    $stmt->execute();
-    if ($stmt->get_result()->num_rows > 0) {
-        $errors['telefone'] = 'Este telefone já está cadastrado.';
-    }
-    $stmt->close();
-
-    // Se houver qualquer erro de duplicidade, interrompe e envia para os campos certos
     if (!empty($errors)) {
         echo json_encode(['errors' => $errors]);
         exit;
     }
     
-    /* ================= 4. DADOS PARA O BANCO (NOMES EXATOS) ================= */
+    /* ================= 3. VERIFICAÇÃO DE DUPLICIDADE ================= */
+    
+    // Verifica E-mail
+    $stmt = $mysqli->prepare("SELECT id, nome FROM users WHERE email = ? LIMIT 1");
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $errors['email'] = 'Este e-mail já está cadastrado no sistema.';
+    }
+    $stmt->close();
+
+    // Verifica Telefone
+    $stmt = $mysqli->prepare("SELECT id FROM users WHERE telefone = ? LIMIT 1");
+    $stmt->bind_param('s', $telefone);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        $errors['telefone'] = 'Este telefone já está cadastrado no sistema.';
+    }
+    $stmt->close();
+
+    if (!empty($errors)) {
+        echo json_encode(['errors' => $errors]);
+        exit;
+    }
+    
+    /* ================= 4. PREPARAÇÃO DOS DADOS ================= */
     $passHash = password_hash($password, PASSWORD_DEFAULT);
     $token    = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $expires  = date('Y-m-d H:i:s', time() + 3600);
 
-    // Valores baseados nos seus ENUMs
     $type   = 'person';
     $status = 'pending';
-    $step   = 'email_pending'; // Ajustado para o seu ENUM
+    $step   = 'email_pending';
 
-    /* ================= 5. INSERÇÃO (PASSWORD_HASH) ================= */
+    /* ================= 5. INSERÇÃO NO BANCO ================= */
     $sql = "INSERT INTO users (
                 type, nome, apelido, email, telefone, password_hash, 
                 status, registration_step, email_token, email_token_expires,
-                country, country_code, state, city, address, postal_code, latitude, longitude, location_updated_at
+                country, country_code, state, city, address, postal_code, 
+                latitude, longitude, location_updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
     $stmt = $mysqli->prepare($sql);
@@ -147,7 +166,8 @@ try {
         "ssssssssssssssssdd", 
         $type, $nome, $apelido, $email, $telefone, $passHash, 
         $status, $step, $token, $expires,
-        $country, $country_code, $state, $city, $address, $postal_code, $latitude, $longitude
+        $country, $country_code, $state, $city, $address, $postal_code, 
+        $latitude, $longitude
     );
 
     $stmt->execute();
@@ -158,7 +178,6 @@ try {
     $_SESSION['user_id'] = $userId;
     unset($_SESSION['cadastro']); 
 
-    // Envio do e-mail
     enviarEmailVisionGreen($email, $nome, $token);
 
     echo json_encode([
@@ -167,7 +186,9 @@ try {
     ]);
 
 } catch (mysqli_sql_exception $e) {
-    echo json_encode(['error' => 'Erro no Banco: ' . $e->getMessage()]);
+    error_log("Erro SQL pessoa.store: " . $e->getMessage());
+    echo json_encode(['error' => 'Erro ao processar cadastro. Tente novamente.']);
 } catch (Exception $e) {
-    echo json_encode(['error' => 'Erro Crítico: ' . $e->getMessage()]);
+    error_log("Erro pessoa.store: " . $e->getMessage());
+    echo json_encode(['error' => 'Erro crítico. Entre em contato com o suporte.']);
 }

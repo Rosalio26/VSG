@@ -288,3 +288,84 @@ input:disabled { background-color: #f9f9f9; cursor: not-allowed; color: #666; }
 /* Medidor de Senha */
 .strength-meter { height: 8px; width: 100%; background: #eee; margin-top: 5px; border-radius: 4px; overflow: hidden; }
 .strength-bar { height: 100%; width: 0%; transition: 0.4s ease; }
+
+/* ========================================
+   MELHORIAS VISUAIS V3.0
+======================================== */
+
+/* Loading state para botões */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Animações suaves */
+.step-content {
+    animation: fadeInUp 0.4s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mensagens de erro melhoradas */
+.error-msg-visual {
+    animation: shake 0.3s ease-in-out;
+}
+
+/* Estados de foco melhorados */
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #0f0be1 !important;
+    box-shadow: 0 0 0 3px rgba(15, 11, 225, 0.1);
+}
+
+/* Toggle buttons melhorados */
+.btn-toggle {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: scale(1);
+}
+
+.btn-toggle:hover {
+    transform: scale(1.05);
+}
+
+.btn-toggle.active {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(26, 255, 0, 0.3);
+}
+
+/* File upload melhorado */
+.custom-file-upload:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Strength meter animado */
+.strength-bar {
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s;
+}
+
+/* Scroll suave */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Responsividade melhorada */
+@media (max-width: 768px) {
+    .main-container {
+        width: 95%;
+        max-height: 90vh;
+    }
+    
+    h1#titulo {
+        font-size: 1.4rem;
+    }
+}

@@ -1,12 +1,6 @@
 <?php
 session_start();
 
-/**
- * Arquivo: business.store.php
- * Finalizado com criação automática de diretórios e validação rigorosa de arquivos (5MB, formatos específicos).
- * Atualizado com a nova lógica de coluna separada para tax_id_file.
- */
-
 ini_set('display_errors', 0);
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
@@ -34,24 +28,25 @@ try {
 
     /* ================= 2. COLETA E VALIDAÇÃO DE DADOS ================= */
     $errors = [];
+    $errorSteps = []; // Mapeia erros aos steps
 
+    // STEP 1: Identidade
     $nome_empresa   = trim($_POST['nome_empresa'] ?? '');
-    $email_business = strtolower(trim($_POST['email_business'] ?? ''));
-    $telefone       = trim($_POST['telefone'] ?? '');
-    $password       = $_POST['password'] ?? '';
-    $password_conf  = $_POST['password_confirm'] ?? '';
-    
-    $fiscal_mode    = $_POST['fiscal_mode'] ?? 'text';
-    $tax_id         = trim($_POST['tax_id'] ?? '');
     $tipo_empresa   = trim($_POST['tipo_empresa'] ?? '');
     $descricao      = trim($_POST['descricao'] ?? '');
-    $pais           = trim($_POST['pais'] ?? '');
-    $regiao         = trim($_POST['regiao'] ?? '');
-    $localidade     = trim($_POST['localidade'] ?? '');
-    $no_logo        = isset($_POST['no_logo']);
 
-    // LOCALIZAÇÃO
-    $country        = trim($_POST['pais'] ?? '');
+    if (empty($nome_empresa)) {
+        $errors['nome_empresa'] = 'A razão social é obrigatória.';
+        $errorSteps['nome_empresa'] = 1;
+    }
+    if (empty($tipo_empresa) || $tipo_empresa === 'selet') {
+        $errors['tipo_empresa'] = 'Selecione o tipo de empresa.';
+        $errorSteps['tipo_empresa'] = 1;
+    }
+
+    // STEP 2: Localização & Fiscal
+    $pais           = trim($_POST['pais'] ?? '');
+    $country        = $pais;
     $country_code   = trim($_POST['country_code'] ?? '');
     $state          = trim($_POST['state'] ?? '');
     $city           = trim($_POST['city'] ?? '');
@@ -60,62 +55,149 @@ try {
     $latitude       = !empty($_POST['latitude']) ? (float)$_POST['latitude'] : null;
     $longitude      = !empty($_POST['longitude']) ? (float)$_POST['longitude'] : null;
 
-    if (empty($nome_empresa))   $errors['nome_empresa'] = 'A razão social é obrigatória.';
-    if (empty($email_business)) $errors['email_business'] = 'O e-mail é obrigatório.';
-    if (empty($telefone))       $errors['telefone'] = 'O telefone é obrigatório.';
-    if (empty($country))        $errors['pais'] = 'Selecione o país.';
-    if (empty($state))          $errors['state'] = 'Estado/Província é obrigatório.';
-    if (empty($city))           $errors['city'] = 'Cidade é obrigatória.';
+    $fiscal_mode    = $_POST['fiscal_mode'] ?? 'text';
+    $tax_id         = trim($_POST['tax_id'] ?? '');
+
+    if (empty($country)) {
+        $errors['pais'] = 'Selecione o país.';
+        $errorSteps['pais'] = 2;
+    }
+    if (empty($state)) {
+        $errors['state'] = 'Estado/Província é obrigatório.';
+        $errorSteps['state'] = 2;
+    }
+    if (empty($city)) {
+        $errors['city'] = 'Cidade é obrigatória.';
+        $errorSteps['city'] = 2;
+    }
 
     if ($fiscal_mode === 'text' && empty($tax_id)) {
         $errors['tax_id'] = 'O código fiscal é obrigatório.';
+        $errorSteps['tax_id'] = 2;
     } elseif ($fiscal_mode === 'file' && (!isset($_FILES['tax_id_file']) || $_FILES['tax_id_file']['error'] !== UPLOAD_ERR_OK)) {
         $errors['tax_id_file'] = 'O upload do documento fiscal é obrigatório.';
+        $errorSteps['tax_id_file'] = 2;
     }
+
+    // STEP 3: Contatos & Documentação
+    $email_business = strtolower(trim($_POST['email_business'] ?? ''));
+    $telefone       = trim($_POST['telefone'] ?? '');
+    $no_logo        = isset($_POST['no_logo']);
+
+    if (empty($email_business)) {
+        $errors['email_business'] = 'O e-mail é obrigatório.';
+        $errorSteps['email_business'] = 3;
+    } elseif (!filter_var($email_business, FILTER_VALIDATE_EMAIL)) {
+        $errors['email_business'] = 'E-mail inválido.';
+        $errorSteps['email_business'] = 3;
+    } else {
+        // ========== VALIDAÇÃO DE PROVEDORES PERMITIDOS ==========
+        $provedoresPermitidos = [
+            // Google
+            'gmail.com',
+            'googlemail.com',
+            
+            // Microsoft
+            'outlook.com',
+            'hotmail.com',
+            'live.com',
+            'msn.com',
+            
+            // Apple
+            'icloud.com',
+            'me.com',
+            'mac.com'
+        ];
+
+        $dominio = substr(strrchr($email_business, "@"), 1);
+        
+        if (!in_array(strtolower($dominio), $provedoresPermitidos)) {
+            $errors['email_business'] = 'Desculpe tipo de email nao valido. Estamos trabalhando para adicionar outros provedores de emails em breve.';
+            $errorSteps['email_business'] = 3;
+        }
+        // ========== FIM DA VALIDAÇÃO ==========
+    }
+
+    if (empty($telefone)) {
+        $errors['telefone'] = 'O telefone é obrigatório.';
+        $errorSteps['telefone'] = 3;
+    } elseif (!preg_match('/^\+/', $telefone)) {
+        $errors['telefone'] = 'Inclua o código do país (ex: +258).';
+        $errorSteps['telefone'] = 3;
+    }
+
+    // STEP 4: Segurança
+    $password       = $_POST['password'] ?? '';
+    $password_conf  = $_POST['password_confirm'] ?? '';
 
     if (empty($password)) {
         $errors['password'] = 'A senha é obrigatória.';
+        $errorSteps['password'] = 4;
     } elseif (strlen($password) < 8) {
         $errors['password'] = 'A senha deve ter no mínimo 8 caracteres.';
+        $errorSteps['password'] = 4;
     }
     if ($password !== $password_conf) {
         $errors['password_confirm'] = 'As senhas não coincidem.';
+        $errorSteps['password_confirm'] = 4;
     }
 
     /* ================= 3. VERIFICAÇÃO DE DUPLICIDADE ================= */
-    $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ? OR telefone = ? LIMIT 2");
-    $stmt->bind_param('ss', $email_business, $telefone);
+    
+    // Verifica E-mail
+    $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
+    $stmt->bind_param('s', $email_business);
     $stmt->execute();
-    $result = $stmt->get_result();
-    if ($result->num_rows > 0) {
-        $errors['email_business'] = 'E-mail ou telefone já cadastrados.';
+    if ($stmt->get_result()->num_rows > 0) {
+        $errors['email_business'] = 'Este e-mail já está cadastrado no sistema.';
+        $errorSteps['email_business'] = 3;
     }
+    $stmt->close();
 
+    // Verifica Telefone
+    $stmt = $mysqli->prepare("SELECT id FROM users WHERE telefone = ? LIMIT 1");
+    $stmt->bind_param('s', $telefone);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        $errors['telefone'] = 'Este telefone já está cadastrado no sistema.';
+        $errorSteps['telefone'] = 3;
+    }
+    $stmt->close();
+
+    // Verifica Tax ID (se for texto)
     if ($fiscal_mode === 'text' && !empty($tax_id)) {
         $stmt = $mysqli->prepare("SELECT id FROM businesses WHERE tax_id = ? LIMIT 1");
         $stmt->bind_param('s', $tax_id);
         $stmt->execute();
-        if ($stmt->get_result()->num_rows > 0) $errors['tax_id'] = 'Documento fiscal já cadastrado.';
+        if ($stmt->get_result()->num_rows > 0) {
+            $errors['tax_id'] = 'Este documento fiscal já está cadastrado.';
+            $errorSteps['tax_id'] = 2;
+        }
+        $stmt->close();
     }
 
+    // Se houver erros, retorna com o step do primeiro erro
     if (!empty($errors)) {
-        echo json_encode(['errors' => $errors]);
+        $firstErrorStep = !empty($errorSteps) ? min($errorSteps) : 1;
+        echo json_encode([
+            'errors' => $errors,
+            'errorStep' => $firstErrorStep,
+            'errorSteps' => $errorSteps
+        ]);
         exit;
     }
 
-    /* ================= 4. FUNÇÃO DE UPLOAD REFORÇADA ================= */
-    /**
-     * @param string $fileKey Nome do campo no $_FILES
-     * @param string $prefix Prefixo para o nome do arquivo salvo
-     * @param array &$errors Referência ao array de erros global
-     */
-    function uploadBusinessDoc($fileKey, $prefix, &$errors) {
+    /* ================= 4. FUNÇÃO DE UPLOAD ================= */
+    function uploadBusinessDoc($fileKey, $prefix, &$errors, $step) {
+        global $errorSteps;
+        
         if (!isset($_FILES[$fileKey]) || $_FILES[$fileKey]['error'] === UPLOAD_ERR_NO_FILE) {
             return null;
         }
 
         if ($_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) {
             $errors[$fileKey] = "Falha técnica no upload do arquivo.";
+            $errorSteps[$fileKey] = $step;
             return null;
         }
 
@@ -126,11 +208,13 @@ try {
 
         if (!in_array($ext, $allowedExts)) {
             $errors[$fileKey] = "Formato inválido. Use PNG, JPEG ou PDF.";
+            $errorSteps[$fileKey] = $step;
             return null;
         }
 
         if ($file['size'] > $maxSize) {
             $errors[$fileKey] = "Arquivo muito grande. O limite é 5MB.";
+            $errorSteps[$fileKey] = $step;
             return null;
         }
 
@@ -138,6 +222,7 @@ try {
         if (!is_dir($uploadDir)) {
             if (!mkdir($uploadDir, 0755, true)) {
                 $errors[$fileKey] = "Erro interno: Falha ao criar pasta de destino.";
+                $errorSteps[$fileKey] = $step;
                 return null;
             }
         }
@@ -150,37 +235,42 @@ try {
         }
 
         $errors[$fileKey] = "Não foi possível salvar o arquivo no servidor.";
+        $errorSteps[$fileKey] = $step;
         return null;
     }
 
-    // --- Processar uploads ---
-
-    // 1. Alvará (Obrigatório)
-    $pathLicenca = uploadBusinessDoc('licenca', 'lic', $errors);
+    // Processar uploads
+    $pathLicenca = uploadBusinessDoc('licenca', 'lic', $errors, 3);
     if (!$pathLicenca && !isset($errors['licenca'])) {
         $errors['licenca'] = "O upload do Alvará / Licença é obrigatório.";
+        $errorSteps['licenca'] = 3;
     }
 
-    // 2. Logo (Opcional conforme checkbox)
     $pathLogo = null;
     if (!$no_logo) {
-        $pathLogo = uploadBusinessDoc('logo', 'log', $errors);
+        $pathLogo = uploadBusinessDoc('logo', 'log', $errors, 3);
         if (!$pathLogo && !isset($errors['logo'])) {
             $errors['logo'] = "A logo é obrigatória ou selecione 'Não tenho logo'.";
+            $errorSteps['logo'] = 3;
         }
     }
 
-    // 3. Documento Fiscal (Novo: Salva em tax_id_file se modo for 'file')
     $pathFiscal = null;
     if ($fiscal_mode === 'file') {
-        $pathFiscal = uploadBusinessDoc('tax_id_file', 'tax', $errors);
+        $pathFiscal = uploadBusinessDoc('tax_id_file', 'tax', $errors, 2);
         if (!$pathFiscal && !isset($errors['tax_id_file'])) {
             $errors['tax_id_file'] = "O upload do documento fiscal é obrigatório.";
+            $errorSteps['tax_id_file'] = 2;
         }
     }
 
     if (!empty($errors)) {
-        echo json_encode(['errors' => $errors]);
+        $firstErrorStep = !empty($errorSteps) ? min($errorSteps) : 1;
+        echo json_encode([
+            'errors' => $errors,
+            'errorStep' => $firstErrorStep,
+            'errorSteps' => $errorSteps
+        ]);
         exit;
     }
 
@@ -205,19 +295,15 @@ try {
     $stmt->execute();
     $newUserId = $mysqli->insert_id; 
 
-    /* LÓGICA DE COLUNA NOVA: 
-       Se o usuário subiu arquivo, tax_id fica null/vazio e path vai para tax_id_file.
-       Se digitou texto, o texto vai para tax_id e tax_id_file fica null.
-    */
     $finalTaxIdText = ($fiscal_mode === 'text') ? $tax_id : null;
     $finalTaxIdFile = ($fiscal_mode === 'file') ? $pathFiscal : null;
 
-    // Inserir Business (Adicionada a coluna tax_id_file)
+    // Inserir Business
     $sqlBus = "INSERT INTO businesses (user_id, tax_id, tax_id_file, business_type, description, country, region, city, license_path, logo_path) 
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmtBus = $mysqli->prepare($sqlBus);
     $stmtBus->bind_param("isssssssss", 
-        $newUserId, $finalTaxIdText, $finalTaxIdFile, $tipo_empresa, $descricao, $country, $regiao, $localidade, $pathLicenca, $pathLogo
+        $newUserId, $finalTaxIdText, $finalTaxIdFile, $tipo_empresa, $descricao, $country, $state, $city, $pathLicenca, $pathLogo
     );
     $stmtBus->execute();
 

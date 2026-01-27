@@ -32,6 +32,16 @@ if (isset($_GET['recovery']) && $_GET['recovery'] === 'success') {
 }
 
 unset($_SESSION['user_id']);
+
+$info_messages = [
+    'logout_success' => 'Você saiu com sucesso.',
+    'session_timeout' => '⏰ Sua sessão expirou após 10 minutos de inatividade. Por favor, faça login novamente.',
+    'login_required' => 'Você precisa estar logado para acessar esta página.',
+    'session_expired' => 'Sua sessão expirou. Por favor, faça login novamente.'
+];
+
+$info = isset($_GET['info']) ? $_GET['info'] : null;
+$info_message = isset($info_messages[$info]) ? $info_messages[$info] : null;
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -99,6 +109,22 @@ unset($_SESSION['user_id']);
 <body>
 
 <div class="box" id="loginBox">
+    <?php if ($info_message): ?>
+<div class="alert alert-info" style="
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+">
+    <i class="fa-solid fa-info-circle" style="font-size: 20px;"></i>
+    <span style="font-size: 14px; font-weight: 600;"><?= htmlspecialchars($info_message) ?></span>
+</div>
+<?php endif; ?>
     <h2>Entrar</h2>
     <p class="subtitle">Use seu E-mail ou Identificador (UID)</p>
 
