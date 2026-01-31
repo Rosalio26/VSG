@@ -82,7 +82,13 @@ class GeoLocator {
             
             return ($httpCode == 200) ? $response : false;
         } else {
-            return @file_get_contents($url);
+            $context = stream_context_create([
+                'http' => [
+                    'timeout' => 5,
+                    'ignore_errors' => true
+                ]
+            ]);
+            return @file_get_contents($url, false, $context);
         }
     }
     
@@ -101,10 +107,10 @@ class GeoLocator {
         if (isset($data['status']) && $data['status'] === 'success') {
             return [
                 'ip' => $data['query'] ?? $this->ip,
-                'country' => $data['country'] ?? 'Unknown',
+                'country' => $data['country'] ?? '',
                 'country_code' => $data['countryCode'] ?? '',
                 'region' => $data['regionName'] ?? '',
-                'city' => $data['city'] ?? 'Unknown',
+                'city' => $data['city'] ?? '',
                 'latitude' => $data['lat'] ?? 0,
                 'longitude' => $data['lon'] ?? 0,
                 'timezone' => $data['timezone'] ?? '',
@@ -136,7 +142,7 @@ class GeoLocator {
                 'country' => $data['country'] ?? '',
                 'country_code' => $data['country'] ?? '',
                 'region' => $data['region'] ?? '',
-                'city' => $data['city'] ?? 'Unknown',
+                'city' => $data['city'] ?? '',
                 'latitude' => $coords[0] ?? 0,
                 'longitude' => $coords[1] ?? 0,
                 'timezone' => $data['timezone'] ?? '',
@@ -171,17 +177,17 @@ if (!isset($_SESSION['user_location']) || !isset($_SESSION['location_timestamp']
     $locator = new GeoLocator();
     $location = $locator->getLocation();
     
-    if ($location) {
+    if ($location && !empty($location['country'])) {
         $_SESSION['user_location'] = $location;
         $_SESSION['location_timestamp'] = time();
     } else {
-        // Localização padrão se falhar
+        // Localização padrão VAZIA (Melhor para UX do que "Desconhecido")
         $_SESSION['user_location'] = [
             'ip' => $locator->ip,
-            'country' => 'Desconhecido',
+            'country' => '', 
             'country_code' => '',
             'region' => '',
-            'city' => 'Não detectada',
+            'city' => '', 
             'latitude' => 0,
             'longitude' => 0,
             'timezone' => '',
@@ -196,13 +202,18 @@ $user_location = $_SESSION['user_location'];
 $user_city = $user_location['city'];
 $user_country = $user_location['country'];
 $user_region = $user_location['region'];
-$user_full_location = $user_city . ', ' . $user_country;
+
+// Lógica de exibição amigável
+if (!empty($user_country)) {
+    $user_full_location = (!empty($user_city)) ? $user_city . ', ' . $user_country : $user_country;
+} else {
+    $user_full_location = 'Selecionar localização';
+}
 
 // Para uso em JavaScript
 $location_json = json_encode($user_location);
 ?>
 
-<!-- Script para atualizar a localização no header -->
 <script>
 // Dados de localização do usuário
 const userLocation = <?= $location_json ?>;
@@ -211,7 +222,8 @@ const userLocation = <?= $location_json ?>;
 document.addEventListener('DOMContentLoaded', function() {
     const locationElement = document.querySelector('.location-now');
     if (locationElement) {
-        locationElement.textContent = '<?= htmlspecialchars($user_city) ?>, <?= htmlspecialchars($user_country) ?>';
+        const fullLocation = "<?= htmlspecialchars($user_full_location) ?>";
+        locationElement.textContent = fullLocation;
     }
 });
 
