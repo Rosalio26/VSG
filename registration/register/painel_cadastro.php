@@ -7,13 +7,17 @@ if (!isset($_SESSION['cadastro']['started'])) {
     exit;
 }
 
-$tiposPermitidos = $_SESSION['tipos_permitidos'] ?? ['business', 'pessoal'];
+$tiposPermitidos = $_SESSION['tipos_permitidos'] ?? ['pessoal'];
 
-if (!isset($_SESSION['tipo_atual'])) {
-    $_SESSION['tipo_atual'] = 'business'; 
+// Detecção inteligente de tipo
+if (isset($_GET['tipo']) && in_array($_GET['tipo'], $tiposPermitidos, true)) {
+    $_SESSION['tipo_atual'] = $_GET['tipo'];
+}
+elseif (!isset($_SESSION['tipo_atual'])) {
+    $_SESSION['tipo_atual'] = in_array('business', $tiposPermitidos) ? 'business' : 'pessoal';
 }
 
-$tipoAtual = $_SESSION['tipo_atual'] ?? 'business';
+$tipoAtual = $_SESSION['tipo_atual'] ?? 'pessoal';
 $isMobile = count($tiposPermitidos) === 1;
 $csrf = csrf_generate(); 
 ?>
@@ -29,6 +33,7 @@ $csrf = csrf_generate();
     <link rel="stylesheet" href="../../assets/style/painel_cadastro_ultimate.css">
 
     <style>
+        /* ===== ESTILOS PERSONALIZADOS ===== */
         .fiscal-mode-selector {
             display: flex;
             gap: 15px;
@@ -93,24 +98,86 @@ $csrf = csrf_generate();
             background: #00b96b;
             border-radius: 2px;
         }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .chi-main {
+            animation: fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ===== ALERTA DE TELA PEQUENA ===== */
+        .screen-warning {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 99999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .screen-warning.active {
+            display: flex;
+        }
+
+        .screen-warning i {
+            font-size: 64px;
+            color: #f59e0b;
+            margin-bottom: 20px;
+        }
+
+        .screen-warning h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .screen-warning p {
+            font-size: 16px;
+            color: #d1d5db;
+            max-width: 500px;
+        }
     </style>
 </head>
 
-<body id="painel_cadastro" data-is-mobile="<?= $isMobile ? '1' : '0' ?>" data-tipo-inicial="<?= htmlspecialchars($tipoAtual) ?>" data-csrf="<?= htmlspecialchars($csrf) ?>">
+<body id="painel_cadastro" 
+      data-is-mobile="<?= $isMobile ? '1' : '0' ?>" 
+      data-tipo-inicial="<?= htmlspecialchars($tipoAtual) ?>" 
+      data-csrf="<?= htmlspecialchars($csrf) ?>"
+      data-tipos-permitidos="<?= htmlspecialchars(json_encode($tiposPermitidos)) ?>">
 
-<!-- Container de Imagens (Slider) -->
+<!-- ===== ALERTA DE TELA PEQUENA (Para Business) ===== -->
+<div class="screen-warning" id="screenWarning">
+    <i class="fas fa-desktop"></i>
+    <h2>Tela Muito Pequena</h2>
+    <p>
+        Cadastros empresariais requerem uma tela com <strong>largura mínima de 1080px</strong>.<br>
+        Por favor, utilize um computador desktop ou aumente o zoom para continuar.
+    </p>
+</div>
+
+<!-- Container de Imagens (Fixas) -->
 <div class="cnt-image">
-    <div class="cnt-img-item slide-pessoal active">
-        <img src="../../assets/img/local/2301.png" alt="Slide 1"> 
+    <div class="cnt-img-item <?= $tipoAtual === 'pessoal' ? 'active' : '' ?>" id="img-person-fixa">
+        <img src="../../assets/img/local/2301.png" alt="Cadastro Pessoal"> 
     </div>
-    <div class="cnt-img-item slide-pessoal">
-        <img src="../../assets/img/people/2001.png" alt="Slide 2"> 
-    </div>
-    <div class="cnt-img-item slide-pessoal">
-        <img src="../../assets/img/supermarket/18715.png" alt="Slide 3"> 
-    </div>
-    <div class="cnt-img-item" id="img-business-fixa">
-        <img src="../../assets/img/food/1250.png" alt="Negócio Fixo"> 
+    <div class="cnt-img-item <?= $tipoAtual === 'business' ? 'active' : '' ?>" id="img-business-fixa">
+        <img src="../../assets/img/vsg-bg/cole-frp/business_panel_rmb.png" alt="Cadastro Business"> 
     </div>
 </div>
 
@@ -192,8 +259,8 @@ $csrf = csrf_generate();
                 </div>
 
                 <div class="person-field-input">
-                    <label>Cidade <span class="required">*</span></label>
-                    <input type="text" name="city" id="city_input" required placeholder="Digite a cidade">
+                    <label>Cidade/Distrito <span class="required">*</span></label>
+                    <input type="text" name="city" id="city_input" required placeholder="Digite a cidade ou distrito">
                 </div>
 
                 <div class="person-field-input">
@@ -383,8 +450,8 @@ $csrf = csrf_generate();
             </div>
 
             <div class="person-field-input">
-                <label>Cidade <span class="required">*</span></label>
-                <input type="text" name="city" id="city_input_pessoa" required placeholder="Digite a cidade">
+                <label>Cidade/Distrito <span class="required">*</span></label>
+                <input type="text" name="city" id="city_input_pessoa" required placeholder="Digite a cidade ou distrito">
             </div>
 
             <div class="person-field-input">
@@ -448,6 +515,59 @@ $csrf = csrf_generate();
 </div>
 
 <script src="../../assets/scripts/painel_cadastro_ultimate.js"></script>
+
+<script>
+// ===== VALIDAÇÃO DE LARGURA DE TELA PARA BUSINESS =====
+(function() {
+    const MIN_WIDTH_BUSINESS = 1080;
+    const warningScreen = document.getElementById('screenWarning');
+    const formBusiness = document.getElementById('formBusiness');
+    const toggleButtons = document.querySelectorAll('.btn-toggle');
+    
+    function checkScreenSize() {
+        const currentWidth = window.innerWidth;
+        const tiposPermitidos = <?= json_encode($tiposPermitidos) ?>;
+        const tipoAtual = document.body.getAttribute('data-tipo-inicial');
+        
+        // Se o tipo atual é business e a tela é pequena
+        if (tipoAtual === 'business' && currentWidth < MIN_WIDTH_BUSINESS) {
+            if (tiposPermitidos.includes('business')) {
+                warningScreen.classList.add('active');
+                if (formBusiness) formBusiness.style.display = 'none';
+            }
+        } else {
+            warningScreen.classList.remove('active');
+            if (formBusiness && tipoAtual === 'business') {
+                formBusiness.style.display = 'block';
+            }
+        }
+    }
+    
+    // Verifica ao carregar
+    checkScreenSize();
+    
+    // Verifica ao redimensionar
+    window.addEventListener('resize', checkScreenSize);
+    
+    // Verifica ao trocar de tipo
+    toggleButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            setTimeout(checkScreenSize, 100);
+        });
+    });
+    
+    // Bloqueia submit se tela pequena
+    if (formBusiness) {
+        formBusiness.addEventListener('submit', function(e) {
+            if (window.innerWidth < MIN_WIDTH_BUSINESS) {
+                e.preventDefault();
+                alert('Sua tela é muito pequena para cadastro empresarial. Largura mínima: 1080px');
+                return false;
+            }
+        });
+    }
+})();
+</script>
 
 </body>
 </html>

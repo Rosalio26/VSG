@@ -1,14 +1,14 @@
 /**
  * ================================================================
- * VISION GREEN - SISTEMA DE CADASTRO ULTIMATE V3.0
- * Sistema inteligente com detecção automática de localização
+ * VISION GREEN - SISTEMA DE CADASTRO ULTIMATE V4.0
+ * Compatível com Mobile (apenas pessoa) e Desktop (ambos)
  * ================================================================
  */
 
 document.addEventListener("DOMContentLoaded", async () => {
     
     /* ========================================
-       VARIÁVEIS GLOBAIS
+       VARIÁVEIS GLOBAIS E DETECÇÃO DE MODO
     ======================================== */
     
     const formPessoa = document.getElementById("formPessoa");
@@ -16,22 +16,36 @@ document.addEventListener("DOMContentLoaded", async () => {
     const titulo = document.getElementById("titulo");
     const switchConta = document.getElementById("switchConta");
     const csrfToken = document.body.dataset.csrf;
-
-    let tipoAtual = localStorage.getItem('vg_type') || document.body.dataset.tipoInicial || 'business';
+    
+    // Detecta se está em modo mobile (apenas pessoa permitida)
+    const tiposPermitidosStr = document.body.dataset.tiposPermitidos || '["pessoal"]';
+    const tiposPermitidos = JSON.parse(tiposPermitidosStr);
+    const isMobileMode = tiposPermitidos.length === 1 && tiposPermitidos[0] === 'pessoal';
+    
+    let tipoAtual = localStorage.getItem('vg_type') || document.body.dataset.tipoInicial || 'pessoal';
+    
+    // Em mobile, força o tipo para "pessoal"
+    if (isMobileMode) {
+        tipoAtual = 'pessoal';
+        localStorage.setItem('vg_type', 'pessoal');
+    }
+    
     let currentStep = 1;
     let isNavigating = false;
+
+    console.log('📱 Modo:', isMobileMode ? 'MOBILE (apenas pessoa)' : 'DESKTOP (ambos)');
+    console.log('🎯 Tipo atual:', tipoAtual);
 
     /* ========================================
        FUNÇÃO DE LIMPEZA TOTAL
     ======================================== */
     
     function limparTodosDados() {
-        // 1. Limpa o localStorage completamente
         localStorage.removeItem('vg_data');
         localStorage.removeItem('vg_type');
         localStorage.removeItem('vg_step');
         
-        // 2. Limpa todos os campos dos formulários
+        // Limpa formulário business (se existir)
         if (formBusiness) {
             formBusiness.reset();
             formBusiness.querySelectorAll('input, select, textarea').forEach(el => {
@@ -47,6 +61,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
         }
         
+        // Limpa formulário pessoa (sempre existe)
         if (formPessoa) {
             formPessoa.reset();
             formPessoa.querySelectorAll('input, select, textarea').forEach(el => {
@@ -62,7 +77,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
         }
         
-        // 3. Limpa barras de força de senha
+        // Limpa indicadores visuais
         const strengthBars = document.querySelectorAll('[id^="strengthBar"]');
         const strengthTexts = document.querySelectorAll('[id^="strengthText"]');
         
@@ -75,24 +90,24 @@ document.addEventListener("DOMContentLoaded", async () => {
             text.textContent = '';
         });
         
-        // 4. Reseta displays de arquivos selecionados
         document.querySelectorAll('.file-selected-name').forEach(el => {
             el.textContent = '';
         });
         
-        // 5. Remove todos os erros visuais
         document.querySelectorAll('.error-msg-visual').forEach(el => el.remove());
         document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
         
-        // 6. Volta para o step 1
-        document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
-        const primeiroStep = document.querySelector('.step-content[data-step="1"]');
-        if (primeiroStep) {
-            primeiroStep.classList.add('active');
+        // Reset de steps (apenas para business)
+        if (formBusiness) {
+            document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
+            const primeiroStep = document.querySelector('.step-content[data-step="1"]');
+            if (primeiroStep) {
+                primeiroStep.classList.add('active');
+            }
         }
         currentStep = 1;
         
-        console.log('🧹 Todos os dados foram limpos completamente');
+        console.log('🧹 Dados limpos completamente');
     }
 
     /* ========================================
@@ -151,26 +166,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         return toast;
     }
 
-    function closeToast(toast) {
-        if (toast && toast.parentElement) {
-            toast.style.animation = 'slideOutRight 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-            setTimeout(() => toast.remove(), 400);
-        }
-    }
-
     /* ========================================
        DETECÇÃO AUTOMÁTICA DE LOCALIZAÇÃO
     ======================================== */
     
-    async function detectarLocalizacaoCompleta(mostrarToast = true) {
-        let loadingToast = null;
-        
-        if (mostrarToast) {
-            loadingToast = showToast('🌍 Detectando sua localização automaticamente...', 'info', 0);
-        }
-        
+    async function detectarLocalizacaoCompleta(mostrarToast = false) {
         try {
-            // Tentativa 1: IPApi.co (Mais completa e confiável)
             const res1 = await fetch('https://ipapi.co/json/', { timeout: 5000 });
             const data1 = await res1.json();
             
@@ -184,8 +185,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     lon: data1.longitude
                 });
                 
-                if (loadingToast) closeToast(loadingToast);
-                if (mostrarToast) showToast('✅ Localização detectada com sucesso!', 'success');
+                console.log('✅ Localização detectada via ipapi.co');
                 return true;
             }
         } catch (e) {
@@ -193,7 +193,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         try {
-            // Tentativa 2: IP-API (Backup confiável)
             const res2 = await fetch('http://ip-api.com/json/?fields=status,countryCode,regionName,city,zip,lat,lon');
             const data2 = await res2.json();
             
@@ -207,47 +206,22 @@ document.addEventListener("DOMContentLoaded", async () => {
                     lon: data2.lon
                 });
                 
-                if (loadingToast) closeToast(loadingToast);
-                if (mostrarToast) showToast('✅ Localização detectada!', 'success');
+                console.log('✅ Localização detectada via ip-api.com');
                 return true;
             }
         } catch (e) {
             console.warn('API 2 (ip-api.com) falhou:', e);
         }
 
-        try {
-            // Tentativa 3: IPInfo.io (Última tentativa)
-            const res3 = await fetch('https://ipinfo.io/json?token=YOUR_TOKEN');
-            const data3 = await res3.json();
-            
-            if (data3.country) {
-                preencherLocalizacao({
-                    country: data3.country,
-                    state: data3.region,
-                    city: data3.city,
-                    postal: data3.postal,
-                    lat: data3.loc ? data3.loc.split(',')[0] : null,
-                    lon: data3.loc ? data3.loc.split(',')[1] : null
-                });
-                
-                if (loadingToast) closeToast(loadingToast);
-                if (mostrarToast) showToast('✅ Localização detectada!', 'success');
-                return true;
-            }
-        } catch (e) {
-            console.error('Todas as APIs de localização falharam:', e);
-        }
-        
-        if (loadingToast) closeToast(loadingToast);
-        if (mostrarToast) showToast('⚠️ Não foi possível detectar localização automaticamente', 'warning');
+        console.warn('⚠️ Localização automática não disponível');
         return false;
     }
 
     function preencherLocalizacao(data) {
-        const isBusiness = !formBusiness.hidden;
-        const prefix = isBusiness ? '' : '_pessoa';
+        // Detecta qual formulário está ativo
+        const isBusinessAtivo = formBusiness && !formBusiness.hidden;
+        const prefix = isBusinessAtivo ? '' : '_pessoa';
         
-        // Seleciona os campos corretos
         const selectPais = document.getElementById(`select_pais${prefix}`);
         const stateInput = document.getElementById(`state_input${prefix}`);
         const cityInput = document.getElementById(`city_input${prefix}`);
@@ -256,7 +230,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         const lonInput = document.getElementById(`longitude_input${prefix}`);
         const countryCodeInput = document.getElementById(`country_code_input${prefix}`);
         
-        // Preenche os campos
         if (selectPais && data.country) {
             selectPais.value = data.country;
             selectPais.dispatchEvent(new Event('change'));
@@ -287,15 +260,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     /* ========================================
-       DETECÇÃO MANUAL (BOTÃO)
+       DETECÇÃO MANUAL (BOTÕES)
     ======================================== */
     
     window.detectarLocalizacaoManual = async function() {
-        await detectarLocalizacaoCompleta(true);
+        await detectarLocalizacaoCompleta(false);
     };
 
     window.detectarLocalizacaoManualPessoa = async function() {
-        await detectarLocalizacaoCompleta(true);
+        await detectarLocalizacaoCompleta(false);
     };
 
     /* ========================================
@@ -306,7 +279,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         const selectsBusiness = document.getElementById('select_pais');
         const selectsPessoa = document.getElementById('select_pais_pessoa');
         
-        // Define loading
         if (selectsBusiness) selectsBusiness.innerHTML = '<option value="">Carregando países...</option>';
         if (selectsPessoa) selectsPessoa.innerHTML = '<option value="">Carregando países...</option>';
         
@@ -314,7 +286,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             const res = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,translations');
             const paises = await res.json();
             
-            // Ordena por nome em português
             paises.sort((a, b) => {
                 const nomeA = a.translations?.por?.common || a.name.common;
                 const nomeB = b.translations?.por?.common || b.name.common;
@@ -332,10 +303,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             
             console.log('✅ Países carregados:', paises.length);
             
-            // Restaura dados salvos
+            // Restaura progresso APÓS carregar países
             restaurarProgresso();
             
-            // Detecta localização se não tiver país salvo
+            // Detecta localização se não houver país selecionado
             const paisAtual = selectsBusiness?.value || selectsPessoa?.value;
             if (!paisAtual) {
                 setTimeout(() => {
@@ -345,9 +316,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             
         } catch (e) {
             console.error('Erro ao carregar países:', e);
-            showToast('❌ Erro ao carregar lista de países', 'error');
             
-            // Fallback básico
             const optionsBasic = `
                 <option value="">Selecione o país...</option>
                 <option value="MZ">Moçambique</option>
@@ -376,10 +345,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         let primeiroErro = null;
         
         campos.forEach(campo => {
-            // Ignora campos invisíveis
             if (campo.offsetParent === null) return;
             
-            // Ignora logo se checkbox "no_logo" marcado
             if (campo.name === 'logo') {
                 const noLogo = document.querySelector('input[name="no_logo"]');
                 if (noLogo && noLogo.checked) return;
@@ -388,7 +355,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             const valor = campo.value.trim();
             let erro = null;
             
-            // Validações específicas por tipo de campo
             if (campo.type === 'file') {
                 if (campo.files.length === 0) {
                     erro = 'Por favor, selecione um arquivo.';
@@ -396,7 +362,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     const arquivo = campo.files[0];
                     const ext = arquivo.name.split('.').pop().toLowerCase();
                     const permitidos = ['png', 'jpg', 'jpeg', 'pdf'];
-                    const maxSize = 5 * 1024 * 1024; // 5MB
+                    const maxSize = 5 * 1024 * 1024;
                     
                     if (!permitidos.includes(ext)) {
                         erro = 'Formato inválido. Use PNG, JPEG ou PDF.';
@@ -446,7 +412,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 erro = 'Este campo é obrigatório.';
             }
             
-            // Aplica erro visual se houver
             if (erro) {
                 valido = false;
                 if (!primeiroErro) primeiroErro = campo;
@@ -454,7 +419,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         });
         
-        // Scroll suave para o primeiro erro
         if (primeiroErro) {
             primeiroErro.scrollIntoView({ behavior: 'smooth', block: 'center' });
             setTimeout(() => primeiroErro.focus(), 300);
@@ -467,14 +431,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         const parent = campo.closest('.person-field-input');
         if (!parent) return;
         
-        // Marca campo como erro
         if (campo.type === 'file') {
             campo.closest('.custom-file-upload')?.classList.add('input-error');
         } else {
             campo.classList.add('input-error');
         }
         
-        // Adiciona mensagem de erro
         const span = document.createElement('span');
         span.className = 'error-msg-visual';
         span.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${mensagem}`;
@@ -487,13 +449,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     /* ========================================
-       NAVEGAÇÃO ENTRE STEPS
+       NAVEGAÇÃO ENTRE STEPS (APENAS BUSINESS)
     ======================================== */
     
     window.changeStep = function(atual, proximo) {
         if (isNavigating) return;
         
-        // Valida step atual antes de avançar
         if (proximo > atual && !validarStep(atual)) {
             showToast('⚠️ Preencha todos os campos obrigatórios corretamente', 'warning');
             return;
@@ -501,10 +462,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         isNavigating = true;
         
-        // Esconde todos os steps
         document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
         
-        // Mostra o próximo step
         const proximoStep = document.querySelector(`.step-content[data-step="${proximo}"]`);
         
         if (proximoStep) {
@@ -513,7 +472,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             localStorage.setItem('vg_step', proximo);
             window.scrollTo({ top: 0, behavior: 'smooth' });
             
-            // Sincroniza email no step 4
             if (proximo === 4) sincronizarEmail();
             
             salvarProgresso();
@@ -570,8 +528,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
         });
         
-        // Restaura step no business
-        if (!formBusiness.hidden && stepSalvo > 1) {
+        // ✅ FIX: Só restaura step se formBusiness existir E não estiver hidden
+        if (formBusiness && !isMobileMode && stepSalvo > 1) {
             document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
             const targetStep = document.querySelector(`.step-content[data-step="${stepSalvo}"]`);
             if (targetStep) {
@@ -584,11 +542,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     /* ========================================
-       ALTERNÂNCIA BUSINESS/PESSOA
+       ALTERNÂNCIA BUSINESS/PESSOA (APENAS DESKTOP)
     ======================================== */
     
     function renderizar() {
         const isBusiness = tipoAtual === 'business';
+        
+        document.body.setAttribute('data-tipo-ativo', tipoAtual);
         
         if (titulo) {
             titulo.textContent = isBusiness ? 'Cadastro de Negócio' : 'Cadastro Pessoal';
@@ -597,7 +557,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (formBusiness) formBusiness.hidden = !isBusiness;
         if (formPessoa) formPessoa.hidden = isBusiness;
         
-        // Atualiza botões do switch
         if (switchConta) {
             switchConta.querySelectorAll('button').forEach(btn => {
                 const ativo = btn.dataset.tipo === tipoAtual;
@@ -605,17 +564,29 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
         }
         
-        // Gerencia sliders de imagem
-        if (isBusiness) {
-            pararSlider();
-        } else {
-            iniciarSlider();
+        const imgPerson = document.getElementById('img-person-fixa');
+        const imgBusiness = document.getElementById('img-business-fixa');
+        const cntImage = document.querySelector('.cnt-image');
+        
+        if (imgPerson && imgBusiness && cntImage) {
+            if (isBusiness) {
+                imgPerson.classList.remove('active');
+                imgBusiness.classList.add('active');
+                cntImage.classList.remove('person-mode');
+                cntImage.classList.add('business-mode');
+            } else {
+                imgBusiness.classList.remove('active');
+                imgPerson.classList.add('active');
+                cntImage.classList.remove('business-mode');
+                cntImage.classList.add('person-mode');
+            }
         }
         
         salvarProgresso();
     }
 
-    if (switchConta) {
+    // ✅ Só adiciona listener de switch se NÃO for mobile
+    if (switchConta && !isMobileMode) {
         switchConta.addEventListener('click', async (e) => {
             const btn = e.target.closest('button');
             if (!btn || btn.dataset.tipo === tipoAtual) return;
@@ -640,12 +611,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                 tipoAtual = data.tipo;
                 currentStep = 1;
                 
-                // Limpa erros de ambos os forms
                 if (formBusiness) limparErros(formBusiness);
                 if (formPessoa) limparErros(formPessoa);
                 
                 renderizar();
-                showToast('✅ Tipo alterado com sucesso', 'success');
                 
             } catch (e) {
                 console.error('Erro ao alternar tipo:', e);
@@ -746,14 +715,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         el.addEventListener('input', () => {
             salvarProgresso();
             
-            // Remove erro ao começar a digitar
             el.classList.remove('input-error');
             const parent = el.closest('.person-field-input');
             if (parent) {
                 parent.querySelectorAll('.error-msg-visual').forEach(m => m.remove());
             }
             
-            // Sincroniza email
             if (el.id === 'email_business') sincronizarEmail();
         });
     });
@@ -788,7 +755,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // Mesmo para pessoa
     const selectPaisPessoa = document.getElementById('select_pais_pessoa');
     if (selectPaisPessoa) {
         selectPaisPessoa.addEventListener('change', function() {
@@ -812,38 +778,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     /* ========================================
-       SLIDER DE IMAGENS
-    ======================================== */
-    
-    let slideInterval = null;
-    let currentSlideIndex = 0;
-    const slides = document.querySelectorAll('.slide-pessoal');
-    const imgBusiness = document.getElementById('img-business-fixa');
-
-    function iniciarSlider() {
-        if (!slides.length) return;
-        pararSlider();
-        
-        if (imgBusiness) imgBusiness.classList.remove('active');
-        slides[currentSlideIndex].classList.add('active');
-        
-        slideInterval = setInterval(() => {
-            slides[currentSlideIndex].classList.remove('active');
-            currentSlideIndex = (currentSlideIndex + 1) % slides.length;
-            slides[currentSlideIndex].classList.add('active');
-        }, 5000);
-    }
-
-    function pararSlider() {
-        if (slideInterval) {
-            clearInterval(slideInterval);
-            slideInterval = null;
-        }
-        slides.forEach(s => s.classList.remove('active'));
-        if (imgBusiness) imgBusiness.classList.add('active');
-    }
-
-    /* ========================================
        SUBMISSÃO AJAX DOS FORMULÁRIOS
     ======================================== */
     
@@ -851,7 +785,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Validação final
             const isBusiness = form.id === 'formBusiness';
             
             if (isBusiness) {
@@ -882,14 +815,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                 if (data.success) {
                     showToast('✅ Cadastro realizado! Redirecionando...', 'success');
                     
-                    // ✅ LIMPA TODOS OS DADOS ANTES DE REDIRECIONAR
                     limparTodosDados();
                     
                     setTimeout(() => {
                         window.location.href = data.redirect;
                     }, 1500);
                 } else if (data.errors) {
-                    // ✅ PROCESSA ERROS DO BACKEND COM STEP
                     processarErrosBackend(data, form);
                     btn.disabled = false;
                     btn.innerHTML = oldText;
@@ -907,19 +838,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    /* ========================================
-    TRATAMENTO DE ERROS DO BACKEND
-    ======================================== */
-
     function processarErrosBackend(data, form) {
         const { errors, errorStep, errorSteps } = data;
         
         if (!errors) return;
         
-        // Se for business e tiver errorStep, volta para o step correto
         const isBusiness = form.id === 'formBusiness';
         if (isBusiness && errorStep) {
-            // Volta para o step do primeiro erro
             document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
             const targetStep = document.querySelector(`.step-content[data-step="${errorStep}"]`);
             if (targetStep) {
@@ -931,7 +856,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             showToast(`❌ Erros encontrados na Etapa ${errorStep}`, 'error');
         }
         
-        // Mostra todos os erros visualmente
         let primeiroErro = null;
         Object.keys(errors).forEach(field => {
             const campo = form.querySelector(`[name="${field}"]`);
@@ -941,7 +865,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         });
         
-        // Scroll para o primeiro erro
         if (primeiroErro) {
             setTimeout(() => {
                 primeiroErro.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -949,7 +872,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             }, 300);
         }
         
-        // Toast com resumo
         const numErros = Object.keys(errors).length;
         showToast(`❌ ${numErros} erro(s) encontrado(s). Corrija os campos destacados.`, 'error', 5000);
     }
@@ -1010,15 +932,13 @@ document.addEventListener("DOMContentLoaded", async () => {
        INICIALIZAÇÃO
     ======================================== */
     
-    console.log('🚀 Sistema de Cadastro Ultimate V3.0 inicializado');
+    console.log('🚀 Sistema de Cadastro Ultimate V4.0 inicializado');
+    console.log('📱 Modo:', isMobileMode ? 'MOBILE' : 'DESKTOP');
     
-    // 1. Carrega países
     await carregarPaises();
     
-    // 2. Renderiza interface
     renderizar();
     
-    // 3. Adiciona animações CSS
     const style = document.createElement('style');
     style.textContent = `
         @keyframes slideInRight {

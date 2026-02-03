@@ -338,6 +338,226 @@ function isProductPopular($product) {
         }
     }
     </script>
+
+    <!-- CSS Adicional para Busca AJAX -->
+    <style>
+        /* Search Dropdown */
+        .search-container {
+            position: relative;
+        }
+        
+        .clear-search-btn {
+            position: absolute;
+            right: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px 10px;
+            transition: color 0.3s;
+            z-index: 2;
+        }
+        
+        .clear-search-btn:hover {
+            color: #00b96b;
+        }
+        
+        .search-results-dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            max-height: 600px;
+            overflow-y: auto;
+            z-index: 1000;
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .search-results-header {
+            padding: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .search-results-header h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #333;
+            margin: 0;
+        }
+        
+        .view-all-link {
+            color: #00b96b;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+        
+        .view-all-link:hover {
+            color: #008f54;
+            text-decoration: underline;
+        }
+        
+        .search-results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            padding: 20px;
+        }
+        
+        .search-product-card {
+            display: block;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .search-product-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 185, 107, 0.15);
+            border-color: #00b96b;
+        }
+        
+        .search-product-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            background: #f8f9fa;
+        }
+        
+        .search-product-info {
+            padding: 12px;
+        }
+        
+        .search-product-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 8px 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+        }
+        
+        .search-product-price {
+            font-size: 16px;
+            font-weight: 700;
+            color: #00b96b;
+            margin: 0;
+        }
+        
+        .search-product-company {
+            font-size: 11px;
+            color: #666;
+            margin: 4px 0 0 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .search-no-results {
+            padding: 40px 20px;
+            text-align: center;
+        }
+        
+        .search-no-results i {
+            font-size: 48px;
+            color: #ddd;
+            margin-bottom: 15px;
+        }
+        
+        .search-no-results h4 {
+            font-size: 18px;
+            color: #333;
+            margin: 0 0 10px 0;
+        }
+        
+        .search-no-results p {
+            font-size: 14px;
+            color: #666;
+            margin: 0;
+        }
+        
+        .search-loading {
+            padding: 40px 20px;
+            text-align: center;
+        }
+        
+        .search-loading .spinner-small {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f0f0f0;
+            border-top-color: #00b96b;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Overlay para fechar dropdown ao clicar fora */
+        .search-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: transparent;
+            z-index: 999;
+            display: none;
+        }
+        
+        .search-overlay.active {
+            display: block;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .search-results-dropdown {
+                max-height: 400px;
+            }
+            
+            .search-results-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                padding: 15px;
+            }
+            
+            .search-product-image {
+                height: 120px;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -408,18 +628,25 @@ function isProductPopular($product) {
                     </div>
                 </a>
 
-                <!-- Barra de Busca -->
+                <!-- Barra de Busca AJAX -->
                 <div class="search-container">
-                    <form action="marketplace.php" method="GET" class="search-form" role="search">
+                    <form id="searchForm" class="search-form" role="search" onsubmit="return false;">
                         <input type="text" 
+                               id="searchInput"
                                name="search" 
                                placeholder="Buscar produtos sustentáveis..." 
                                class="search-input"
-                               aria-label="Buscar produtos">
-                        <button type="submit" class="search-btn" aria-label="Buscar">
+                               aria-label="Buscar produtos"
+                               autocomplete="off">
+                        <button type="button" id="searchBtn" class="search-btn" aria-label="Buscar">
                             <i class="fa-solid fa-search"></i>
                         </button>
+                        <button type="button" id="clearSearchBtn" class="clear-search-btn" style="display: none;" aria-label="Limpar busca">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
                     </form>
+                    <!-- Dropdown de resultados -->
+                    <div id="searchResults" class="search-results-dropdown" style="display: none;"></div>
                 </div>
 
                 <ul class="nav-menu" id="sec-main-header">
@@ -804,7 +1031,7 @@ function isProductPopular($product) {
         <div class="container">
             <div class="section-header">
                 <h2 class="section-title hero-title">
-                    <i class="fa-solid fa-globe"></i>
+                    <i class="fa-solid fa-trophy"></i>
                     Impacto Global 
                 </h2>
             </div>
@@ -848,7 +1075,215 @@ function isProductPopular($product) {
         <i class="fa-solid fa-arrow-up"></i>
     </button>
 
+    <!-- Overlay para fechar dropdown de busca -->
+    <div id="searchOverlay" class="search-overlay"></div>
+
     <?php include 'includes/footer.html'; ?>
+
+    <!-- JavaScript de Busca AJAX -->
+    <script>
+        // ==================== BUSCA AJAX ====================
+        (function() {
+            'use strict';
+            
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const clearBtn = document.getElementById('clearSearchBtn');
+            const searchResults = document.getElementById('searchResults');
+            const searchOverlay = document.getElementById('searchOverlay');
+            
+            let searchTimeout;
+            let currentSearchTerm = '';
+            
+            // Função para fazer busca
+            async function performSearch(term) {
+                if (!term || term.length < 2) {
+                    hideSearchResults();
+                    return;
+                }
+                
+                // Mostrar loading
+                showSearchLoading();
+                
+                try {
+                    const response = await fetch(`pages/app/ajax/ajax_search.php?search=${encodeURIComponent(term)}&limit=12`, {
+                        headers: {
+                            'X-Requested-With': 'XMLhttprequest'
+                        }
+                    });
+                    
+                    if (!response.ok) throw new Error('Erro na busca');
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        displaySearchResults(data);
+                    } else {
+                        displayNoResults(data.message);
+                    }
+                } catch (error) {
+                    console.error('Erro na busca:', error);
+                    displayNoResults('Erro ao buscar produtos. Tente novamente.');
+                }
+            }
+            
+            // Mostrar loading
+            function showSearchLoading() {
+                searchResults.innerHTML = `
+                    <div class="search-loading">
+                        <div class="spinner-small"></div>
+                        <p>Buscando produtos...</p>
+                    </div>
+                `;
+                searchResults.style.display = 'block';
+                searchOverlay.classList.add('active');
+            }
+            
+            // Exibir resultados
+            function displaySearchResults(data) {
+                if (!data.products || data.products.length === 0) {
+                    displayNoResults('Nenhum produto encontrado');
+                    return;
+                }
+                
+                let html = `
+                    <div class="search-results-header">
+                        <h3>${data.message}</h3>
+                        <a href="pages/app/search_products.php?search=${encodeURIComponent(currentSearchTerm)}" class="view-all-link">
+                            Ver todos <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+                    <div class="search-results-grid">
+                `;
+                
+                data.products.forEach(product => {
+                    html += `
+                        <a href="${product.url}" class="search-product-card">
+                            <img src="${product.imagem}" 
+                                 alt="${product.nome}" 
+                                 class="search-product-image"
+                                 onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(product.nome)}&size=300&background=00b96b&color=fff&font-size=0.1'">
+                            <div class="search-product-info">
+                                <h4 class="search-product-name">${product.nome}</h4>
+                                <p class="search-product-price">${product.currency} ${product.preco_formatado}</p>
+                                <p class="search-product-company">
+                                    <i class="fa-solid fa-building"></i> ${product.company_name}
+                                </p>
+                            </div>
+                        </a>
+                    `;
+                });
+                
+                html += '</div>';
+                
+                searchResults.innerHTML = html;
+                searchResults.style.display = 'block';
+                searchOverlay.classList.add('active');
+            }
+            
+            // Exibir sem resultados
+            function displayNoResults(message) {
+                searchResults.innerHTML = `
+                    <div class="search-no-results">
+                        <i class="fa-solid fa-search"></i>
+                        <h4>Nenhum produto encontrado</h4>
+                        <p>${message || 'Tente buscar com outros termos'}</p>
+                    </div>
+                `;
+                searchResults.style.display = 'block';
+                searchOverlay.classList.add('active');
+            }
+            
+            // Esconder resultados
+            function hideSearchResults() {
+                searchResults.style.display = 'none';
+                searchOverlay.classList.remove('active');
+            }
+            
+            // Event: Input com debounce
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const term = this.value.trim();
+                    currentSearchTerm = term;
+                    
+                    // Mostrar/esconder botão limpar
+                    if (clearBtn) {
+                        clearBtn.style.display = term ? 'block' : 'none';
+                    }
+                    
+                    // Debounce para não fazer muitas requisições
+                    clearTimeout(searchTimeout);
+                    
+                    if (term.length >= 2) {
+                        searchTimeout = setTimeout(() => {
+                            performSearch(term);
+                        }, 500); // 500ms de delay
+                    } else {
+                        hideSearchResults();
+                    }
+                });
+                
+                // Event: Enter
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const term = this.value.trim();
+                        if (term.length >= 2) {
+                            performSearch(term);
+                        }
+                    }
+                });
+            }
+            
+            // Event: Botão de busca
+            if (searchBtn) {
+                searchBtn.addEventListener('click', function() {
+                    const term = searchInput.value.trim();
+                    if (term.length >= 2) {
+                        performSearch(term);
+                    } else if (term.length === 0) {
+                        alert('Digite algo para buscar');
+                        searchInput.focus();
+                    } else {
+                        alert('Digite pelo menos 2 caracteres');
+                        searchInput.focus();
+                    }
+                });
+            }
+            
+            // Event: Botão limpar
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function() {
+                    searchInput.value = '';
+                    currentSearchTerm = '';
+                    this.style.display = 'none';
+                    hideSearchResults();
+                    searchInput.focus();
+                });
+            }
+            
+            // Event: Clicar no overlay para fechar
+            if (searchOverlay) {
+                searchOverlay.addEventListener('click', hideSearchResults);
+            }
+            
+            // Event: ESC para fechar
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && searchResults.style.display === 'block') {
+                    hideSearchResults();
+                }
+            });
+            
+            // Fechar ao clicar fora
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && 
+                    !searchResults.contains(e.target) && 
+                    !searchBtn.contains(e.target)) {
+                    hideSearchResults();
+                }
+            });
+        })();
+    </script>
 
     <!-- JavaScript Otimizado -->
     <script>
