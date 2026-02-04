@@ -585,6 +585,8 @@ function isProductPopular($product) {
                         País <span id="locationDisplay"><?= escapeHtml(!empty($user_country) ? $user_country : 'Selecionar localização') ?></span>
                     </a>
                     <span class="divider"></span>
+                    <span><i class="fa-solid fa-coins"></i> Moeda</span>
+                    <span>MZN</span>
                 </div>
                 <ul class="top-right-nav">
                     <?php if ($user_logged_in && $user_type === 'company'): ?>

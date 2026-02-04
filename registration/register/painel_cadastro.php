@@ -184,6 +184,13 @@ $csrf = csrf_generate();
 <!-- Container Principal -->
 <div class="main-container">
     <div class="chi-main">
+        <button class="btn-back">
+            <a href="../../index.php">
+                <i class="fa-solid fa-house"></i>
+                Inicio
+            </a>
+        </button>
+
         <h1 id="titulo"><?= $tipoAtual === 'business' ? 'Cadastro de Negócio' : 'Cadastro Pessoal' ?></h1>
     
         <?php if (!$isMobile && count($tiposPermitidos) > 1): ?>
@@ -271,6 +278,8 @@ $csrf = csrf_generate();
                         Usar Localização Atual
                     </button>
                 </div>
+
+                <!-- Os checkboxes exclusivos serão inseridos aqui via JavaScript -->
 
                 <div class="person-field-input">
                     <label>Código Postal / CEP</label>
@@ -463,6 +472,8 @@ $csrf = csrf_generate();
                 </button>
             </div>
 
+            <!-- Checkbox será inserido aqui via JavaScript -->
+
             <div class="person-field-input">
                 <label>Código Postal / CEP</label>
                 <input type="text" name="postal_code" id="postal_code_input_pessoa" placeholder="Digite o código postal">
@@ -514,6 +525,7 @@ $csrf = csrf_generate();
     </div>
 </div>
 
+<!-- ===== SCRIPT UNIFICADO COMPLETO ===== -->
 <script src="../../assets/scripts/painel_cadastro_ultimate.js"></script>
 
 <script>

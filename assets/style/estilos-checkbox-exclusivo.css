@@ -1,0 +1,330 @@
+/* ========================================
+   ESTILOS PARA SISTEMA DE CHECKBOX EXCLUSIVO
+   CEP vs NUIT - Escolha única
+======================================== */
+
+.exclusive-field-selector,
+.exclusive-field-selector-pessoa {
+    animation: slideInFromTop 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 20px;
+}
+
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Container principal */
+.exclusive-field-selector > div,
+.exclusive-field-selector-pessoa > div {
+    transition: all 0.3s ease;
+}
+
+.exclusive-field-selector > div:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+/* Opções individuais */
+.exclusive-option {
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.exclusive-option:hover {
+    background: rgba(0, 0, 0, 0.02) !important;
+    border-color: #d0d7de !important;
+    transform: translateX(4px);
+}
+
+.exclusive-option input[type="checkbox"] {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.exclusive-option:hover input[type="checkbox"] {
+    transform: scale(1.1);
+}
+
+/* Estado ativo - CEP (verde) */
+.exclusive-option:has(#has_postal_code:checked) {
+    background: rgba(0, 208, 132, 0.1) !important;
+    border-color: #00d084 !important;
+    box-shadow: 0 2px 8px rgba(0, 208, 132, 0.15);
+}
+
+/* Estado ativo - NUIT (azul) */
+.exclusive-option:has(#has_tax_id_only:checked) {
+    background: rgba(88, 101, 242, 0.1) !important;
+    border-color: #5865f2 !important;
+    box-shadow: 0 2px 8px rgba(88, 101, 242, 0.15);
+}
+
+/* Ícones das opções */
+.exclusive-option i.fa-location-dot {
+    color: #00d084;
+    transition: color 0.2s ease;
+}
+
+.exclusive-option i.fa-file-invoice {
+    color: #5865f2;
+    transition: color 0.2s ease;
+}
+
+.exclusive-option:hover i {
+    transform: scale(1.1);
+}
+
+/* Texto das opções */
+.exclusive-option span {
+    transition: all 0.2s ease;
+}
+
+.exclusive-option input:checked + div span {
+    font-weight: 600;
+    color: #1a1d2e;
+}
+
+/* Badge de seleção ativa */
+.exclusive-option input:checked + div::after {
+    content: '✓ Selecionado';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: linear-gradient(135deg, #00d084, #00b574);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 4px rgba(0, 208, 132, 0.3);
+}
+
+.exclusive-option:has(#has_tax_id_only:checked) input:checked + div::after {
+    background: linear-gradient(135deg, #5865f2, #4752c4);
+    box-shadow: 0 2px 4px rgba(88, 101, 242, 0.3);
+}
+
+/* Indicador visual de campo desabilitado */
+.person-field-input[style*="opacity: 0.5"] {
+    position: relative;
+}
+
+.person-field-input[style*="opacity: 0.5"]::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(0, 0, 0, 0.02) 10px,
+        rgba(0, 0, 0, 0.02) 20px
+    );
+    pointer-events: none;
+    border-radius: 6px;
+    z-index: 1;
+}
+
+/* Animação de transição entre estados */
+.person-field-input {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.person-field-input[style*="opacity: 0.5"] {
+    transform: scale(0.98);
+}
+
+/* Badge informativo */
+.field-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #586069;
+    margin-left: 8px;
+}
+
+.field-status-badge.active {
+    background: rgba(0, 208, 132, 0.1);
+    border-color: #00d084;
+    color: #00d084;
+}
+
+.field-status-badge.disabled {
+    background: rgba(209, 36, 47, 0.1);
+    border-color: #d1242f;
+    color: #d1242f;
+}
+
+/* Tooltip de ajuda melhorado */
+.field-help-tooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    background: #d0d7de;
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: help;
+    margin-left: 6px;
+    transition: all 0.2s ease;
+}
+
+.field-help-tooltip:hover {
+    background: #00d084;
+    transform: scale(1.1);
+}
+
+body[data-tipo-ativo="business"] .field-help-tooltip:hover {
+    background: #5865f2;
+}
+
+.field-help-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #24292f;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 400;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
+}
+
+.field-help-tooltip:hover::after {
+    opacity: 1;
+}
+
+/* Mensagem de ajuda contextual */
+.contextual-help-message {
+    background: #fff8c5;
+    border-left: 4px solid #9a6700;
+    color: #633c01;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-top: 12px;
+    display: flex;
+    align-items: start;
+    gap: 10px;
+    animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.contextual-help-message i {
+    color: #9a6700;
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .exclusive-option {
+        padding: 12px !important;
+    }
+    
+    .exclusive-option span {
+        font-size: 13px !important;
+    }
+    
+    .exclusive-option small {
+        font-size: 11px !important;
+    }
+    
+    .exclusive-option input:checked + div::after {
+        font-size: 9px;
+        padding: 2px 6px;
+    }
+}
+
+/* Modo escuro (caso seja implementado no futuro) */
+@media (prefers-color-scheme: dark) {
+    .exclusive-field-selector > div,
+    .exclusive-field-selector-pessoa > div {
+        background: #161b22;
+        border-color: #30363d;
+    }
+    
+    .exclusive-option:hover {
+        background: rgba(255, 255, 255, 0.05) !important;
+    }
+}
+
+/* Indicador de campo obrigatório/opcional */
+.field-requirement-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 6px;
+}
+
+.field-requirement-indicator.required {
+    background: rgba(209, 36, 47, 0.1);
+    color: #d1242f;
+}
+
+.field-requirement-indicator.optional {
+    background: rgba(88, 101, 242, 0.1);
+    color: #5865f2;
+}
+
+/* Animação de pulsação para chamar atenção */
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(0, 208, 132, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(0, 208, 132, 0);
+    }
+}
+
+.exclusive-field-selector.highlight {
+    animation: pulse 2s infinite;
+}
+
+/* Transição suave ao trocar de tipo (Business/Pessoa) */
+body[data-tipo-ativo] .exclusive-option {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

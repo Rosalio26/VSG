@@ -935,7 +935,7 @@ body {
     grid-template-columns: 1fr 1fr;
     transition: all var(--transition-base);
     box-shadow: var(--shadow-md);
-    height: 220px;
+    height: 300px;
     position: relative;
 }
 
