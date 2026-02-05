@@ -19,7 +19,7 @@ try {
         exit;
     }
 
-    rateLimit('business_store', 5, 60);
+    rateLimit('business_store', 10, 120);
 
     if (!csrf_validate($_POST['csrf'] ?? '')) {
         echo json_encode(['error' => 'Token de segurança inválido.']);
@@ -28,7 +28,7 @@ try {
 
     /* ================= 2. COLETA E VALIDAÇÃO DE DADOS ================= */
     $errors = [];
-    $errorSteps = []; // Mapeia erros aos steps
+    $errorSteps = [];
 
     // STEP 1: Identidade
     $nome_empresa   = trim($_POST['nome_empresa'] ?? '');
@@ -91,22 +91,10 @@ try {
         $errors['email_business'] = 'E-mail inválido.';
         $errorSteps['email_business'] = 3;
     } else {
-        // ========== VALIDAÇÃO DE PROVEDORES PERMITIDOS ==========
         $provedoresPermitidos = [
-            // Google
-            'gmail.com',
-            'googlemail.com',
-            
-            // Microsoft
-            'outlook.com',
-            'hotmail.com',
-            'live.com',
-            'msn.com',
-            
-            // Apple
-            'icloud.com',
-            'me.com',
-            'mac.com'
+            'gmail.com', 'googlemail.com',
+            'outlook.com', 'hotmail.com', 'live.com', 'msn.com',
+            'icloud.com', 'me.com', 'mac.com'
         ];
 
         $dominio = substr(strrchr($email_business, "@"), 1);
@@ -115,14 +103,13 @@ try {
             $errors['email_business'] = 'Desculpe tipo de email nao valido. Estamos trabalhando para adicionar outros provedores de emails em breve.';
             $errorSteps['email_business'] = 3;
         }
-        // ========== FIM DA VALIDAÇÃO ==========
     }
 
     if (empty($telefone)) {
         $errors['telefone'] = 'O telefone é obrigatório.';
         $errorSteps['telefone'] = 3;
-    } elseif (!preg_match('/^\+/', $telefone)) {
-        $errors['telefone'] = 'Inclua o código do país (ex: +258).';
+    } elseif (!preg_match('/^\+[1-9]\d{7,14}$/', $telefone)) {
+        $errors['telefone'] = 'Telefone inválido. Use formato internacional: +258841234567';
         $errorSteps['telefone'] = 3;
     }
 
@@ -144,7 +131,6 @@ try {
 
     /* ================= 3. VERIFICAÇÃO DE DUPLICIDADE ================= */
     
-    // Verifica E-mail
     $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
     $stmt->bind_param('s', $email_business);
     $stmt->execute();
@@ -154,7 +140,6 @@ try {
     }
     $stmt->close();
 
-    // Verifica Telefone
     $stmt = $mysqli->prepare("SELECT id FROM users WHERE telefone = ? LIMIT 1");
     $stmt->bind_param('s', $telefone);
     $stmt->execute();
@@ -164,7 +149,6 @@ try {
     }
     $stmt->close();
 
-    // Verifica Tax ID (se for texto)
     if ($fiscal_mode === 'text' && !empty($tax_id)) {
         $stmt = $mysqli->prepare("SELECT id FROM businesses WHERE tax_id = ? LIMIT 1");
         $stmt->bind_param('s', $tax_id);
@@ -176,7 +160,6 @@ try {
         $stmt->close();
     }
 
-    // Se houver erros, retorna com o step do primeiro erro
     if (!empty($errors)) {
         $firstErrorStep = !empty($errorSteps) ? min($errorSteps) : 1;
         echo json_encode([
@@ -202,7 +185,7 @@ try {
         }
 
         $file = $_FILES[$fileKey];
-        $maxSize = 5 * 1024 * 1024; // 5MB
+        $maxSize = 5 * 1024 * 1024;
         $allowedExts = ['png', 'jpg', 'jpeg', 'pdf'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
@@ -239,7 +222,6 @@ try {
         return null;
     }
 
-    // Processar uploads
     $pathLicenca = uploadBusinessDoc('licenca', 'lic', $errors, 3);
     if (!$pathLicenca && !isset($errors['licenca'])) {
         $errors['licenca'] = "O upload do Alvará / Licença é obrigatório.";
@@ -249,10 +231,6 @@ try {
     $pathLogo = null;
     if (!$no_logo) {
         $pathLogo = uploadBusinessDoc('logo', 'log', $errors, 3);
-        if (!$pathLogo && !isset($errors['logo'])) {
-            $errors['logo'] = "A logo é obrigatória ou selecione 'Não tenho logo'.";
-            $errorSteps['logo'] = 3;
-        }
     }
 
     $pathFiscal = null;
@@ -262,6 +240,15 @@ try {
             $errors['tax_id_file'] = "O upload do documento fiscal é obrigatório.";
             $errorSteps['tax_id_file'] = 2;
         }
+    }
+
+    // Validação final de fiscal_mode
+    if ($fiscal_mode === 'text' && empty($tax_id)) {
+        $errors['tax_id'] = 'Documento fiscal é obrigatório.';
+        $errorSteps['tax_id'] = 2;
+    } elseif ($fiscal_mode === 'file' && empty($pathFiscal)) {
+        $errors['tax_id_file'] = 'Upload do documento fiscal é obrigatório.';
+        $errorSteps['tax_id_file'] = 2;
     }
 
     if (!empty($errors)) {
@@ -281,7 +268,6 @@ try {
     $expires  = date('Y-m-d H:i:s', time() + 3600);
     $realPassHash = password_hash($password, PASSWORD_DEFAULT);
 
-    // Inserir User com localização
     $sqlUser = "INSERT INTO users (
                     type, nome, email, telefone, password_hash, registration_step, 
                     email_token, email_token_expires,
@@ -298,7 +284,6 @@ try {
     $finalTaxIdText = ($fiscal_mode === 'text') ? $tax_id : null;
     $finalTaxIdFile = ($fiscal_mode === 'file') ? $pathFiscal : null;
 
-    // Inserir Business
     $sqlBus = "INSERT INTO businesses (user_id, tax_id, tax_id_file, business_type, description, country, region, city, license_path, logo_path) 
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmtBus = $mysqli->prepare($sqlBus);

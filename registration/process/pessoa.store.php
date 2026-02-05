@@ -19,7 +19,7 @@ try {
         exit;
     }
 
-    rateLimit('pessoa_store', 5, 60);
+    rateLimit('pessoa_store', 10, 120);
 
     if (!csrf_validate($_POST['csrf'] ?? '')) {
         echo json_encode(['error' => 'Token inválido.']);
@@ -34,7 +34,6 @@ try {
     $password = $_POST['password'] ?? '';
     $confirm  = $_POST['password_confirm'] ?? '';
 
-    // LOCALIZAÇÃO
     $country        = trim($_POST['country'] ?? '');
     $country_code   = trim($_POST['country_code'] ?? '');
     $state          = trim($_POST['state'] ?? '');
@@ -46,7 +45,6 @@ try {
 
     $errors = [];
 
-    // VALIDAÇÃO DE CAMPOS OBRIGATÓRIOS
     if (empty($nome)) $errors['nome'] = 'O nome é obrigatório.';
     if (empty($apelido)) $errors['apelido'] = 'O apelido é obrigatório.';
     if (empty($email)) $errors['email'] = 'O e-mail é obrigatório.';
@@ -56,7 +54,6 @@ try {
     if (empty($state)) $errors['state'] = 'Estado/Província é obrigatório.';
     if (empty($city)) $errors['city'] = 'Cidade é obrigatória.';
 
-    // VALIDAÇÕES ESPECÍFICAS
     if (!isset($errors['nome']) && mb_strlen($nome) < 3) {
         $errors['nome'] = 'Nome muito curto (mínimo 3 letras).';
     }
@@ -69,23 +66,11 @@ try {
         $errors['email'] = 'Formato de e-mail inválido.';
     }
 
-    // ========== VALIDAÇÃO DE PROVEDORES PERMITIDOS ==========
     if (!isset($errors['email']) && !empty($email)) {
         $provedoresPermitidos = [
-            // Google
-            'gmail.com',
-            'googlemail.com',
-            
-            // Microsoft
-            'outlook.com',
-            'hotmail.com',
-            'live.com',
-            'msn.com',
-            
-            // Apple
-            'icloud.com',
-            'me.com',
-            'mac.com'
+            'gmail.com', 'googlemail.com',
+            'outlook.com', 'hotmail.com', 'live.com', 'msn.com',
+            'icloud.com', 'me.com', 'mac.com'
         ];
 
         $dominio = substr(strrchr($email, "@"), 1);
@@ -94,14 +79,9 @@ try {
             $errors['email'] = 'Desculpe tipo de email nao valido. Estamos trabalhando para adicionar outros provedores de emails em breve.';
         }
     }
-    // ========== FIM DA VALIDAÇÃO ==========
 
-    if (!isset($errors['telefone'])) {
-        if (strlen($telefone) < 8) {
-            $errors['telefone'] = 'Número de telefone incompleto.';
-        } elseif (!preg_match('/^\+/', $telefone)) {
-            $errors['telefone'] = 'Inclua o código do país (ex: +258).';
-        }
+    if (!isset($errors['telefone']) && !preg_match('/^\+[1-9]\d{7,14}$/', $telefone)) {
+        $errors['telefone'] = 'Telefone inválido. Use formato internacional: +258841234567';
     }
 
     if (!isset($errors['password']) && strlen($password) < 8) {
@@ -119,7 +99,6 @@ try {
     
     /* ================= 3. VERIFICAÇÃO DE DUPLICIDADE ================= */
     
-    // Verifica E-mail
     $stmt = $mysqli->prepare("SELECT id, nome FROM users WHERE email = ? LIMIT 1");
     $stmt->bind_param('s', $email);
     $stmt->execute();
@@ -129,7 +108,6 @@ try {
     }
     $stmt->close();
 
-    // Verifica Telefone
     $stmt = $mysqli->prepare("SELECT id FROM users WHERE telefone = ? LIMIT 1");
     $stmt->bind_param('s', $telefone);
     $stmt->execute();

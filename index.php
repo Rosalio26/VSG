@@ -2,8 +2,11 @@
 // ==================== INICIALIZAÇÃO E SEGURANÇA ====================
 require_once __DIR__ . '/registration/bootstrap.php';
 require_once __DIR__ . '/registration/includes/security.php';
-require_once __DIR__ . '/registration/includes/db.php';
+
 require_once __DIR__ . '/geo_location.php';
+
+// ==================== INICIALIZAR SISTEMA DE CÂMBIO ====================
+// require_once __DIR__ . '/includes/currency/currency_bootstrap.php';
 
 // Habilitar cache de saída
 ob_start();
@@ -25,10 +28,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 // ==================== CONFIGURAÇÕES DE EXIBIÇÃO ====================
-// Configurar quantos dias um produto é considerado "novo"
-define('PRODUCT_NEW_DAYS', 7); // Produtos com menos de 7 dias são "novos"
-
-// Configurar mínimo de vendas para ser "popular"
+define('PRODUCT_NEW_DAYS', 7);
 define('PRODUCT_POPULAR_MIN_SALES', 50);
 
 // ==================== QUERY OTIMIZADA - ESTATÍSTICAS ====================
@@ -92,7 +92,6 @@ $cart_count = 0;
 if ($user_logged_in) {
     $user_id = (int)$_SESSION['auth']['user_id'];
     
-    // Query combinada para localização e carrinho
     $user_data_query = "
         SELECT 
             u.city, u.state, u.country,
@@ -125,12 +124,14 @@ if ($user_logged_in) {
     }
 }
 
-// Se não tem country do usuário, tentar pegar da geolocalização
 if (empty($user_country) && !empty($_SESSION['user_location']['country'])) {
     $user_country = $_SESSION['user_location']['country'];
 }
 
-// ==================== PRODUTOS EM DESTAQUE (MAIS VENDIDOS) ====================
+// Detectar moeda do usuário
+$user_currency_info = get_user_currency_info($user_country ?: 'MZ');
+
+// ==================== PRODUTOS EM DESTAQUE ====================
 $products_query = "
     SELECT 
         p.id, p.nome, p.preco, p.currency, p.imagem, p.image_path1, p.stock, p.created_at,
@@ -164,13 +165,11 @@ if (!$products_result) {
     $products_result->free();
 }
 
-// Array para rastrear IDs de produtos já exibidos
 $displayed_product_ids = array_column($featured_products, 'id');
 
-// ==================== PRODUTOS NOVOS (EXCLUINDO OS JÁ EXIBIDOS) ====================
+// ==================== PRODUTOS NOVOS ====================
 $new_products_days = PRODUCT_NEW_DAYS;
 
-// Construir a cláusula WHERE para excluir produtos já exibidos
 $exclude_ids_clause = '';
 if (!empty($displayed_product_ids)) {
     $exclude_ids = implode(',', array_map('intval', $displayed_product_ids));
@@ -209,9 +208,7 @@ if (!$new_products_result) {
     $new_products_result->free();
 }
 
-// ==================== SE NÃO HOUVER PRODUTOS NOVOS, BUSCAR RECENTES (SEM DUPLICAR) ====================
 if (empty($new_products)) {
-    // Buscar produtos mais recentes que não estejam nos mais vendidos
     $recent_products_query = "
         SELECT 
             p.id, p.nome, p.preco, p.currency, p.imagem, p.image_path1, p.stock, p.created_at,
@@ -253,28 +250,24 @@ function getProductImageUrl($product) {
     return "https://ui-avatars.com/api/?name={$company}&size=400&background=00b96b&color=fff&bold=true&font-size=0.1";
 }
 
-function formatPrice($price) {
-    return number_format($price, 2, ',', '.');
-}
-
 function escapeHtml($text) {
     return htmlspecialchars($text ?? '', ENT_QUOTES, 'UTF-8');
 }
 
-/**
- * Verifica se um produto é considerado "novo" (menos de X dias)
- */
 function isProductNew($product) {
     $days_old = $product['days_old'] ?? 999;
     return $days_old <= PRODUCT_NEW_DAYS;
 }
 
-/**
- * Verifica se um produto é considerado "popular" (muitas vendas)
- */
 function isProductPopular($product) {
     $total_sales = $product['total_sales'] ?? 0;
     return $total_sales >= PRODUCT_POPULAR_MIN_SALES;
+}
+
+// Função auxiliar para converter e formatar preço
+function displayPrice($product, $user_country = null) {
+    $converted = format_product_price($product, $user_country);
+    return $converted;
 }
 ?>
 <!DOCTYPE html>
@@ -287,295 +280,41 @@ function isProductPopular($product) {
     <meta name="author" content="VSG Marketplace">
     <meta name="theme-color" content="#00b96b">
     
-    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="<?= escapeHtml($_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']) ?>">
     <meta property="og:title" content="VSG Marketplace - Produtos Sustentáveis">
     <meta property="og:description" content="Conectamos você ao melhor da sustentabilidade com mais de <?= number_format($stats['total_products']) ?> produtos eco-friendly">
-    <meta property="og:image" content="<?= escapeHtml($_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST']) ?>/assets/img/og-image.jpg">
-    
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="<?= escapeHtml($_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']) ?>">
-    <meta name="twitter:title" content="VSG Marketplace - Produtos Sustentáveis">
-    <meta name="twitter:description" content="Conectamos você ao melhor da sustentabilidade">
-    <meta name="twitter:image" content="<?= escapeHtml($_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST']) ?>/assets/img/twitter-card.jpg">
     
     <title>VSG Marketplace - Produtos Sustentáveis</title>
 
-    <!-- Preconnect para performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-    
-    <!-- DNS Prefetch -->
     <link rel="dns-prefetch" href="https://ui-avatars.com">
     
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-    <!-- Favicon -->
     <link rel="shortcut icon" href="sources/img/logo_small_gr.png" type="image/x-icon">
-    <link rel="apple-touch-icon" href="sources/img/logo_small_gr.png">
     
-    <!-- Stylesheets -->
     <link rel="stylesheet" href="assets/style/footer.css">
     <link rel="stylesheet" href="assets/style/index_start.css">
-    
-    <!-- Structured Data / Schema.org -->
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "VSG Marketplace",
-        "url": "<?= escapeHtml($_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST']) ?>",
-        "description": "Marketplace de produtos sustentáveis e eco-friendly",
-        "potentialAction": {
-            "@type": "SearchAction",
-            "target": "<?= escapeHtml($_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST']) ?>/marketplace.php?search={search_term_string}",
-            "query-input": "required name=search_term_string"
-        }
-    }
-    </script>
-
-    <!-- CSS Adicional para Busca AJAX -->
-    <style>
-        /* Search Dropdown */
-        .search-container {
-            position: relative;
-        }
-        
-        .clear-search-btn {
-            position: absolute;
-            right: 50px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #666;
-            font-size: 18px;
-            cursor: pointer;
-            padding: 5px 10px;
-            transition: color 0.3s;
-            z-index: 2;
-        }
-        
-        .clear-search-btn:hover {
-            color: #00b96b;
-        }
-        
-        .search-results-dropdown {
-            position: absolute;
-            top: calc(100% + 10px);
-            left: 0;
-            right: 0;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-            max-height: 600px;
-            overflow-y: auto;
-            z-index: 1000;
-            animation: slideDown 0.3s ease;
-        }
-        
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .search-results-header {
-            padding: 20px;
-            border-bottom: 2px solid #f0f0f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-            border-radius: 12px 12px 0 0;
-        }
-        
-        .search-results-header h3 {
-            font-size: 16px;
-            font-weight: 700;
-            color: #333;
-            margin: 0;
-        }
-        
-        .view-all-link {
-            color: #00b96b;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 600;
-            transition: color 0.3s;
-        }
-        
-        .view-all-link:hover {
-            color: #008f54;
-            text-decoration: underline;
-        }
-        
-        .search-results-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 15px;
-            padding: 20px;
-        }
-        
-        .search-product-card {
-            display: block;
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-            transition: all 0.3s;
-            text-decoration: none;
-            color: inherit;
-        }
-        
-        .search-product-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 185, 107, 0.15);
-            border-color: #00b96b;
-        }
-        
-        .search-product-image {
-            width: 100%;
-            height: 150px;
-            object-fit: cover;
-            background: #f8f9fa;
-        }
-        
-        .search-product-info {
-            padding: 12px;
-        }
-        
-        .search-product-name {
-            font-size: 13px;
-            font-weight: 600;
-            color: #333;
-            margin: 0 0 8px 0;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            line-height: 1.4;
-        }
-        
-        .search-product-price {
-            font-size: 16px;
-            font-weight: 700;
-            color: #00b96b;
-            margin: 0;
-        }
-        
-        .search-product-company {
-            font-size: 11px;
-            color: #666;
-            margin: 4px 0 0 0;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .search-no-results {
-            padding: 40px 20px;
-            text-align: center;
-        }
-        
-        .search-no-results i {
-            font-size: 48px;
-            color: #ddd;
-            margin-bottom: 15px;
-        }
-        
-        .search-no-results h4 {
-            font-size: 18px;
-            color: #333;
-            margin: 0 0 10px 0;
-        }
-        
-        .search-no-results p {
-            font-size: 14px;
-            color: #666;
-            margin: 0;
-        }
-        
-        .search-loading {
-            padding: 40px 20px;
-            text-align: center;
-        }
-        
-        .search-loading .spinner-small {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f0f0f0;
-            border-top-color: #00b96b;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 15px;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Overlay para fechar dropdown ao clicar fora */
-        .search-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: transparent;
-            z-index: 999;
-            display: none;
-        }
-        
-        .search-overlay.active {
-            display: block;
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .search-results-dropdown {
-                max-height: 400px;
-            }
-            
-            .search-results-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-                padding: 15px;
-            }
-            
-            .search-product-image {
-                height: 120px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="assets/style/index_start_search_product.css">
+    <link rel="stylesheet" href="assets/style/currency_styles.css">
 </head>
 
 <body>
-    <!-- Loading Spinner -->
     <div id="pageLoader" class="page-loader">
         <div class="spinner"></div>
     </div>
 
-    <!-- Flash Message -->
     <?php if ($flash_message): ?>
     <div class="flash-message flash-<?= escapeHtml($flash_type) ?>" id="flashMessage">
         <i class="fa-solid fa-<?= $flash_type === 'success' ? 'check-circle' : ($flash_type === 'error' ? 'exclamation-circle' : 'info-circle') ?>"></i>
         <span><?= escapeHtml($flash_message) ?></span>
-        <button onclick="this.parentElement.remove()" class="flash-close" aria-label="Fechar mensagem">×</button>
+        <button onclick="this.parentElement.remove()" class="flash-close">×</button>
     </div>
     <?php endif; ?>
 
-    <!-- Top Strip -->
     <div class="top-strip">
         <div class="container">
             <div class="top-strip-content">
@@ -586,7 +325,7 @@ function isProductPopular($product) {
                     </a>
                     <span class="divider"></span>
                     <span><i class="fa-solid fa-coins"></i> Moeda</span>
-                    <span>MZN</span>
+                    <span id="currentCurrencyDisplay"><?= escapeHtml($user_currency_info['currency']) ?></span>
                 </div>
                 <ul class="top-right-nav">
                     <?php if ($user_logged_in && $user_type === 'company'): ?>
@@ -601,7 +340,6 @@ function isProductPopular($product) {
         </div>
     </div>
 
-    <!-- Navigation -->
     <nav class="nav-bar">
         <div class="container">
             <div class="nav-content">
@@ -620,34 +358,21 @@ function isProductPopular($product) {
         </div>
     </nav>
 
-    <!-- Main Header -->
     <header class="main-header">
         <div class="container">
             <div class="header-main">
-                <a href="index.php" class="logo-container" aria-label="VSG Marketplace - Página Inicial">
+                <a href="index.php" class="logo-container">
                     <div class="logo-text">
                         VSG<span class="logo-accent">•</span> <span class="logo-name-market">MARKETPLACE</span>
                     </div>
                 </a>
 
-                <!-- Barra de Busca AJAX -->
                 <div class="search-container">
                     <form id="searchForm" class="search-form" role="search" onsubmit="return false;">
-                        <input type="text" 
-                               id="searchInput"
-                               name="search" 
-                               placeholder="Buscar produtos sustentáveis..." 
-                               class="search-input"
-                               aria-label="Buscar produtos"
-                               autocomplete="off">
-                        <button type="button" id="searchBtn" class="search-btn" aria-label="Buscar">
-                            <i class="fa-solid fa-search"></i>
-                        </button>
-                        <button type="button" id="clearSearchBtn" class="clear-search-btn" style="display: none;" aria-label="Limpar busca">
-                            <i class="fa-solid fa-times"></i>
-                        </button>
+                        <input type="text" id="searchInput" name="search" placeholder="Buscar produtos sustentáveis..." class="search-input" autocomplete="off">
+                        <button type="button" id="searchBtn" class="search-btn"><i class="fa-solid fa-search"></i></button>
+                        <button type="button" id="clearSearchBtn" class="clear-search-btn" style="display: none;"><i class="fa-solid fa-times"></i></button>
                     </form>
-                    <!-- Dropdown de resultados -->
                     <div id="searchResults" class="search-results-dropdown" style="display: none;"></div>
                 </div>
 
@@ -655,19 +380,17 @@ function isProductPopular($product) {
                     <?php include 'includes/header-nav.html'; ?>
                 </ul>
 
-                <!-- Carrinho -->
-                <a href="cart.php" class="cart-link" aria-label="Carrinho de compras">
+                <a href="cart.php" class="cart-link">
                     <i class="fa-solid fa-shopping-cart"></i>
                     <?php if ($cart_count > 0): ?>
                         <span class="cart-badge"><?= $cart_count ?></span>
                     <?php endif; ?>
                 </a>
 
-                <!-- Conta do Usuário -->
                 <?php if ($user_logged_in): ?>
                     <a href="pages/person/index.php" class="account-action">
                         <?php if ($user_avatar): ?>
-                            <img src="<?= escapeHtml($user_avatar) ?>" alt="Avatar de <?= escapeHtml($user_name) ?>" class="user-avatar">
+                            <img src="<?= escapeHtml($user_avatar) ?>" alt="Avatar" class="user-avatar">
                         <?php else: ?>
                             <i class="fa-solid fa-user-circle"></i>
                         <?php endif; ?>
@@ -683,7 +406,6 @@ function isProductPopular($product) {
         </div>
     </header>
 
-    <!-- Hero Banner -->
     <section class="hero-banner">
         <div class="container">
             <div class="hero-content">
@@ -730,13 +452,12 @@ function isProductPopular($product) {
                     </div>
                 </div>
                 <div class="content-img">
-                    <img src="assets/img/vsg-bg/cole-frp/bg-vsg-index-rbm.png" alt="VSG Marketplace - Produtos Sustentáveis">
+                    <img src="assets/img/vsg-bg/cole-frp/bg-vsg-index-rbm.png" alt="VSG Marketplace">
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Category Grid -->
     <section class="category-section">
         <div class="container">
             <div class="section-header">
@@ -746,13 +467,11 @@ function isProductPopular($product) {
                 </h2>
             </div>
             <div class="category-carousel-wrapper">
-                <button class="carousel-btn carousel-btn-left" id="scrollLeft" aria-label="Rolar categorias para esquerda">
-                    <i class="fa-solid fa-chevron-left"></i>
-                </button>
+                <button class="carousel-btn carousel-btn-left" id="scrollLeft"><i class="fa-solid fa-chevron-left"></i></button>
                 
                 <div class="category-grid" id="categoryGrid" role="list">
                     <?php foreach ($categories as $category): ?>
-                    <a href="marketplace.php?category=<?= $category['id'] ?>" class="category-card" role="listitem">
+                    <a href="marketplace.php?category=<?= $category['id'] ?>" class="category-card">
                         <div class="category-icon">
                             <i class="fa-solid fa-<?= escapeHtml($category['icon'] ?: 'box') ?>"></i>
                         </div>
@@ -762,14 +481,11 @@ function isProductPopular($product) {
                     <?php endforeach; ?>
                 </div>
                 
-                <button class="carousel-btn carousel-btn-right" id="scrollRight" aria-label="Rolar categorias para direita">
-                    <i class="fa-solid fa-chevron-right"></i>
-                </button>
+                <button class="carousel-btn carousel-btn-right" id="scrollRight"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
         </div>
     </section>
 
-    <!-- Trust Bar -->
     <section class="trust-bar">
         <div class="container">
             <div class="section-header">
@@ -780,39 +496,28 @@ function isProductPopular($product) {
             </div>
             <div class="trust-items">
                 <div class="trust-item">
-                    <div class="trust-icon">
-                        <i class="fa-solid fa-shield-halved"></i>
-                    </div>
+                    <div class="trust-icon"><i class="fa-solid fa-shield-halved"></i></div>
                     <div class="trust-text">
                         <h4>Compra Protegida</h4>
                         <p>Seu dinheiro seguro até receber</p>
                     </div>
                 </div>
-
                 <div class="trust-item">
-                    <div class="trust-icon">
-                        <i class="fa-solid fa-truck"></i>
-                    </div>
+                    <div class="trust-icon"><i class="fa-solid fa-truck"></i></div>
                     <div class="trust-text">
                         <h4>Entrega Rastreada</h4>
                         <p>Acompanhe em tempo real</p>
                     </div>
                 </div>
-
                 <div class="trust-item">
-                    <div class="trust-icon">
-                        <i class="fa-solid fa-certificate"></i>
-                    </div>
+                    <div class="trust-icon"><i class="fa-solid fa-certificate"></i></div>
                     <div class="trust-text">
                         <h4>Produtos Certificados</h4>
                         <p>ISO, FSC, Fair Trade</p>
                     </div>
                 </div>
-
                 <div class="trust-item">
-                    <div class="trust-icon">
-                        <i class="fa-solid fa-headset"></i>
-                    </div>
+                    <div class="trust-icon"><i class="fa-solid fa-headset"></i></div>
                     <div class="trust-text">
                         <h4>Suporte 24/7</h4>
                         <p>Sempre disponível</p>
@@ -822,7 +527,6 @@ function isProductPopular($product) {
         </div>
     </section>
 
-    <!-- Featured Products (Mais Vendidos) -->
     <section class="products-section">
         <div class="container">
             <div class="section-header">
@@ -846,6 +550,9 @@ function isProductPopular($product) {
                     $isPopular = isProductPopular($product);
                     $isLowStock = $product['stock'] > 0 && $product['stock'] <= 10;
                     $productImage = getProductImageUrl($product);
+                    
+                    // Converter preço
+                    $priceConverted = displayPrice($product, $user_country);
                 ?>
                     <a href="marketplace.php?product=<?= $product['id'] ?>" class="product-card">
                         <div class="product-image-container">
@@ -862,12 +569,8 @@ function isProductPopular($product) {
                             <?php endif; ?>
 
                             <div class="product-actions">
-                                <button class="action-btn" onclick="event.preventDefault();" aria-label="Adicionar aos favoritos">
-                                    <i class="fa-regular fa-heart"></i>
-                                </button>
-                                <button class="action-btn" onclick="event.preventDefault();" aria-label="Visualização rápida">
-                                    <i class="fa-regular fa-eye"></i>
-                                </button>
+                                <button class="action-btn" onclick="event.preventDefault();"><i class="fa-regular fa-heart"></i></button>
+                                <button class="action-btn" onclick="event.preventDefault();"><i class="fa-regular fa-eye"></i></button>
                             </div>
                         </div>
 
@@ -885,21 +588,21 @@ function isProductPopular($product) {
                             </div>
 
                             <div class="product-rating">
-                                <div class="stars" aria-label="Avaliação: <?= number_format($avg_rating, 1) ?> de 5 estrelas">
+                                <div class="stars">
                                     <?php for ($i = 1; $i <= 5; $i++): ?>
                                         <i class="fa-<?= $i <= $rating ? 'solid' : 'regular' ?> fa-star"></i>
                                     <?php endfor; ?>
                                 </div>
-                                <span class="rating-text">
-                                    <?= $avg_rating > 0 ? number_format($avg_rating, 1) : '0' ?>
-                                </span>
+                                <span class="rating-text"><?= $avg_rating > 0 ? number_format($avg_rating, 1) : '0' ?></span>
                                 <span class="rating-count">(<?= $review_count ?>)</span>
                             </div>
 
                             <div class="product-footer">
                                 <div class="product-price">
-                                    <span class="price-currency"><?= strtoupper($product['currency']) ?></span>
-                                    <span class="price-value"><?= formatPrice($product['preco']) ?></span>
+                                    <span class="price-currency"><?= escapeHtml($priceConverted['symbol']) ?></span>
+                                    <span class="price-value" data-price-mzn="<?= $product['preco'] ?>">
+                                        <?= number_format($priceConverted['amount'], 2, ',', '.') ?>
+                                    </span>
                                 </div>
                                 <span class="stock-badge <?= $isLowStock ? 'low' : 'high' ?>">
                                     <?= $isLowStock ? "Últimas {$product['stock']}" : "{$product['stock']} em estoque" ?>
@@ -912,14 +615,13 @@ function isProductPopular($product) {
             <?php else: ?>
             <div class="empty-state">
                 <i class="fa-solid fa-box-open"></i>
-                <h3>Nenhum produto disponível no momento</h3>
-                <p>Volte em breve para conferir novos produtos sustentáveis!</p>
+                <h3>Nenhum produto disponível</h3>
+                <p>Volte em breve!</p>
             </div>
             <?php endif; ?>
         </div>
     </section>
 
-    <!-- New Products Section (Produtos Recentes/Novos - SEM DUPLICAR) -->
     <?php if (!empty($new_products)): ?>
     <section class="new-products-modern">
         <div class="container">
@@ -936,7 +638,6 @@ function isProductPopular($product) {
             </div>
 
             <div class="modern-layout">
-                <!-- Featured Products Block -->
                 <div class="featured-block">
                     <?php for ($i = 0; $i < 2 && $i < count($new_products); $i++): 
                         $product = $new_products[$i];
@@ -944,20 +645,16 @@ function isProductPopular($product) {
                         $review_count = $product['review_count'] ?? 0;
                         $isNew = isProductNew($product);
                         $productImage = getProductImageUrl($product);
+                        $priceConverted = displayPrice($product, $user_country);
                     ?>
                         <a href="marketplace.php?product=<?= $product['id'] ?>" class="featured-card">
                             <div class="featured-image">
-                                <img src="<?= $productImage ?>" 
-                                     alt="<?= escapeHtml($product['nome']) ?>"
-                                     loading="lazy"
-                                     onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($product['nome']) ?>&size=600&background=00b96b&color=fff&font-size=0.1'">
+                                <img src="<?= $productImage ?>" alt="<?= escapeHtml($product['nome']) ?>" loading="lazy">
                                 <?php if ($isNew): ?>
                                     <span class="product-badge new">Novo</span>
                                 <?php endif; ?>
                                 <div class="featured-overlay">
-                                    <button class="quick-action" onclick="event.preventDefault();" aria-label="Adicionar aos favoritos">
-                                        <i class="fa-regular fa-heart"></i>
-                                    </button>
+                                    <button class="quick-action" onclick="event.preventDefault();"><i class="fa-regular fa-heart"></i></button>
                                 </div>
                             </div>
                             <div class="featured-info">
@@ -968,8 +665,10 @@ function isProductPopular($product) {
                                 <h3 class="featured-name"><?= escapeHtml($product['nome']) ?></h3>
                                 <div class="featured-footer">
                                     <div class="featured-price">
-                                        <span class="currency"><?= strtoupper($product['currency']) ?></span>
-                                        <span class="price"><?= formatPrice($product['preco']) ?></span>
+                                        <span class="currency"><?= escapeHtml($priceConverted['symbol']) ?></span>
+                                        <span class="price" data-price-mzn="<?= $product['preco'] ?>">
+                                            <?= number_format($priceConverted['amount'], 2, ',', '.') ?>
+                                        </span>
                                     </div>
                                     <div class="featured-rating">
                                         <i class="fa-solid fa-star"></i>
@@ -982,23 +681,19 @@ function isProductPopular($product) {
                     <?php endfor; ?>
                 </div>
 
-                <!-- Flex Products -->
                 <div class="flex-products">
                     <?php 
                     $maxFlexProducts = min(6, count($new_products));
                     for ($i = 2; $i < $maxFlexProducts; $i++): 
                         $product = $new_products[$i];
                         $avg_rating = $product['avg_rating'] ?? 0;
-                        $review_count = $product['review_count'] ?? 0;
                         $isNew = isProductNew($product);
                         $productImage = getProductImageUrl($product);
+                        $priceConverted = displayPrice($product, $user_country);
                     ?>
                         <a href="marketplace.php?product=<?= $product['id'] ?>" class="flex-card">
                             <div class="flex-image">
-                                <img src="<?= $productImage ?>" 
-                                     alt="<?= escapeHtml($product['nome']) ?>"
-                                     loading="lazy"
-                                     onerror="this.src='https://ui-avatars.com/api/?name=<?= urlencode($product['nome']) ?>&size=400&background=00b96b&color=fff&font-size=0.1'">
+                                <img src="<?= $productImage ?>" alt="<?= escapeHtml($product['nome']) ?>" loading="lazy">
                                 <?php if ($isNew): ?>
                                     <span class="product-badge new">Novo</span>
                                 <?php endif; ?>
@@ -1011,8 +706,10 @@ function isProductPopular($product) {
                                 <h4 class="flex-name"><?= escapeHtml($product['nome']) ?></h4>
                                 <div class="flex-meta">
                                     <div class="flex-price">
-                                        <span class="currency"><?= strtoupper($product['currency']) ?></span>
-                                        <span class="price"><?= formatPrice($product['preco']) ?></span>
+                                        <span class="currency"><?= escapeHtml($priceConverted['symbol']) ?></span>
+                                        <span class="price" data-price-mzn="<?= $product['preco'] ?>">
+                                            <?= number_format($priceConverted['amount'], 2, ',', '.') ?>
+                                        </span>
                                     </div>
                                     <div class="flex-rating">
                                         <i class="fa-solid fa-star"></i>
@@ -1028,7 +725,6 @@ function isProductPopular($product) {
     </section>
     <?php endif; ?>
 
-    <!-- Hero Stats Section -->
     <section class="hero-stats-section">
         <div class="container">
             <div class="section-header">
@@ -1062,433 +758,22 @@ function isProductPopular($product) {
         </div>
     </section>
 
-    <!-- Modal Offline -->
-    <div id="offlineModal" class="offline-modal" role="dialog" aria-labelledby="offlineTitle" aria-modal="true">
+    <div id="offlineModal" class="offline-modal" role="dialog">
         <div class="offline-content">
             <i class="fa-solid fa-wifi-slash"></i>
-            <h3 id="offlineTitle">Sem Conexão com a Internet</h3>
-            <p>Parece que você está offline. Verifique sua rede para continuar navegando no Vision Green.</p>
+            <h3>Sem Conexão</h3>
+            <p>Verifique sua rede para continuar navegando.</p>
             <button onclick="location.reload()">Tentar Novamente</button>
         </div>
     </div>
 
-    <!-- Botão Voltar ao Topo -->
-    <button id="backToTop" class="back-to-top" aria-label="Voltar ao topo">
-        <i class="fa-solid fa-arrow-up"></i>
-    </button>
-
-    <!-- Overlay para fechar dropdown de busca -->
+    <button id="backToTop" class="back-to-top"><i class="fa-solid fa-arrow-up"></i></button>
     <div id="searchOverlay" class="search-overlay"></div>
 
     <?php include 'includes/footer.html'; ?>
 
-    <!-- JavaScript de Busca AJAX -->
-    <script>
-        // ==================== BUSCA AJAX ====================
-        (function() {
-            'use strict';
-            
-            const searchInput = document.getElementById('searchInput');
-            const searchBtn = document.getElementById('searchBtn');
-            const clearBtn = document.getElementById('clearSearchBtn');
-            const searchResults = document.getElementById('searchResults');
-            const searchOverlay = document.getElementById('searchOverlay');
-            
-            let searchTimeout;
-            let currentSearchTerm = '';
-            
-            // Função para fazer busca
-            async function performSearch(term) {
-                if (!term || term.length < 2) {
-                    hideSearchResults();
-                    return;
-                }
-                
-                // Mostrar loading
-                showSearchLoading();
-                
-                try {
-                    const response = await fetch(`pages/app/ajax/ajax_search.php?search=${encodeURIComponent(term)}&limit=12`, {
-                        headers: {
-                            'X-Requested-With': 'XMLhttprequest'
-                        }
-                    });
-                    
-                    if (!response.ok) throw new Error('Erro na busca');
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        displaySearchResults(data);
-                    } else {
-                        displayNoResults(data.message);
-                    }
-                } catch (error) {
-                    console.error('Erro na busca:', error);
-                    displayNoResults('Erro ao buscar produtos. Tente novamente.');
-                }
-            }
-            
-            // Mostrar loading
-            function showSearchLoading() {
-                searchResults.innerHTML = `
-                    <div class="search-loading">
-                        <div class="spinner-small"></div>
-                        <p>Buscando produtos...</p>
-                    </div>
-                `;
-                searchResults.style.display = 'block';
-                searchOverlay.classList.add('active');
-            }
-            
-            // Exibir resultados
-            function displaySearchResults(data) {
-                if (!data.products || data.products.length === 0) {
-                    displayNoResults('Nenhum produto encontrado');
-                    return;
-                }
-                
-                let html = `
-                    <div class="search-results-header">
-                        <h3>${data.message}</h3>
-                        <a href="pages/app/search_products.php?search=${encodeURIComponent(currentSearchTerm)}" class="view-all-link">
-                            Ver todos <i class="fa-solid fa-arrow-right"></i>
-                        </a>
-                    </div>
-                    <div class="search-results-grid">
-                `;
-                
-                data.products.forEach(product => {
-                    html += `
-                        <a href="${product.url}" class="search-product-card">
-                            <img src="${product.imagem}" 
-                                 alt="${product.nome}" 
-                                 class="search-product-image"
-                                 onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(product.nome)}&size=300&background=00b96b&color=fff&font-size=0.1'">
-                            <div class="search-product-info">
-                                <h4 class="search-product-name">${product.nome}</h4>
-                                <p class="search-product-price">${product.currency} ${product.preco_formatado}</p>
-                                <p class="search-product-company">
-                                    <i class="fa-solid fa-building"></i> ${product.company_name}
-                                </p>
-                            </div>
-                        </a>
-                    `;
-                });
-                
-                html += '</div>';
-                
-                searchResults.innerHTML = html;
-                searchResults.style.display = 'block';
-                searchOverlay.classList.add('active');
-            }
-            
-            // Exibir sem resultados
-            function displayNoResults(message) {
-                searchResults.innerHTML = `
-                    <div class="search-no-results">
-                        <i class="fa-solid fa-search"></i>
-                        <h4>Nenhum produto encontrado</h4>
-                        <p>${message || 'Tente buscar com outros termos'}</p>
-                    </div>
-                `;
-                searchResults.style.display = 'block';
-                searchOverlay.classList.add('active');
-            }
-            
-            // Esconder resultados
-            function hideSearchResults() {
-                searchResults.style.display = 'none';
-                searchOverlay.classList.remove('active');
-            }
-            
-            // Event: Input com debounce
-            if (searchInput) {
-                searchInput.addEventListener('input', function() {
-                    const term = this.value.trim();
-                    currentSearchTerm = term;
-                    
-                    // Mostrar/esconder botão limpar
-                    if (clearBtn) {
-                        clearBtn.style.display = term ? 'block' : 'none';
-                    }
-                    
-                    // Debounce para não fazer muitas requisições
-                    clearTimeout(searchTimeout);
-                    
-                    if (term.length >= 2) {
-                        searchTimeout = setTimeout(() => {
-                            performSearch(term);
-                        }, 500); // 500ms de delay
-                    } else {
-                        hideSearchResults();
-                    }
-                });
-                
-                // Event: Enter
-                searchInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const term = this.value.trim();
-                        if (term.length >= 2) {
-                            performSearch(term);
-                        }
-                    }
-                });
-            }
-            
-            // Event: Botão de busca
-            if (searchBtn) {
-                searchBtn.addEventListener('click', function() {
-                    const term = searchInput.value.trim();
-                    if (term.length >= 2) {
-                        performSearch(term);
-                    } else if (term.length === 0) {
-                        alert('Digite algo para buscar');
-                        searchInput.focus();
-                    } else {
-                        alert('Digite pelo menos 2 caracteres');
-                        searchInput.focus();
-                    }
-                });
-            }
-            
-            // Event: Botão limpar
-            if (clearBtn) {
-                clearBtn.addEventListener('click', function() {
-                    searchInput.value = '';
-                    currentSearchTerm = '';
-                    this.style.display = 'none';
-                    hideSearchResults();
-                    searchInput.focus();
-                });
-            }
-            
-            // Event: Clicar no overlay para fechar
-            if (searchOverlay) {
-                searchOverlay.addEventListener('click', hideSearchResults);
-            }
-            
-            // Event: ESC para fechar
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && searchResults.style.display === 'block') {
-                    hideSearchResults();
-                }
-            });
-            
-            // Fechar ao clicar fora
-            document.addEventListener('click', function(e) {
-                if (!searchInput.contains(e.target) && 
-                    !searchResults.contains(e.target) && 
-                    !searchBtn.contains(e.target)) {
-                    hideSearchResults();
-                }
-            });
-        })();
-    </script>
-
-    <!-- JavaScript Otimizado -->
-    <script>
-        // ==================== INICIALIZAÇÃO ====================
-        (function() {
-            'use strict';
-            
-            // Cache de elementos DOM
-            const elements = {
-                navBar: document.querySelector('.nav-bar'),
-                secHeader: document.getElementById('sec-main-header'),
-                categoryGrid: document.getElementById('categoryGrid'),
-                scrollLeft: document.getElementById('scrollLeft'),
-                scrollRight: document.getElementById('scrollRight'),
-                locationDisplay: document.getElementById('locationDisplay'),
-                locationTrigger: document.getElementById('locationTrigger'),
-                offlineModal: document.getElementById('offlineModal'),
-                pageLoader: document.getElementById('pageLoader'),
-                backToTop: document.getElementById('backToTop'),
-                flashMessage: document.getElementById('flashMessage')
-            };
-
-            // ==================== REMOVER LOADER ====================
-            window.addEventListener('load', () => {
-                if (elements.pageLoader) {
-                    elements.pageLoader.classList.add('hidden');
-                    setTimeout(() => {
-                        elements.pageLoader.style.display = 'none';
-                    }, 300);
-                }
-            });
-
-            // ==================== AUTO-FECHAR FLASH MESSAGE ====================
-            if (elements.flashMessage) {
-                setTimeout(() => {
-                    elements.flashMessage.style.opacity = '0';
-                    setTimeout(() => {
-                        elements.flashMessage.remove();
-                    }, 300);
-                }, 5000);
-            }
-
-            // ==================== SCROLL DA NAVEGAÇÃO ====================
-            let ticking = false;
-            let lastScrollY = 0;
-            
-            window.addEventListener('scroll', () => {
-                if (!ticking) {
-                    window.requestAnimationFrame(() => {
-                        const scrollY = window.pageYOffset;
-                        
-                        // Navegação sticky
-                        if (scrollY > 50) {
-                            elements.navBar.style.opacity = '0';
-                            elements.navBar.style.pointerEvents = 'none';
-                            elements.secHeader.style.display = 'flex';
-                            setTimeout(() => elements.secHeader.style.opacity = '1', 10);
-                        } else {
-                            elements.navBar.style.opacity = '1';
-                            elements.navBar.style.pointerEvents = 'auto';
-                            elements.secHeader.style.opacity = '0';
-                            setTimeout(() => {
-                                if(window.pageYOffset <= 50) elements.secHeader.style.display = 'none';
-                            }, 300);
-                        }
-                        
-                        // Botão voltar ao topo
-                        if (elements.backToTop) {
-                            if (scrollY > 300) {
-                                elements.backToTop.classList.add('visible');
-                            } else {
-                                elements.backToTop.classList.remove('visible');
-                            }
-                        }
-                        
-                        lastScrollY = scrollY;
-                        ticking = false;
-                    });
-                    ticking = true;
-                }
-            }, { passive: true });
-
-            // ==================== BOTÃO VOLTAR AO TOPO ====================
-            if (elements.backToTop) {
-                elements.backToTop.addEventListener('click', () => {
-                    window.scrollTo({ 
-                        top: 0, 
-                        behavior: 'smooth' 
-                    });
-                });
-            }
-
-            // ==================== CARROSSEL DE CATEGORIAS ====================
-            const scrollAmount = 300;
-            
-            function updateCarouselButtons() {
-                if (!elements.categoryGrid) return;
-                elements.scrollLeft.disabled = elements.categoryGrid.scrollLeft <= 0;
-                elements.scrollRight.disabled = 
-                    elements.categoryGrid.scrollLeft >= elements.categoryGrid.scrollWidth - elements.categoryGrid.clientWidth;
-            }
-            
-            if (elements.scrollLeft && elements.scrollRight && elements.categoryGrid) {
-                elements.scrollLeft.addEventListener('click', () => {
-                    elements.categoryGrid.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-                });
-                
-                elements.scrollRight.addEventListener('click', () => {
-                    elements.categoryGrid.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-                });
-                
-                elements.categoryGrid.addEventListener('scroll', updateCarouselButtons, { passive: true });
-                window.addEventListener('resize', updateCarouselButtons, { passive: true });
-                updateCarouselButtons();
-            }
-
-            // ==================== CONECTIVIDADE ====================
-            function checkConnectivity() {
-                if (elements.offlineModal) {
-                    elements.offlineModal.style.display = navigator.onLine ? 'none' : 'flex';
-                }
-            }
-
-            window.addEventListener('online', checkConnectivity);
-            window.addEventListener('offline', checkConnectivity);
-
-            // ==================== LOCALIZAÇÃO ====================
-            async function updateLocation() {
-                if (!navigator.onLine) {
-                    checkConnectivity();
-                    return;
-                }
-
-                if (elements.locationDisplay) {
-                    elements.locationDisplay.textContent = 'Localizando...';
-                }
-                
-                try {
-                    const response = await fetch('refresh_location.php');
-                    if (!response.ok) throw new Error('Falha na requisição');
-                    
-                    const data = await response.json();
-                    if (elements.locationDisplay) {
-                        elements.locationDisplay.textContent = 
-                            (data.country && data.country !== 'Desconhecido' && data.country !== '') 
-                            ? data.country 
-                            : 'Selecionar localização';
-                    }
-                } catch (error) {
-                    if (elements.locationDisplay) {
-                        elements.locationDisplay.textContent = 'Selecionar localização';
-                    }
-                    console.error('Erro ao buscar localização:', error);
-                }
-            }
-
-            if (elements.locationTrigger) {
-                elements.locationTrigger.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    if (elements.locationDisplay && elements.locationDisplay.textContent.trim() !== 'Selecionar localização') {
-                        return;
-                    }
-                    
-                    if (!navigator.onLine) {
-                        checkConnectivity();
-                        return;
-                    }
-
-                    alert("Não conseguimos detectar sua região automaticamente.\n\nPara ajudar:\n1. Verifique se o seu GPS está ativo\n2. Desative sua VPN, se estiver usando\n3. Recarregue a página");
-                    updateLocation();
-                });
-            }
-
-            // ==================== INICIALIZAÇÃO ====================
-            checkConnectivity();
-            
-            // Performance: Intersection Observer para lazy load adicional
-            if ('IntersectionObserver' in window) {
-                const imageObserver = new IntersectionObserver((entries, observer) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const img = entry.target;
-                            if (img.dataset.src) {
-                                img.src = img.dataset.src;
-                                img.removeAttribute('data-src');
-                            }
-                            observer.unobserve(img);
-                        }
-                    });
-                }, {
-                    rootMargin: '50px 0px'
-                });
-
-                document.querySelectorAll('img[data-src]').forEach(img => {
-                    imageObserver.observe(img);
-                });
-            }
-        })();
-    </script>
+    <script src="assets/scripts/currency_exchange.js"></script>
+    <script src="assets/scripts/main_index.js"></script>
 </body>
 </html>
-<?php
-// Enviar buffer de saída
-ob_end_flush();
-?>
+<?php ob_end_flush(); ?>

@@ -54,3 +54,6 @@ if (empty($_SESSION['csrf_token'])) {
 require_once __DIR__ . '/includes/device.php';
 require_once __DIR__ . '/includes/rate_limit.php';
 require_once __DIR__ . '/includes/errors.php';
+require_once __DIR__ . '/../registration/includes/db.php';
+// Sistema de Câmbio
+require_once __DIR__ . '/../includes/currency/currency_bootstrap.php';

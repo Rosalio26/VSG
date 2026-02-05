@@ -1,7 +1,6 @@
 <?php
 session_start();
 
-// Impede o cache para evitar problemas ao usar o botão "voltar" do navegador
 header("Cache-Control: no-cache, no-store, must-revalidate"); 
 header("Pragma: no-cache"); 
 header("Expires: 0"); 
@@ -9,7 +8,7 @@ header("Expires: 0");
 require_once '../includes/db.php';
 require_once '../includes/security.php';
 require_once '../includes/errors.php';
-require_once '../includes/uid.php'; // Função gerarUID($mysqli, $categoria)
+require_once '../includes/uid.php';
 
 /* ================= 1. BLOQUEIO DE ACESSO ================= */
 if (empty($_SESSION['user_id'])) {
@@ -36,7 +35,6 @@ if (!$user) {
     exit;
 }
 
-// CORREÇÃO: Alinhando variável com o ENUM 'company' do banco de dados
 $isBusiness = ($user['type'] === 'company');
 
 /* ================= 3. BLOQUEIO DE FLUXO (RETROCESSO) ================= */
@@ -60,23 +58,11 @@ if (empty($user['public_id'])) {
         
         $emailCorp = null;
         if ($isBusiness) {
-            /**
-             * LÓGICA CORRIGIDA: Gerar e-mail a partir do NOME da empresa
-             * 1. Transforma em minúsculo
-             * 2. Remove acentos e caracteres especiais
-             * 3. Substitui espaços por pontos
-             */
             $nomeBase = $user['nome'];
-            
-            // Remove acentos
             $nomeLimpo = iconv('UTF-8', 'ASCII//TRANSLIT', $nomeBase);
-            // Remove qualquer caractere que não seja letra, número ou espaço
             $nomeLimpo = preg_replace('/[^a-zA-Z0-9\s]/', '', $nomeLimpo);
-            // Substitui espaços por pontos e remove espaços extras nas pontas
             $nomeLimpo = strtolower(str_replace(' ', '.', trim($nomeLimpo)));
-            // Remove pontos duplos se existirem
             $nomeLimpo = preg_replace('/\.+/', '.', $nomeLimpo);
-            
             $emailCorp = $nomeLimpo . '@visiongreen.com';
         }
 
@@ -127,7 +113,8 @@ if ($user['email_verified_at'] !== null) {
     unset($_SESSION['cadastro']); 
 }
 
-$colorMain  = $isBusiness ? '#2563eb' : '#00a63e'; 
+$colorMain = $isBusiness ? '#2563eb' : '#00a63e'; 
+$colorSecondary = $isBusiness ? '#3b82f6' : '#059669';
 $bgContainer = $isBusiness ? '#eff6ff' : '#dcfce7';
 ?>
 
@@ -136,123 +123,520 @@ $bgContainer = $isBusiness ? '#eff6ff' : '#dcfce7';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finalizando Cadastro - VisionGreen</title>
+    <title>Conta Ativada - VisionGreen</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         :root {
             --color-main: <?= $colorMain ?>;
+            --color-secondary: <?= $colorSecondary ?>;
             --color-bg-page: <?= $bgContainer ?>;
             --color-white: #ffffff;
             --color-dark: #111827;
-            --color-uid-bg: #101828;
+            --color-gray: #6b7280;
+            --color-uid-bg: #0f172a;
             --color-uid-text: <?= $isBusiness ? '#93c5fd' : '#4ade80' ?>;
         }
 
         body {
-            background-color: var(--color-bg-page);
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, var(--color-bg-page) 0%, <?= $isBusiness ? '#dbeafe' : '#bbf7d0' ?> 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica', 'Arial', sans-serif;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            margin: 0;
-            color: var(--color-dark);
-            padding: 0px 10px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(74, 222, 128, 0.15) 0%, transparent 70%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
         }
 
         .container {
-            background-color: var(--color-white);
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 450px;
-            width: 90%;
+            background: var(--color-white);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 600px;
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
             border: 2px solid var(--color-main);
-            animation: fadeIn 0.5s ease-in-out;
+            animation: fadeInScale 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
 
-        .type-label {
-            font-size: 0.75rem;
-            font-weight: bold;
+        .header {
+            background: linear-gradient(135deg, var(--color-main) 0%, var(--color-secondary) 100%);
+            padding: 40px 32px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            position: relative;
+            z-index: 1;
+            animation: bounceIn 0.8s ease-out;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .success-icon i {
+            font-size: 40px;
+            color: white;
+        }
+
+        .type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
             text-transform: uppercase;
-            color: var(--color-main);
             letter-spacing: 1px;
-            margin-bottom: 5px;
-            display: block;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
         }
 
-        h1 { margin: 10px 0; color: var(--color-main); font-size: 1.8rem; }
-        p { color: #4b5563; font-size: 0.95rem; margin-bottom: 20px; }
+        h1 {
+            color: white;
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 16px;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+
+        .content {
+            padding: 40px 32px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--color-gray);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
         .uid-box {
-            background-color: var(--color-uid-bg);
+            background: var(--color-uid-bg);
+            border: 3px dashed var(--color-main);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .uid-box::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--color-main), var(--color-secondary));
+            border-radius: 16px;
+            opacity: 0.1;
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { opacity: 0.1; }
+            50% { opacity: 0.2; }
+        }
+
+        .uid-value {
             color: var(--color-uid-text);
-            font-size: 2.2rem;
-            font-weight: bold;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            letter-spacing: 4px;
-            border: 2px dashed var(--color-main);
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+            font-size: 36px;
+            font-weight: 900;
+            letter-spacing: 6px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
+        }
+
+        .uid-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--color-uid-text);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-action:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
         }
 
         .email-box {
             background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
         }
 
-        .email-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: block; }
-        .email-value { font-weight: bold; color: var(--color-dark); font-size: 1.1rem; word-break: break-all; }
+        .email-label {
+            font-size: 11px;
+            color: var(--color-gray);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .email-value {
+            color: var(--color-dark);
+            font-size: 18px;
+            font-weight: 700;
+            word-break: break-all;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .email-value i {
+            color: var(--color-main);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-main) 0%, var(--color-secondary) 100%);
+            color: white;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--color-main);
+            border: 2px solid var(--color-main);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-main);
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        .timer-box {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
 
         .timer-text {
-            color: #6b7280;
-            font-size: 0.85rem;
-            margin-top: 30px;
+            color: var(--color-gray);
+            font-size: 14px;
+            margin-bottom: 8px;
         }
 
-        #seconds { font-weight: bold; color: var(--color-main); font-size: 1.1rem; }
+        .timer-value {
+            font-size: 48px;
+            font-weight: 900;
+            color: var(--color-main);
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .timer-label {
+            font-size: 12px;
+            color: var(--color-gray);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        .footer {
+            padding: 24px 32px;
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .footer-text {
+            font-size: 13px;
+            color: var(--color-gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .uid-value {
+                font-size: 28px;
+                letter-spacing: 4px;
+            }
+
+            h1 {
+                font-size: 26px;
+            }
+
+            .timer-value {
+                font-size: 36px;
+            }
+        }
+
+        /* Animação de download */
+        @keyframes downloadIcon {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(5px); }
+        }
+
+        .btn-action:hover i.fa-download {
+            animation: downloadIcon 0.6s ease-in-out infinite;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <?php if ($finalRedirect): ?>
-        <span class="type-label">Cadastro <?= $isBusiness ? 'Empresarial' : 'Pessoal' ?></span>
-        <h1>Conta Ativada!</h1>
-        <p>Seja bem-vindo à VisionGreen. Guarde seu identificador de acesso:</p>
-        
-        <div class="email-label">Seu Identificador (UID)</div>
-        <div class="uid-box">
-            <?= htmlspecialchars($user['public_id']) ?>
+        <div class="header">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="type-badge">
+                <i class="fas <?= $isBusiness ? 'fa-briefcase' : 'fa-user-check' ?>"></i>
+                <span>Conta <?= $isBusiness ? 'Business' : 'Pessoal' ?></span>
+            </div>
+            <h1>🎉 Bem-vindo à VisionGreen!</h1>
+            <p class="subtitle">Sua conta foi ativada com sucesso</p>
         </div>
 
-        <?php if ($isBusiness): ?>
-            <div class="email-box">
-                <span class="email-label">Seu Novo E-mail Corporativo</span>
-                <span class="email-value"><?= htmlspecialchars($user['email_corporativo']) ?></span>
+        <div class="content">
+            <div class="section-title">
+                <i class="fas fa-fingerprint"></i>
+                <span>Seu Identificador Único</span>
             </div>
-        <?php endif; ?>
 
-        <p class="timer-text">
-            Redirecionando para seu painel em <span id="seconds">30</span> segundos...
-        </p>
+            <div class="uid-box">
+                <div class="uid-value" id="uidValue">
+                    <?= htmlspecialchars($user['public_id']) ?>
+                </div>
+                <div class="uid-actions">
+                    <button class="btn-action" onclick="copyUID()" id="btnCopy">
+                        <i class="fas fa-copy"></i>
+                        <span>Copiar</span>
+                    </button>
+                    <button class="btn-action" onclick="downloadUID()">
+                        <i class="fas fa-download"></i>
+                        <span>Baixar</span>
+                    </button>
+                </div>
+            </div>
+
+            <?php if ($isBusiness): ?>
+                <div class="section-title">
+                    <i class="fas fa-envelope-open-text"></i>
+                    <span>E-mail Corporativo</span>
+                </div>
+                <div class="email-box">
+                    <span class="email-label">Novo E-mail VisionGreen</span>
+                    <div class="email-value">
+                        <i class="fas fa-at"></i>
+                        <span><?= htmlspecialchars($user['email_corporativo']) ?></span>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="goToDashboard()">
+                    <i class="fas fa-rocket"></i>
+                    <span>Acessar Agora</span>
+                </button>
+                <button class="btn btn-secondary" onclick="downloadCredentials()">
+                    <i class="fas fa-file-download"></i>
+                    <span>Baixar Credenciais</span>
+                </button>
+            </div>
+
+            <div class="timer-box">
+                <p class="timer-text">Redirecionamento automático em:</p>
+                <div class="timer-value" id="seconds">30</div>
+                <p class="timer-label">segundos</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p class="footer-text">
+                <i class="fas fa-shield-alt"></i>
+                <span>Guarde seu UID em local seguro • Ele identifica sua conta</span>
+            </p>
+        </div>
+
     <?php else: ?>
-        <h1>Processando...</h1>
-        <p>Estamos finalizando as configurações da sua conta.</p>
+        <div class="header">
+            <div class="success-icon">
+                <i class="fas fa-cog fa-spin"></i>
+            </div>
+            <h1>Processando...</h1>
+            <p class="subtitle">Finalizando configurações da sua conta</p>
+        </div>
     <?php endif; ?>
 </div>
 
 <?php if ($finalRedirect): ?>
 <script>
+    const uid = "<?= htmlspecialchars($user['public_id']) ?>";
+    const email = "<?= htmlspecialchars($user['email']) ?>";
+    const emailCorp = "<?= $isBusiness ? htmlspecialchars($user['email_corporativo']) : '' ?>";
+    const nome = "<?= htmlspecialchars($user['nome']) ?>";
+    const isBusiness = <?= $isBusiness ? 'true' : 'false' ?>;
+    const destino = "<?= $isBusiness ? '../../pages/business/dashboard_business.php' : '../../pages/person/dashboard_person.php' ?>";
+
+    // Timer de redirecionamento
     let timeLeft = 30;
     const display = document.getElementById('seconds');
-    const destino = "<?= $isBusiness ? '../../pages/business/dashboard_business.php' : '../../pages/person/dashboard_person.php' ?>";
 
     const timer = setInterval(() => {
         timeLeft--;
@@ -260,9 +644,120 @@ $bgContainer = $isBusiness ? '#eff6ff' : '#dcfce7';
         
         if (timeLeft <= 0) {
             clearInterval(timer);
-            window.location.replace(destino);
+            goToDashboard();
         }
     }, 1000);
+
+    // Copiar UID
+    function copyUID() {
+        navigator.clipboard.writeText(uid).then(() => {
+            const btnCopy = document.getElementById('btnCopy');
+            const originalHTML = btnCopy.innerHTML;
+            btnCopy.innerHTML = '<i class="fas fa-check"></i><span>Copiado!</span>';
+            btnCopy.style.background = 'rgba(74, 222, 128, 0.2)';
+            
+            setTimeout(() => {
+                btnCopy.innerHTML = originalHTML;
+                btnCopy.style.background = '';
+            }, 2000);
+        }).catch(err => {
+            alert('Erro ao copiar: ' + err);
+        });
+    }
+
+    // Download UID simples
+    function downloadUID() {
+        const content = `╔════════════════════════════════════════╗
+║     VISIONGREEN - IDENTIFICADOR       ║
+╚════════════════════════════════════════╝
+
+Tipo de Conta: ${isBusiness ? 'Business / Empresa' : 'Pessoal / Cliente'}
+Nome: ${nome}
+UID: ${uid}
+E-mail: ${email}
+${isBusiness ? `E-mail Corporativo: ${emailCorp}` : ''}
+
+Data: ${new Date().toLocaleString('pt-BR')}
+
+⚠️  IMPORTANTE:
+• Guarde este identificador em local seguro
+• Use o UID para fazer login na plataforma
+• Não compartilhe com terceiros
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+© VisionGreen - Sistema de Gestão`;
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `VisionGreen_UID_${uid}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+
+    // Download completo
+    function downloadCredentials() {
+        const content = `╔════════════════════════════════════════════════════════╗
+║           VISIONGREEN - CREDENCIAIS COMPLETAS          ║
+╚════════════════════════════════════════════════════════╝
+
+┌─ INFORMAÇÕES DA CONTA ─────────────────────────────────┐
+│ Tipo: ${isBusiness ? 'Conta Business / Empresa' : 'Conta Pessoal / Cliente'}
+│ Nome: ${nome}
+│ Status: ✓ ATIVA
+│ Data de Ativação: ${new Date().toLocaleString('pt-BR')}
+└────────────────────────────────────────────────────────┘
+
+┌─ CREDENCIAIS DE ACESSO ────────────────────────────────┐
+│ 
+│ IDENTIFICADOR (UID):
+│ ${uid}
+│ 
+│ E-MAIL PRINCIPAL:
+│ ${email}
+│ 
+${isBusiness ? `│ E-MAIL CORPORATIVO:
+│ ${emailCorp}
+│ ` : ''}└────────────────────────────────────────────────────────┘
+
+┌─ INSTRUÇÕES DE LOGIN ──────────────────────────────────┐
+│ 1. Acesse: www.visiongreen.com/login
+│ 2. Digite seu UID ou E-mail
+│ 3. Digite sua senha
+│ 4. Clique em "Entrar"
+└────────────────────────────────────────────────────────┘
+
+⚠️  SEGURANÇA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Guarde este arquivo em local seguro e privado
+• Não compartilhe seu UID com terceiros
+• Use senha forte e única para esta conta
+• Ative autenticação de dois fatores (2FA) quando disponível
+• Em caso de perda, entre em contato: suporte@visiongreen.com
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+© ${new Date().getFullYear()} VisionGreen - Todos os direitos reservados
+Documento gerado automaticamente pelo sistema`;
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `VisionGreen_Credenciais_${uid}_${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+
+    // Ir para dashboard
+    function goToDashboard() {
+        clearInterval(timer);
+        window.location.replace(destino);
+    }
 </script>
 <?php endif; ?>
 

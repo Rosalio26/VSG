@@ -1,9 +1,146 @@
 /**
  * ================================================================
- * VISION GREEN - SISTEMA DE CADASTRO UNIFICADO COMPLETO
- * Integração dos 3 scripts: Ultimate V4.0 + Checkboxes Exclusivos + Melhorias
+ * VISION GREEN - SISTEMA DE CADASTRO UNIFICADO COMPLETO (FINAL)
  * ================================================================
  */
+
+// --- VARIÁVEIS GLOBAIS ---
+let COUNTRY_PHONE_CODES = {};
+let codigosCarregados = false;
+
+/* ========================================
+   SEÇÃO: CARREGAMENTO DE DADOS (API)
+======================================== */
+
+async function carregarCodigosTelefonicos() {
+    if (codigosCarregados) return true;
+    
+    // Tenta carregar do cache primeiro
+    const cached = carregarCodigosDoCache();
+    if (cached) {
+        console.log('✅ Códigos carregados do cache');
+        return true;
+    }
+    
+    try {
+        console.log('🔄 Carregando códigos telefônicos...');
+        const res = await fetch('https://restcountries.com/v3.1/all?fields=cca2,idd', {
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!res.ok) throw new Error('Falha na requisição');
+        
+        const paises = await res.json();
+        const codigosTemp = {};
+        
+        paises.forEach(pais => {
+            if (pais.idd && pais.idd.root) {
+                codigosTemp[pais.cca2] = pais.idd.root + (pais.idd.suffixes ? pais.idd.suffixes[0] : "");
+            }
+        });
+        
+        COUNTRY_PHONE_CODES = codigosTemp;
+        codigosCarregados = true;
+        localStorage.setItem('vg_phone_codes', JSON.stringify({ codes: COUNTRY_PHONE_CODES, timestamp: Date.now() }));
+        console.log('✅ Códigos carregados da API');
+        return true;
+    } catch (error) {
+        console.warn('⚠️ Erro ao carregar da API, usando códigos padrão:', error);
+        return carregarCodigosPadrao();
+    }
+}
+
+function carregarCodigosDoCache() {
+    try {
+        const cached = localStorage.getItem('vg_phone_codes');
+        if (!cached) return false;
+        
+        const data = JSON.parse(cached);
+        
+        // Verifica se não expirou (7 dias)
+        const age = Date.now() - data.timestamp;
+        if (age > 7 * 24 * 60 * 60 * 1000) {
+            localStorage.removeItem('vg_phone_codes');
+            return false;
+        }
+        
+        COUNTRY_PHONE_CODES = data.codes;
+        codigosCarregados = true;
+        return true;
+    } catch (e) { 
+        return false; 
+    }
+}
+
+function carregarCodigosPadrao() {
+    // Códigos telefônicos dos países mais comuns (fallback)
+    COUNTRY_PHONE_CODES = {
+        'MZ': '+258', 'BR': '+55', 'PT': '+351', 'AO': '+244', 'ZA': '+27',
+        'US': '+1', 'GB': '+44', 'FR': '+33', 'DE': '+49', 'ES': '+34',
+        'IT': '+39', 'CN': '+86', 'JP': '+81', 'IN': '+91', 'AU': '+61',
+        'CA': '+1', 'MX': '+52', 'AR': '+54', 'CL': '+56', 'CO': '+57',
+        'PE': '+51', 'VE': '+58', 'UY': '+598', 'PY': '+595', 'BO': '+591',
+        'EC': '+593', 'CR': '+506', 'PA': '+507', 'NI': '+505', 'HN': '+504',
+        'SV': '+503', 'GT': '+502', 'BZ': '+501', 'DO': '+1-809', 'CU': '+53',
+        'JM': '+1-876', 'HT': '+509', 'BS': '+1-242', 'BB': '+1-246'
+    };
+    codigosCarregados = true;
+    console.log('✅ Códigos padrão carregados');
+    return true;
+}
+
+function obterCodigoTelefonico(countryCode) {
+    return COUNTRY_PHONE_CODES[countryCode] || null;
+}
+
+/* ========================================
+   SEÇÃO: LÓGICA DE AUTO-INSERÇÃO
+======================================== */
+
+function forcarCodigoNoCampo(countryCode, inputField) {
+    const phoneCode = obterCodigoTelefonico(countryCode);
+    if (phoneCode && inputField) {
+        inputField.value = phoneCode + " ";
+        inputField.style.borderColor = "#059669";
+        inputField.classList.add('phone-code-applied');
+        inputField.focus();
+        const valLen = inputField.value.length;
+        inputField.setSelectionRange(valLen, valLen);
+        console.log(`📞 Aplicado: ${phoneCode}`);
+    }
+}
+
+function configurarAutoCodigo() {
+    const configs = [
+        { select: 'select_pais', input: 'tel_business' },
+        { select: 'select_pais_pessoa', input: 'telefone_input' }
+    ];
+
+    configs.forEach(conf => {
+        const selectEl = document.getElementById(conf.select);
+        const inputEl = document.getElementById(conf.input);
+
+        if (selectEl && inputEl) {
+            selectEl.addEventListener('change', function() {
+                forcarCodigoNoCampo(this.value, inputEl);
+            });
+        }
+    });
+}
+
+/* ========================================
+   ESTILOS DINÂMICOS
+======================================== */
+const styleGlobal = document.createElement('style');
+styleGlobal.textContent = `
+    .phone-code-applied { background-color: #f0fdf4 !important; transition: all 0.5s ease; }
+    .input-error { border-color: #ef4444 !important; }
+    @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+`;
+document.head.appendChild(styleGlobal);
 
 /* ========================================
    PARTE 1: VARIÁVEIS GLOBAIS E STORAGE DE ARQUIVOS
@@ -490,6 +627,134 @@ async function restaurarArquivos() {
 }
 
 /* ========================================
+   CARREGAMENTO DE PAÍSES (MOVIDO PARA CIMA)
+======================================== */
+
+async function carregarPaises() {
+    const selectsBusiness = document.getElementById('select_pais');
+    const selectsPessoa = document.getElementById('select_pais_pessoa');
+    
+    if (selectsBusiness) selectsBusiness.innerHTML = '<option value="">Carregando países...</option>';
+    if (selectsPessoa) selectsPessoa.innerHTML = '<option value="">Carregando países...</option>';
+    
+    try {
+        const res = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,translations', {
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!res.ok) throw new Error('Falha na requisição');
+        
+        const paises = await res.json();
+        
+        paises.sort((a, b) => {
+            const nomeA = a.translations?.por?.common || a.name.common;
+            const nomeB = b.translations?.por?.common || b.name.common;
+            return nomeA.localeCompare(nomeB, 'pt');
+        });
+        
+        let options = '<option value="">Selecione o país...</option>';
+        paises.forEach(p => {
+            const nome = p.translations?.por?.common || p.name.common;
+            options += `<option value="${p.cca2}">${nome}</option>`;
+        });
+        
+        if (selectsBusiness) selectsBusiness.innerHTML = options;
+        if (selectsPessoa) selectsPessoa.innerHTML = options;
+        
+        console.log('✅ Países carregados:', paises.length);
+        
+        // Restaura progresso APÓS carregar países
+        restaurarProgresso();
+        
+        // Detecta localização se não houver país selecionado
+        const paisAtual = selectsBusiness?.value || selectsPessoa?.value;
+        if (!paisAtual) {
+            setTimeout(() => {
+                detectarLocalizacaoCompleta(false);
+            }, 500);
+        }
+        
+    } catch (e) {
+        console.warn('⚠️ Erro ao carregar países da API, usando lista padrão:', e);
+        
+        const optionsBasic = `
+            <option value="">Selecione o país...</option>
+            <option value="MZ">Moçambique</option>
+            <option value="BR">Brasil</option>
+            <option value="PT">Portugal</option>
+            <option value="AO">Angola</option>
+            <option value="ZA">África do Sul</option>
+            <option value="US">Estados Unidos</option>
+            <option value="GB">Reino Unido</option>
+            <option value="FR">França</option>
+            <option value="DE">Alemanha</option>
+            <option value="ES">Espanha</option>
+            <option value="IT">Itália</option>
+            <option value="AR">Argentina</option>
+            <option value="MX">México</option>
+            <option value="CL">Chile</option>
+            <option value="CO">Colômbia</option>
+        `;
+        if (selectsBusiness) selectsBusiness.innerHTML = optionsBasic;
+        if (selectsPessoa) selectsPessoa.innerHTML = optionsBasic;
+    }
+}
+
+/* ========================================
+   SISTEMA PRINCIPAL (DOM CONTENT LOADED)
+======================================== */
+
+document.addEventListener("DOMContentLoaded", async () => {
+    console.log('🚀 Inicializando Vision Green System...');
+
+    // 1. Carrega códigos da API primeiro
+    await carregarCodigosTelefonicos();
+
+    // 2. Carrega lista de países nos selects
+    await carregarPaises();
+
+    // 3. ATIVA A ESCUTA DOS SELECTS (O que faltava!)
+    configurarAutoCodigo();
+
+    // 4. Se já houver um país selecionado (pelo IP ou Restore), aplica o código
+    const sBus = document.getElementById('select_pais');
+    const sPes = document.getElementById('select_pais_pessoa');
+    if (sBus && sBus.value) forcarCodigoNoCampo(sBus.value, document.getElementById('tel_business'));
+    if (sPes && sPes.value) forcarCodigoNoCampo(sPes.value, document.getElementById('telefone_input'));
+
+    // 5. Inicializa o restante da interface
+    if (typeof setupCamposOpcionaisExclusivos === 'function') setupCamposOpcionaisExclusivos();
+    if (typeof setupFileInputs === 'function') setupFileInputs();
+    
+    // Renderiza o modo (pessoa/business)
+    renderizar(); 
+    
+    console.log('✅ Sistema pronto e monitorando códigos de país.');
+    
+    // Inicialização completa adicional
+    setTimeout(async () => {
+        console.log('🔧 Inicializando componentes adicionais...');
+        
+        // Adiciona estilos dos checkboxes
+        adicionarEstilosCheckboxExclusivo();
+        
+        // Configura checkboxes exclusivos
+        setupCamposOpcionaisExclusivos();
+        
+        // Configura inputs de arquivo
+        setupFileInputs();
+        
+        // Restaura arquivos salvos
+        await restaurarArquivos();
+        
+        console.log('✅ Todos os componentes inicializados!');
+    }, 600);
+});
+
+/* ========================================
    PARTE 4: SISTEMA PRINCIPAL DE CADASTRO
    (De painel_cadastro_ultimate.js)
 ======================================== */
@@ -664,7 +929,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     async function detectarLocalizacaoCompleta(mostrarToast = false) {
         try {
-            const res1 = await fetch('https://ipapi.co/json/', { timeout: 5000 });
+            const res1 = await fetch('https://ipapi.co/json/', { 
+                mode: 'cors',
+                headers: { 'Accept': 'application/json' }
+            });
             const data1 = await res1.json();
             
             if (data1.country_code && !data1.error) {
@@ -685,7 +953,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         try {
-            const res2 = await fetch('http://ip-api.com/json/?fields=status,countryCode,regionName,city,zip,lat,lon');
+            const res2 = await fetch('https://ip-api.com/json/?fields=status,countryCode,regionName,city,zip,lat,lon', {
+                mode: 'cors',
+                headers: { 'Accept': 'application/json' }
+            });
             const data2 = await res2.json();
             
             if (data2.status === 'success') {
@@ -762,65 +1033,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.detectarLocalizacaoManualPessoa = async function() {
         await detectarLocalizacaoCompleta(false);
     };
-
-    /* ========================================
-       CARREGAMENTO DE PAÍSES
-    ======================================== */
-    
-    async function carregarPaises() {
-        const selectsBusiness = document.getElementById('select_pais');
-        const selectsPessoa = document.getElementById('select_pais_pessoa');
-        
-        if (selectsBusiness) selectsBusiness.innerHTML = '<option value="">Carregando países...</option>';
-        if (selectsPessoa) selectsPessoa.innerHTML = '<option value="">Carregando países...</option>';
-        
-        try {
-            const res = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,translations');
-            const paises = await res.json();
-            
-            paises.sort((a, b) => {
-                const nomeA = a.translations?.por?.common || a.name.common;
-                const nomeB = b.translations?.por?.common || b.name.common;
-                return nomeA.localeCompare(nomeB, 'pt');
-            });
-            
-            let options = '<option value="">Selecione o país...</option>';
-            paises.forEach(p => {
-                const nome = p.translations?.por?.common || p.name.common;
-                options += `<option value="${p.cca2}">${nome}</option>`;
-            });
-            
-            if (selectsBusiness) selectsBusiness.innerHTML = options;
-            if (selectsPessoa) selectsPessoa.innerHTML = options;
-            
-            console.log('✅ Países carregados:', paises.length);
-            
-            // Restaura progresso APÓS carregar países
-            restaurarProgresso();
-            
-            // Detecta localização se não houver país selecionado
-            const paisAtual = selectsBusiness?.value || selectsPessoa?.value;
-            if (!paisAtual) {
-                setTimeout(() => {
-                    detectarLocalizacaoCompleta(false);
-                }, 500);
-            }
-            
-        } catch (e) {
-            console.error('Erro ao carregar países:', e);
-            
-            const optionsBasic = `
-                <option value="">Selecione o país...</option>
-                <option value="MZ">Moçambique</option>
-                <option value="BR">Brasil</option>
-                <option value="PT">Portugal</option>
-                <option value="AO">Angola</option>
-                <option value="ZA">África do Sul</option>
-            `;
-            if (selectsBusiness) selectsBusiness.innerHTML = optionsBasic;
-            if (selectsPessoa) selectsPessoa.innerHTML = optionsBasic;
-        }
-    }
 
     /* ========================================
        VALIDAÇÃO RIGOROSA POR STEP
@@ -1437,32 +1649,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (formPessoa) handleSubmit(formPessoa, '../process/pessoa.store.php');
 
     /* ========================================
-       INICIALIZAÇÃO COMPLETA
+       RENDERIZAÇÃO INICIAL
     ======================================== */
-    
-    console.log('🚀 Sistema de Cadastro Ultimate V4.0 inicializado');
-    console.log('📱 Modo:', isMobileMode ? 'MOBILE' : 'DESKTOP');
-    
-    // Aguarda um pouco para garantir que o DOM está pronto
-    setTimeout(async () => {
-        console.log('🔧 Inicializando componentes adicionais...');
-        
-        // Adiciona estilos dos checkboxes
-        adicionarEstilosCheckboxExclusivo();
-        
-        // Configura checkboxes exclusivos
-        setupCamposOpcionaisExclusivos();
-        
-        // Configura inputs de arquivo
-        setupFileInputs();
-        
-        // Restaura arquivos salvos
-        await restaurarArquivos();
-        
-        console.log('✅ Todos os componentes inicializados!');
-    }, 600);
-    
-    await carregarPaises();
     
     renderizar();
     
