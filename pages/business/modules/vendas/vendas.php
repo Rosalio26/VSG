@@ -1,22 +1,15 @@
 <?php
 /**
- * ================================================================================
  * VISIONGREEN - MÓDULO DE VENDAS
- * Arquivo: pages/business/modules/vendas/vendas.php
- * Descrição: Visualização de vendas e pagamentos da empresa
- * ATUALIZADO: Suporta empresa e funcionário
- * ================================================================================
+ * SQL ATUALIZADO: orders, order_items, products
  */
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Verificar autenticação (empresa OU funcionário)
-// Incluir DB
 require_once '../../../../registration/includes/db.php';
 
-// Verificar autenticação (empresa OU funcionário)
 $isEmployee = isset($_SESSION['employee_auth']['employee_id']);
 $isCompany = isset($_SESSION['auth']['user_id']) && isset($_SESSION['auth']['type']) && $_SESSION['auth']['type'] === 'company';
 
@@ -29,14 +22,12 @@ if (!$isEmployee && !$isCompany) {
     exit;
 }
 
-// Determinar empresa_id e permissões
 if ($isEmployee) {
     $userId = (int)$_SESSION['employee_auth']['empresa_id'];
     $employeeId = (int)$_SESSION['employee_auth']['employee_id'];
     $userName = $_SESSION['employee_auth']['nome'];
     $userType = 'funcionario';
     
-    // VERIFICAR PERMISSÕES
     $stmt = $mysqli->prepare("
         SELECT can_view, can_create, can_edit, can_delete 
         FROM employee_permissions 
@@ -78,7 +69,6 @@ if ($isEmployee) {
 ?>
 
 <style>
-/* ==================== GitHub Dark Theme ==================== */
 :root {
     --gh-bg-primary: #0d1117;
     --gh-bg-secondary: #161b22;
@@ -101,7 +91,6 @@ if ($isEmployee) {
     padding: 0 16px;
 }
 
-/* Header */
 .page-header {
     display: flex;
     align-items: center;
@@ -124,7 +113,6 @@ if ($isEmployee) {
     color: var(--gh-accent-green-bright);
 }
 
-/* Stats Cards */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -171,7 +159,6 @@ if ($isEmployee) {
 .stat-trend.positive { color: var(--gh-accent-green-bright); }
 .stat-trend.negative { color: var(--gh-accent-red); }
 
-/* Filters */
 .filters-bar {
     background: var(--gh-bg-secondary);
     border: 1px solid var(--gh-border);
@@ -247,7 +234,6 @@ if ($isEmployee) {
     border-color: var(--gh-border-hover);
 }
 
-/* Table */
 .table-card {
     background: var(--gh-bg-secondary);
     border: 1px solid var(--gh-border);
@@ -311,7 +297,6 @@ tbody tr:hover {
     background: var(--gh-bg-primary);
 }
 
-/* Badges */
 .badge {
     padding: 4px 10px;
     border-radius: 12px;
@@ -342,7 +327,6 @@ tbody tr:hover {
     color: var(--gh-accent-blue);
 }
 
-/* Permission Badge */
 .permission-badge {
     display: inline-flex;
     align-items: center;
@@ -368,7 +352,6 @@ tbody tr:hover {
     color: #2ea043;
 }
 
-/* Empty State */
 .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -392,7 +375,6 @@ tbody tr:hover {
     color: var(--gh-text-secondary);
 }
 
-/* Loading */
 .loading {
     text-align: center;
     padding: 40px;
@@ -413,7 +395,6 @@ tbody tr:hover {
     to { transform: rotate(360deg); }
 }
 
-/* Responsive */
 @media (max-width: 768px) {
     .stats-grid {
         grid-template-columns: 1fr;
@@ -431,7 +412,6 @@ tbody tr:hover {
 </style>
 
 <div class="vendas-container">
-    <!-- Header -->
     <div class="page-header">
         <h1 class="page-title">
             <i class="fa-solid fa-chart-line"></i>
@@ -459,7 +439,6 @@ tbody tr:hover {
         </div>
     </div>
 
-    <!-- Stats Cards -->
     <div class="stats-grid" id="statsGrid">
         <div class="stat-card">
             <div class="stat-label">Total de Vendas</div>
@@ -498,7 +477,6 @@ tbody tr:hover {
         </div>
     </div>
 
-    <!-- Filters -->
     <div class="filters-bar">
         <div class="filter-group">
             <label class="filter-label">Período</label>
@@ -507,7 +485,6 @@ tbody tr:hover {
                 <option value="30" selected>Últimos 30 dias</option>
                 <option value="90">Últimos 90 dias</option>
                 <option value="365">Último ano</option>
-                <option value="custom">Personalizado</option>
             </select>
         </div>
 
@@ -515,10 +492,11 @@ tbody tr:hover {
             <label class="filter-label">Status</label>
             <select class="filter-select" id="filterStatus">
                 <option value="">Todos</option>
-                <option value="pending">Pendente</option>
-                <option value="completed">Completo</option>
-                <option value="cancelled">Cancelado</option>
-                <option value="refunded">Reembolsado</option>
+                <option value="pendente">Pendente</option>
+                <option value="processando">Processando</option>
+                <option value="enviado">Enviado</option>
+                <option value="entregue">Entregue</option>
+                <option value="cancelado">Cancelado</option>
             </select>
         </div>
 
@@ -531,7 +509,7 @@ tbody tr:hover {
 
         <div class="filter-group">
             <label class="filter-label">Buscar</label>
-            <input type="text" class="filter-input" id="searchInput" placeholder="Cliente, invoice...">
+            <input type="text" class="filter-input" id="searchInput" placeholder="Cliente, pedido...">
         </div>
 
         <div class="filter-group" style="margin-top: 18px;">
@@ -551,7 +529,6 @@ tbody tr:hover {
         <?php endif; ?>
     </div>
 
-    <!-- Table -->
     <div class="table-card">
         <div class="table-header">
             <div class="table-title">Histórico de Vendas</div>
@@ -562,20 +539,19 @@ tbody tr:hover {
             <table id="vendasTable">
                 <thead>
                     <tr>
-                        <th>Invoice</th>
+                        <th>Pedido</th>
                         <th>Data</th>
                         <th>Cliente</th>
-                        <th>Produto</th>
-                        <th>Quantidade</th>
-                        <th>Valor Unit.</th>
+                        <th>Itens</th>
                         <th>Total</th>
+                        <th>Pagamento</th>
                         <th>Status</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody id="vendasBody">
                     <tr>
-                        <td colspan="9">
+                        <td colspan="8">
                             <div class="loading">
                                 <div class="spinner"></div>
                                 <div>Carregando vendas...</div>
@@ -605,7 +581,6 @@ tbody tr:hover {
     let vendas = [];
     let produtos = [];
 
-    // Carregar dados ao iniciar
     init();
 
     async function init() {
@@ -616,7 +591,6 @@ tbody tr:hover {
         ]);
     }
 
-    // Carregar vendas
     async function carregarVendas() {
         try {
             const periodo = document.getElementById('filterPeriodo').value;
@@ -648,7 +622,6 @@ tbody tr:hover {
         }
     }
 
-    // Carregar produtos
     async function carregarProdutos() {
         try {
             const response = await fetch(`modules/vendas/actions/listar_produtos.php?user_id=${userId}`);
@@ -663,7 +636,6 @@ tbody tr:hover {
         }
     }
 
-    // Carregar estatísticas
     async function carregarStats() {
         try {
             const response = await fetch(`modules/vendas/actions/stats_vendas.php?user_id=${userId}`);
@@ -685,35 +657,30 @@ tbody tr:hover {
         }
     }
 
-    // Setup busca automática
     function setupAutoBusca() {
         let timeout = null;
         
-        // Busca automática ao digitar (com debounce)
         document.getElementById('searchInput').addEventListener('input', function() {
             clearTimeout(timeout);
             timeout = setTimeout(() => {
                 carregarVendas();
-            }, 500); // 500ms após parar de digitar
+            }, 500);
         });
         
-        // Busca automática ao mudar filtros
         document.getElementById('filterPeriodo').addEventListener('change', carregarVendas);
         document.getElementById('filterStatus').addEventListener('change', carregarVendas);
         document.getElementById('filterProduto').addEventListener('change', carregarVendas);
     }
 
-    // Inicializar busca automática
     setupAutoBusca();
 
-    // Render vendas
     function renderVendas() {
         const tbody = document.getElementById('vendasBody');
 
         if (vendas.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="9">
+                    <td colspan="8">
                         <div class="empty-state">
                             <div class="empty-icon">
                                 <i class="fa-solid fa-receipt"></i>
@@ -729,13 +696,12 @@ tbody tr:hover {
 
         tbody.innerHTML = vendas.map(venda => `
             <tr>
-                <td><strong>#${venda.invoice_number}</strong></td>
-                <td>${formatDate(venda.purchase_date)}</td>
+                <td><strong>#${venda.order_number}</strong></td>
+                <td>${formatDate(venda.order_date)}</td>
                 <td>${venda.cliente_nome || 'N/A'}</td>
-                <td>${venda.produto_nome}</td>
-                <td>${venda.quantity}</td>
-                <td>${formatMoney(venda.unit_price)}</td>
-                <td><strong>${formatMoney(venda.total_amount)}</strong></td>
+                <td>${venda.total_items} item(s)</td>
+                <td><strong>${formatMoney(venda.total)} ${venda.currency || 'MZN'}</strong></td>
+                <td>${getPaymentBadge(venda.payment_status)}</td>
                 <td>${getStatusBadge(venda.status)}</td>
                 <td>
                     <button class="btn btn-secondary" onclick="verDetalhes(${venda.id})" title="Ver detalhes">
@@ -746,33 +712,39 @@ tbody tr:hover {
         `).join('');
     }
 
-    // Render produtos filter
     function renderProdutosFilter() {
         const select = document.getElementById('filterProduto');
         select.innerHTML = '<option value="">Todos os produtos</option>' +
             produtos.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
     }
 
-    // Status badge
     function getStatusBadge(status) {
         const badges = {
-            'pending': '<span class="badge badge-warning"><i class="fa-solid fa-clock"></i> Pendente</span>',
-            'completed': '<span class="badge badge-success"><i class="fa-solid fa-check"></i> Completo</span>',
-            'cancelled': '<span class="badge badge-danger"><i class="fa-solid fa-times"></i> Cancelado</span>',
-            'refunded': '<span class="badge badge-info"><i class="fa-solid fa-undo"></i> Reembolsado</span>'
+            'pendente': '<span class="badge badge-warning"><i class="fa-solid fa-clock"></i> Pendente</span>',
+            'processando': '<span class="badge badge-info"><i class="fa-solid fa-hourglass-half"></i> Processando</span>',
+            'enviado': '<span class="badge badge-info"><i class="fa-solid fa-truck"></i> Enviado</span>',
+            'entregue': '<span class="badge badge-success"><i class="fa-solid fa-check"></i> Entregue</span>',
+            'cancelado': '<span class="badge badge-danger"><i class="fa-solid fa-times"></i> Cancelado</span>'
         };
         return badges[status] || status;
     }
 
-    // Format money
+    function getPaymentBadge(status) {
+        const badges = {
+            'pago': '<span class="badge badge-success"><i class="fa-solid fa-check-circle"></i> Pago</span>',
+            'pendente': '<span class="badge badge-warning"><i class="fa-solid fa-clock"></i> Pendente</span>',
+            'cancelado': '<span class="badge badge-danger"><i class="fa-solid fa-ban"></i> Cancelado</span>'
+        };
+        return badges[status] || status;
+    }
+
     function formatMoney(value) {
         return new Intl.NumberFormat('pt-MZ', {
-            style: 'currency',
-            currency: 'MZN'
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         }).format(value);
     }
 
-    // Format date
     function formatDate(date) {
         return new Date(date).toLocaleDateString('pt-BR', {
             day: '2-digit',
@@ -783,185 +755,14 @@ tbody tr:hover {
         });
     }
 
-    // Aplicar filtros
     window.aplicarFiltros = function() {
         carregarVendas();
     };
 
-    // Ver detalhes
     window.verDetalhes = async function(vendaId) {
-        const venda = vendas.find(v => v.id === vendaId);
-        if (!venda) return;
-
-        // Buscar detalhes completos
-        try {
-            const response = await fetch(`modules/vendas/actions/detalhes_venda.php?venda_id=${vendaId}`);
-            const data = await response.json();
-
-            if (data.success) {
-                mostrarModalDetalhes(data.venda);
-            } else {
-                alert('Erro ao carregar detalhes');
-            }
-        } catch (error) {
-            console.error('Erro:', error);
-            alert('Erro ao carregar detalhes');
-        }
+        alert('Detalhes do pedido #' + vendaId);
     };
 
-    // Mostrar modal de detalhes
-    function mostrarModalDetalhes(venda) {
-        const modal = document.createElement('div');
-        modal.id = 'modalDetalhes';
-        modal.innerHTML = `
-            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(1, 4, 9, 0.8); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
-                <div style="background: var(--gh-bg-secondary); border: 1px solid var(--gh-border); border-radius: 8px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);">
-                    <!-- Header -->
-                    <div style="padding: 20px; border-bottom: 1px solid var(--gh-border); display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: var(--gh-text);">
-                                <i class="fa-solid fa-file-invoice"></i>
-                                Detalhes da Venda
-                            </h3>
-                            <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--gh-text-secondary);">
-                                Invoice #${venda.invoice_number || 'N/A'}
-                            </p>
-                        </div>
-                        <button onclick="fecharModal()" style="background: none; border: none; color: var(--gh-text-secondary); font-size: 24px; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: all 0.2s;">
-                            <i class="fa-solid fa-times"></i>
-                        </button>
-                    </div>
-
-                    <!-- Body -->
-                    <div style="padding: 20px;">
-                        <!-- Cliente -->
-                        <div style="background: var(--gh-bg-tertiary); border: 1px solid var(--gh-border); border-radius: 6px; padding: 16px; margin-bottom: 16px;">
-                            <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: var(--gh-text); text-transform: uppercase; letter-spacing: 0.5px;">
-                                <i class="fa-solid fa-user"></i> Cliente
-                            </h4>
-                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-                                <div>
-                                    <div style="font-size: 11px; color: var(--gh-text-secondary); margin-bottom: 4px;">Nome</div>
-                                    <div style="font-size: 14px; color: var(--gh-text); font-weight: 500;">${venda.cliente_nome || 'N/A'}</div>
-                                </div>
-                                <div>
-                                    <div style="font-size: 11px; color: var(--gh-text-secondary); margin-bottom: 4px;">Email</div>
-                                    <div style="font-size: 14px; color: var(--gh-text); font-weight: 500;">${venda.cliente_email || 'N/A'}</div>
-                                </div>
-                                <div>
-                                    <div style="font-size: 11px; color: var(--gh-text-secondary); margin-bottom: 4px;">Telefone</div>
-                                    <div style="font-size: 14px; color: var(--gh-text); font-weight: 500;">${venda.cliente_telefone || 'N/A'}</div>
-                                </div>
-                                <div>
-                                    <div style="font-size: 11px; color: var(--gh-text-secondary); margin-bottom: 4px;">Tipo</div>
-                                    <div style="font-size: 14px; color: var(--gh-text); font-weight: 500;">${venda.cliente_tipo || 'N/A'}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Produto -->
-                        <div style="background: var(--gh-bg-tertiary); border: 1px solid var(--gh-border); border-radius: 6px; padding: 16px; margin-bottom: 16px;">
-                            <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: var(--gh-text); text-transform: uppercase; letter-spacing: 0.5px;">
-                                <i class="fa-solid fa-box"></i> Produto
-                            </h4>
-                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-                                <div style="grid-column: 1 / -1;">
-                                    <div style="font-size: 11px; color: var(--gh-text-secondary); margin-bottom: 4px;">Nome</div>
-                                    <div style="font-size: 14px; color: var(--gh-text); font-weight: 500;">${venda.produto_nome}</div>
-                                </div>
-                                <div>
-                                    <div style="font-size: 11px; color: var(--gh-text-secondary); margin-bottom: 4px;">Categoria</div>
-                                    <div style="font-size: 14px; color: var(--gh-text); font-weight: 500;">${venda.produto_categoria || 'N/A'}</div>
-                                </div>
-                                <div>
-                                    <div style="font-size: 11px; color: var(--gh-text-secondary); margin-bottom: 4px;">Categoria Ecológica</div>
-                                    <div style="font-size: 14px; color: var(--gh-text); font-weight: 500;">${venda.produto_eco_categoria || 'N/A'}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Valores -->
-                        <div style="background: var(--gh-bg-tertiary); border: 1px solid var(--gh-border); border-radius: 6px; padding: 16px; margin-bottom: 16px;">
-                            <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: var(--gh-text); text-transform: uppercase; letter-spacing: 0.5px;">
-                                <i class="fa-solid fa-calculator"></i> Valores
-                            </h4>
-                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-                                <div>
-                                    <div style="font-size: 11px; color: var(--gh-text-secondary); margin-bottom: 4px;">Quantidade</div>
-                                    <div style="font-size: 14px; color: var(--gh-text); font-weight: 500;">${venda.quantity} unidade(s)</div>
-                                </div>
-                                <div>
-                                    <div style="font-size: 11px; color: var(--gh-text-secondary); margin-bottom: 4px;">Valor Unitário</div>
-                                    <div style="font-size: 14px; color: var(--gh-text); font-weight: 500;">${formatMoney(venda.unit_price)}</div>
-                                </div>
-                                <div style="grid-column: 1 / -1; padding-top: 12px; border-top: 1px solid var(--gh-border);">
-                                    <div style="font-size: 11px; color: var(--gh-text-secondary); margin-bottom: 4px;">Total</div>
-                                    <div style="font-size: 20px; color: var(--gh-accent-green-bright); font-weight: 700;">${formatMoney(venda.total_amount)}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Informações da Compra -->
-                        <div style="background: var(--gh-bg-tertiary); border: 1px solid var(--gh-border); border-radius: 6px; padding: 16px;">
-                            <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: var(--gh-text); text-transform: uppercase; letter-spacing: 0.5px;">
-                                <i class="fa-solid fa-info-circle"></i> Informações da Compra
-                            </h4>
-                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-                                <div>
-                                    <div style="font-size: 11px; color: var(--gh-text-secondary); margin-bottom: 4px;">Data da Compra</div>
-                                    <div style="font-size: 14px; color: var(--gh-text); font-weight: 500;">${formatDate(venda.purchase_date)}</div>
-                                </div>
-                                <div>
-                                    <div style="font-size: 11px; color: var(--gh-text-secondary); margin-bottom: 4px;">Status</div>
-                                    <div>${getStatusBadge(venda.status)}</div>
-                                </div>
-                                <div>
-                                    <div style="font-size: 11px; color: var(--gh-text-secondary); margin-bottom: 4px;">Método de Pagamento</div>
-                                    <div style="font-size: 14px; color: var(--gh-text); font-weight: 500;">${venda.payment_method || 'N/A'}</div>
-                                </div>
-                                <div>
-                                    <div style="font-size: 11px; color: var(--gh-text-secondary); margin-bottom: 4px;">ID da Transação</div>
-                                    <div style="font-size: 14px; color: var(--gh-text); font-weight: 500;">#${venda.transaction_id || 'N/A'}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Footer -->
-                    <div style="padding: 16px 20px; border-top: 1px solid var(--gh-border); display: flex; gap: 12px; justify-content: flex-end;">
-                        <button onclick="fecharModal()" class="btn btn-secondary">
-                            <i class="fa-solid fa-times"></i> Fechar
-                        </button>
-                        <button onclick="imprimirVenda(${venda.id})" class="btn btn-primary">
-                            <i class="fa-solid fa-print"></i> Imprimir
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-        
-        // Adicionar evento de fechar com ESC
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') fecharModal();
-        });
-    }
-
-    // Fechar modal
-    window.fecharModal = function() {
-        const modal = document.getElementById('modalDetalhes');
-        if (modal) {
-            modal.remove();
-        }
-    };
-
-    // Imprimir venda
-    window.imprimirVenda = function(vendaId) {
-        alert('Funcionalidade de impressão será implementada');
-    };
-
-    // Exportar vendas
     window.exportarVendas = function() {
         if (!canEdit && !canCreate) {
             alert('❌ Você não tem permissão para exportar relatórios');
@@ -972,15 +773,15 @@ tbody tr:hover {
     };
 
     function generateCSV(data) {
-        const headers = ['Invoice', 'Data', 'Cliente', 'Produto', 'Quantidade', 'Valor Unitário', 'Total', 'Status'];
+        const headers = ['Pedido', 'Data', 'Cliente', 'Itens', 'Total', 'Moeda', 'Pagamento', 'Status'];
         const rows = data.map(v => [
-            v.invoice_number,
-            formatDate(v.purchase_date),
+            v.order_number,
+            formatDate(v.order_date),
             v.cliente_nome || 'N/A',
-            v.produto_nome,
-            v.quantity,
-            v.unit_price,
-            v.total_amount,
+            v.total_items,
+            v.total,
+            v.currency || 'MZN',
+            v.payment_status,
             v.status
         ]);
         

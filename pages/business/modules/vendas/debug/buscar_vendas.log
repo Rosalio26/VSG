@@ -275,3 +275,127 @@
 17:08:44 - Preparando query
 17:08:44 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":130}
 17:08:44 - === FIM (ERRO) ===
+13:05:15 - === INÍCIO ===
+13:05:15 - Gestor acessando - {"user_id":30}
+12:05:15 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+12:05:15 - Preparando query
+12:05:15 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":130}
+12:05:15 - === FIM (ERRO) ===
+13:24:15 - === INÍCIO ===
+13:24:15 - Gestor acessando - {"user_id":30}
+12:24:16 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+12:24:16 - Preparando query
+12:24:16 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":130}
+12:24:16 - === FIM (ERRO) ===
+13:26:19 - === INÍCIO ===
+13:26:19 - Gestor acessando - {"user_id":30}
+12:26:19 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+12:26:19 - Preparando query
+12:26:19 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":130}
+12:26:19 - === FIM (ERRO) ===
+19:15:27 - === INÍCIO ===
+19:15:27 - Gestor acessando - {"user_id":30}
+18:15:27 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+18:15:27 - Preparando query
+18:15:27 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":130}
+18:15:27 - === FIM (ERRO) ===
+19:15:30 - === INÍCIO ===
+19:15:30 - Gestor acessando - {"user_id":30}
+18:15:30 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+18:15:30 - Preparando query
+18:15:30 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":130}
+18:15:30 - === FIM (ERRO) ===
+19:15:44 - === INÍCIO ===
+19:15:44 - Gestor acessando - {"user_id":30}
+18:15:44 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+18:15:44 - Preparando query
+18:15:44 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":130}
+18:15:44 - === FIM (ERRO) ===
+19:15:44 - === INÍCIO ===
+19:15:44 - Gestor acessando - {"user_id":30}
+18:15:44 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+18:15:44 - Preparando query
+18:15:44 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":130}
+18:15:44 - === FIM (ERRO) ===
+19:16:55 - === INÍCIO ===
+19:16:55 - Gestor acessando - {"user_id":30}
+18:16:55 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+18:16:55 - Preparando query
+18:16:55 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":130}
+18:16:55 - === FIM (ERRO) ===
+22:27:11 - === INÍCIO ===
+22:27:11 - Gestor acessando - {"user_id":30}
+21:27:11 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+21:27:11 - Preparando query
+21:27:11 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":130}
+21:27:11 - === FIM (ERRO) ===
+04:27:07 - === INÍCIO ===
+04:27:07 - Gestor acessando - {"user_id":30}
+03:27:07 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+03:27:07 - Preparando query
+03:27:07 - Executando query
+03:27:07 - Vendas encontradas - {"count":0}
+03:27:07 - === FIM (SUCESSO) ===
+04:29:17 - === INÍCIO ===
+04:29:17 - Gestor acessando - {"user_id":30}
+03:29:17 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+03:29:17 - Preparando query
+03:29:17 - Executando query
+03:29:17 - Vendas encontradas - {"count":0}
+03:29:17 - === FIM (SUCESSO) ===
+04:34:58 - === INÍCIO ===
+04:34:58 - Gestor acessando - {"user_id":30}
+03:34:58 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+03:34:58 - Preparando query
+03:34:58 - Executando query
+03:34:58 - Vendas encontradas - {"count":0}
+03:34:58 - === FIM (SUCESSO) ===
+04:35:07 - === INÍCIO ===
+04:35:07 - Gestor acessando - {"user_id":30}
+03:35:07 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+03:35:07 - Preparando query
+03:35:07 - Executando query
+03:35:07 - Vendas encontradas - {"count":0}
+03:35:07 - === FIM (SUCESSO) ===
+04:35:14 - === INÍCIO ===
+04:35:14 - Gestor acessando - {"user_id":30}
+03:35:14 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+03:35:14 - Preparando query
+03:35:14 - Executando query
+03:35:14 - Vendas encontradas - {"count":0}
+03:35:14 - === FIM (SUCESSO) ===
+04:35:33 - === INÍCIO ===
+04:35:33 - Gestor acessando - {"user_id":30}
+03:35:33 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+03:35:33 - Preparando query
+03:35:33 - Executando query
+03:35:33 - Vendas encontradas - {"count":0}
+03:35:33 - === FIM (SUCESSO) ===
+04:35:33 - === INÍCIO ===
+04:35:33 - Gestor acessando - {"user_id":30}
+03:35:33 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+03:35:33 - Preparando query
+03:35:33 - Executando query
+03:35:33 - Vendas encontradas - {"count":0}
+03:35:33 - === FIM (SUCESSO) ===
+04:35:33 - === INÍCIO ===
+04:35:33 - Gestor acessando - {"user_id":30}
+03:35:33 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+03:35:33 - Preparando query
+03:35:33 - Executando query
+03:35:33 - Vendas encontradas - {"count":0}
+03:35:33 - === FIM (SUCESSO) ===
+04:35:54 - === INÍCIO ===
+04:35:54 - Gestor acessando - {"user_id":30}
+03:35:54 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+03:35:54 - Preparando query
+03:35:54 - Executando query
+03:35:54 - Vendas encontradas - {"count":0}
+03:35:54 - === FIM (SUCESSO) ===
+09:49:45 - === INÍCIO ===
+09:49:45 - Gestor acessando - {"user_id":30}
+08:49:45 - Parâmetros - {"user_id":30,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+08:49:45 - Preparando query
+08:49:45 - Executando query
+08:49:45 - Vendas encontradas - {"count":0}
+08:49:45 - === FIM (SUCESSO) ===

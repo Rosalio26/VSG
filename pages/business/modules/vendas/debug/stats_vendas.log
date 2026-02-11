@@ -434,3 +434,207 @@
 17:08:44 - Calculando vendas mês atual
 17:08:44 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":71}
 17:08:44 - === FIM STATS (ERRO) ===
+13:05:15 - === INÍCIO STATS ===
+13:05:15 - Gestor acessando - {"user_id":30}
+12:05:15 - User ID validado - {"user_id":30,"type":"gestor"}
+12:05:15 - Calculando vendas mês atual
+12:05:15 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":71}
+12:05:15 - === FIM STATS (ERRO) ===
+13:24:16 - === INÍCIO STATS ===
+13:24:16 - Gestor acessando - {"user_id":30}
+12:24:16 - User ID validado - {"user_id":30,"type":"gestor"}
+12:24:16 - Calculando vendas mês atual
+12:24:16 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":71}
+12:24:16 - === FIM STATS (ERRO) ===
+13:26:19 - === INÍCIO STATS ===
+13:26:19 - Gestor acessando - {"user_id":30}
+12:26:19 - User ID validado - {"user_id":30,"type":"gestor"}
+12:26:19 - Calculando vendas mês atual
+12:26:19 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":71}
+12:26:19 - === FIM STATS (ERRO) ===
+19:15:27 - === INÍCIO STATS ===
+19:15:27 - Gestor acessando - {"user_id":30}
+18:15:27 - User ID validado - {"user_id":30,"type":"gestor"}
+18:15:27 - Calculando vendas mês atual
+18:15:27 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":71}
+18:15:27 - === FIM STATS (ERRO) ===
+19:15:30 - === INÍCIO STATS ===
+19:15:30 - Gestor acessando - {"user_id":30}
+18:15:30 - User ID validado - {"user_id":30,"type":"gestor"}
+18:15:30 - Calculando vendas mês atual
+18:15:30 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":71}
+18:15:30 - === FIM STATS (ERRO) ===
+19:15:44 - === INÍCIO STATS ===
+19:15:44 - Gestor acessando - {"user_id":30}
+18:15:44 - User ID validado - {"user_id":30,"type":"gestor"}
+18:15:44 - Calculando vendas mês atual
+18:15:44 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":71}
+18:15:44 - === FIM STATS (ERRO) ===
+19:15:44 - === INÍCIO STATS ===
+19:15:44 - Gestor acessando - {"user_id":30}
+18:15:44 - User ID validado - {"user_id":30,"type":"gestor"}
+18:15:44 - Calculando vendas mês atual
+18:15:44 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":71}
+18:15:44 - === FIM STATS (ERRO) ===
+19:16:55 - === INÍCIO STATS ===
+19:16:55 - Gestor acessando - {"user_id":30}
+18:16:55 - User ID validado - {"user_id":30,"type":"gestor"}
+18:16:55 - Calculando vendas mês atual
+18:16:55 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":71}
+18:16:55 - === FIM STATS (ERRO) ===
+22:27:11 - === INÍCIO STATS ===
+22:27:11 - Gestor acessando - {"user_id":30}
+21:27:11 - User ID validado - {"user_id":30,"type":"gestor"}
+21:27:11 - Calculando vendas mês atual
+21:27:11 - ERRO - {"message":"Table 'vsg.product_purchases' doesn't exist","line":71}
+21:27:11 - === FIM STATS (ERRO) ===
+04:27:07 - === INÍCIO STATS ===
+04:27:07 - Gestor acessando - {"user_id":30}
+03:27:07 - User ID validado - {"user_id":30,"type":"gestor"}
+03:27:07 - Calculando vendas mês atual
+03:27:07 - Total vendas - {"total":0}
+03:27:07 - Calculando vendas mês anterior
+03:27:07 - Trend vendas - {"trend":0}
+03:27:07 - Calculando receita total
+03:27:07 - Receita total - {"receita":"0.00"}
+03:27:07 - Trend receita - {"trend":0}
+03:27:07 - Calculando pendentes
+03:27:07 - Pendentes - {"count":0,"valor":"0.00"}
+03:27:07 - Taxa conversão - {"taxa":0}
+03:27:07 - Stats calculadas
+03:27:07 - === FIM STATS (SUCESSO) ===
+04:29:17 - === INÍCIO STATS ===
+04:29:17 - Gestor acessando - {"user_id":30}
+03:29:17 - User ID validado - {"user_id":30,"type":"gestor"}
+03:29:17 - Calculando vendas mês atual
+03:29:17 - Total vendas - {"total":0}
+03:29:17 - Calculando vendas mês anterior
+03:29:17 - Trend vendas - {"trend":0}
+03:29:17 - Calculando receita total
+03:29:17 - Receita total - {"receita":"0.00"}
+03:29:17 - Trend receita - {"trend":0}
+03:29:17 - Calculando pendentes
+03:29:17 - Pendentes - {"count":0,"valor":"0.00"}
+03:29:17 - Taxa conversão - {"taxa":0}
+03:29:17 - Stats calculadas
+03:29:17 - === FIM STATS (SUCESSO) ===
+04:34:58 - === INÍCIO STATS ===
+04:34:58 - Gestor acessando - {"user_id":30}
+03:34:58 - User ID validado - {"user_id":30,"type":"gestor"}
+03:34:58 - Calculando vendas mês atual
+03:34:58 - Total vendas - {"total":0}
+03:34:58 - Calculando vendas mês anterior
+03:34:58 - Trend vendas - {"trend":0}
+03:34:58 - Calculando receita total
+03:34:58 - Receita total - {"receita":"0.00"}
+03:34:58 - Trend receita - {"trend":0}
+03:34:58 - Calculando pendentes
+03:34:58 - Pendentes - {"count":0,"valor":"0.00"}
+03:34:58 - Taxa conversão - {"taxa":0}
+03:34:58 - Stats calculadas
+03:34:58 - === FIM STATS (SUCESSO) ===
+04:35:07 - === INÍCIO STATS ===
+04:35:07 - Gestor acessando - {"user_id":30}
+03:35:07 - User ID validado - {"user_id":30,"type":"gestor"}
+03:35:07 - Calculando vendas mês atual
+03:35:07 - Total vendas - {"total":0}
+03:35:07 - Calculando vendas mês anterior
+03:35:07 - Trend vendas - {"trend":0}
+03:35:07 - Calculando receita total
+03:35:07 - Receita total - {"receita":"0.00"}
+03:35:07 - Trend receita - {"trend":0}
+03:35:07 - Calculando pendentes
+03:35:07 - Pendentes - {"count":0,"valor":"0.00"}
+03:35:07 - Taxa conversão - {"taxa":0}
+03:35:07 - Stats calculadas
+03:35:07 - === FIM STATS (SUCESSO) ===
+04:35:14 - === INÍCIO STATS ===
+04:35:14 - Gestor acessando - {"user_id":30}
+03:35:14 - User ID validado - {"user_id":30,"type":"gestor"}
+03:35:14 - Calculando vendas mês atual
+03:35:14 - Total vendas - {"total":0}
+03:35:14 - Calculando vendas mês anterior
+03:35:14 - Trend vendas - {"trend":0}
+03:35:14 - Calculando receita total
+03:35:14 - Receita total - {"receita":"0.00"}
+03:35:14 - Trend receita - {"trend":0}
+03:35:14 - Calculando pendentes
+03:35:14 - Pendentes - {"count":0,"valor":"0.00"}
+03:35:14 - Taxa conversão - {"taxa":0}
+03:35:14 - Stats calculadas
+03:35:14 - === FIM STATS (SUCESSO) ===
+04:35:33 - === INÍCIO STATS ===
+04:35:33 - Gestor acessando - {"user_id":30}
+03:35:33 - User ID validado - {"user_id":30,"type":"gestor"}
+03:35:33 - Calculando vendas mês atual
+03:35:33 - Total vendas - {"total":0}
+03:35:33 - Calculando vendas mês anterior
+03:35:33 - Trend vendas - {"trend":0}
+03:35:33 - Calculando receita total
+03:35:33 - Receita total - {"receita":"0.00"}
+03:35:33 - Trend receita - {"trend":0}
+03:35:33 - Calculando pendentes
+03:35:33 - Pendentes - {"count":0,"valor":"0.00"}
+03:35:33 - Taxa conversão - {"taxa":0}
+03:35:33 - Stats calculadas
+03:35:33 - === FIM STATS (SUCESSO) ===
+04:35:33 - === INÍCIO STATS ===
+04:35:33 - Gestor acessando - {"user_id":30}
+03:35:33 - User ID validado - {"user_id":30,"type":"gestor"}
+03:35:33 - Calculando vendas mês atual
+03:35:33 - Total vendas - {"total":0}
+03:35:33 - Calculando vendas mês anterior
+03:35:33 - Trend vendas - {"trend":0}
+03:35:33 - Calculando receita total
+03:35:33 - Receita total - {"receita":"0.00"}
+03:35:33 - Trend receita - {"trend":0}
+03:35:33 - Calculando pendentes
+03:35:33 - Pendentes - {"count":0,"valor":"0.00"}
+03:35:33 - Taxa conversão - {"taxa":0}
+03:35:33 - Stats calculadas
+03:35:33 - === FIM STATS (SUCESSO) ===
+04:35:33 - === INÍCIO STATS ===
+04:35:33 - Gestor acessando - {"user_id":30}
+03:35:33 - User ID validado - {"user_id":30,"type":"gestor"}
+03:35:33 - Calculando vendas mês atual
+03:35:33 - Total vendas - {"total":0}
+03:35:33 - Calculando vendas mês anterior
+03:35:33 - Trend vendas - {"trend":0}
+03:35:33 - Calculando receita total
+03:35:33 - Receita total - {"receita":"0.00"}
+03:35:33 - Trend receita - {"trend":0}
+03:35:33 - Calculando pendentes
+03:35:33 - Pendentes - {"count":0,"valor":"0.00"}
+03:35:33 - Taxa conversão - {"taxa":0}
+03:35:33 - Stats calculadas
+03:35:33 - === FIM STATS (SUCESSO) ===
+04:35:54 - === INÍCIO STATS ===
+04:35:54 - Gestor acessando - {"user_id":30}
+03:35:54 - User ID validado - {"user_id":30,"type":"gestor"}
+03:35:54 - Calculando vendas mês atual
+03:35:54 - Total vendas - {"total":0}
+03:35:54 - Calculando vendas mês anterior
+03:35:54 - Trend vendas - {"trend":0}
+03:35:54 - Calculando receita total
+03:35:54 - Receita total - {"receita":"0.00"}
+03:35:54 - Trend receita - {"trend":0}
+03:35:54 - Calculando pendentes
+03:35:54 - Pendentes - {"count":0,"valor":"0.00"}
+03:35:54 - Taxa conversão - {"taxa":0}
+03:35:54 - Stats calculadas
+03:35:54 - === FIM STATS (SUCESSO) ===
+09:49:45 - === INÍCIO STATS ===
+09:49:45 - Gestor acessando - {"user_id":30}
+08:49:45 - User ID validado - {"user_id":30,"type":"gestor"}
+08:49:45 - Calculando vendas mês atual
+08:49:45 - Total vendas - {"total":0}
+08:49:45 - Calculando vendas mês anterior
+08:49:45 - Trend vendas - {"trend":0}
+08:49:45 - Calculando receita total
+08:49:45 - Receita total - {"receita":"0.00"}
+08:49:45 - Trend receita - {"trend":0}
+08:49:45 - Calculando pendentes
+08:49:45 - Pendentes - {"count":0,"valor":"0.00"}
+08:49:45 - Taxa conversão - {"taxa":0}
+08:49:45 - Stats calculadas
+08:49:45 - === FIM STATS (SUCESSO) ===

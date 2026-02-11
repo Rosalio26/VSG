@@ -154,3 +154,98 @@
 17:08:44 - Buscando produtos da empresa
 17:08:44 - ERRO - {"message":"Unknown column 'name' in 'field list'","line":66}
 17:08:44 - === FIM LISTAR PRODUTOS (ERRO) ===
+13:05:15 - === INÍCIO LISTAR PRODUTOS ===
+12:05:15 - User ID - {"user_id":30,"user_type":"gestor"}
+12:05:15 - Buscando produtos da empresa
+12:05:15 - ERRO - {"message":"Unknown column 'name' in 'field list'","line":66}
+12:05:15 - === FIM LISTAR PRODUTOS (ERRO) ===
+13:24:16 - === INÍCIO LISTAR PRODUTOS ===
+12:24:16 - User ID - {"user_id":30,"user_type":"gestor"}
+12:24:16 - Buscando produtos da empresa
+12:24:16 - ERRO - {"message":"Unknown column 'name' in 'field list'","line":66}
+12:24:16 - === FIM LISTAR PRODUTOS (ERRO) ===
+13:26:19 - === INÍCIO LISTAR PRODUTOS ===
+12:26:19 - User ID - {"user_id":30,"user_type":"gestor"}
+12:26:19 - Buscando produtos da empresa
+12:26:19 - ERRO - {"message":"Unknown column 'name' in 'field list'","line":66}
+12:26:19 - === FIM LISTAR PRODUTOS (ERRO) ===
+19:15:27 - === INÍCIO LISTAR PRODUTOS ===
+18:15:27 - User ID - {"user_id":30,"user_type":"gestor"}
+18:15:27 - Buscando produtos da empresa
+18:15:27 - ERRO - {"message":"Unknown column 'name' in 'field list'","line":66}
+18:15:27 - === FIM LISTAR PRODUTOS (ERRO) ===
+19:15:30 - === INÍCIO LISTAR PRODUTOS ===
+18:15:30 - User ID - {"user_id":30,"user_type":"gestor"}
+18:15:30 - Buscando produtos da empresa
+18:15:30 - ERRO - {"message":"Unknown column 'name' in 'field list'","line":66}
+18:15:30 - === FIM LISTAR PRODUTOS (ERRO) ===
+19:15:44 - === INÍCIO LISTAR PRODUTOS ===
+18:15:44 - User ID - {"user_id":30,"user_type":"gestor"}
+18:15:44 - Buscando produtos da empresa
+18:15:44 - ERRO - {"message":"Unknown column 'name' in 'field list'","line":66}
+18:15:44 - === FIM LISTAR PRODUTOS (ERRO) ===
+19:15:44 - === INÍCIO LISTAR PRODUTOS ===
+18:15:44 - User ID - {"user_id":30,"user_type":"gestor"}
+18:15:44 - Buscando produtos da empresa
+18:15:44 - ERRO - {"message":"Unknown column 'name' in 'field list'","line":66}
+18:15:44 - === FIM LISTAR PRODUTOS (ERRO) ===
+19:16:55 - === INÍCIO LISTAR PRODUTOS ===
+18:16:55 - User ID - {"user_id":30,"user_type":"gestor"}
+18:16:55 - Buscando produtos da empresa
+18:16:55 - ERRO - {"message":"Unknown column 'name' in 'field list'","line":66}
+18:16:55 - === FIM LISTAR PRODUTOS (ERRO) ===
+22:27:11 - === INÍCIO LISTAR PRODUTOS ===
+21:27:11 - User ID - {"user_id":30,"user_type":"gestor"}
+21:27:11 - Buscando produtos da empresa
+21:27:11 - ERRO - {"message":"Unknown column 'name' in 'field list'","line":66}
+21:27:11 - === FIM LISTAR PRODUTOS (ERRO) ===
+04:27:07 - === INÍCIO LISTAR PRODUTOS ===
+03:27:07 - User ID - {"user_id":30,"user_type":"gestor"}
+03:27:07 - Buscando produtos da empresa
+03:27:07 - Produtos encontrados - {"count":0}
+03:27:07 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+04:29:17 - === INÍCIO LISTAR PRODUTOS ===
+03:29:17 - User ID - {"user_id":30,"user_type":"gestor"}
+03:29:17 - Buscando produtos da empresa
+03:29:17 - Produtos encontrados - {"count":0}
+03:29:17 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+04:34:58 - === INÍCIO LISTAR PRODUTOS ===
+03:34:58 - User ID - {"user_id":30,"user_type":"gestor"}
+03:34:58 - Buscando produtos da empresa
+03:34:58 - Produtos encontrados - {"count":0}
+03:34:58 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+04:35:07 - === INÍCIO LISTAR PRODUTOS ===
+03:35:07 - User ID - {"user_id":30,"user_type":"gestor"}
+03:35:07 - Buscando produtos da empresa
+03:35:07 - Produtos encontrados - {"count":0}
+03:35:07 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+04:35:14 - === INÍCIO LISTAR PRODUTOS ===
+03:35:14 - User ID - {"user_id":30,"user_type":"gestor"}
+03:35:14 - Buscando produtos da empresa
+03:35:14 - Produtos encontrados - {"count":0}
+03:35:14 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+04:35:33 - === INÍCIO LISTAR PRODUTOS ===
+03:35:33 - User ID - {"user_id":30,"user_type":"gestor"}
+03:35:33 - Buscando produtos da empresa
+03:35:33 - Produtos encontrados - {"count":0}
+03:35:33 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+04:35:33 - === INÍCIO LISTAR PRODUTOS ===
+03:35:33 - User ID - {"user_id":30,"user_type":"gestor"}
+03:35:33 - Buscando produtos da empresa
+03:35:33 - Produtos encontrados - {"count":0}
+03:35:33 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+04:35:33 - === INÍCIO LISTAR PRODUTOS ===
+03:35:33 - User ID - {"user_id":30,"user_type":"gestor"}
+03:35:33 - Buscando produtos da empresa
+03:35:33 - Produtos encontrados - {"count":0}
+03:35:33 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+04:35:54 - === INÍCIO LISTAR PRODUTOS ===
+03:35:54 - User ID - {"user_id":30,"user_type":"gestor"}
+03:35:54 - Buscando produtos da empresa
+03:35:54 - Produtos encontrados - {"count":0}
+03:35:54 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+09:49:45 - === INÍCIO LISTAR PRODUTOS ===
+08:49:45 - User ID - {"user_id":30,"user_type":"gestor"}
+08:49:45 - Buscando produtos da empresa
+08:49:45 - Produtos encontrados - {"count":3}
+08:49:45 - === FIM LISTAR PRODUTOS (SUCESSO) ===

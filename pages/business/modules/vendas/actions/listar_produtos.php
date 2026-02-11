@@ -1,9 +1,4 @@
 <?php
-/**
- * LISTAR PRODUTOS
- * ATUALIZADO: Suporta empresa e funcionário
- */
-
 header('Content-Type: application/json');
 
 function logDebug($message, $data = null) {
@@ -27,7 +22,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Verificar autenticação (empresa OU funcionário)
 $isEmployee = isset($_SESSION['employee_auth']['employee_id']);
 $isCompany = isset($_SESSION['auth']['user_id']) && isset($_SESSION['auth']['type']) && $_SESSION['auth']['type'] === 'company';
 
@@ -37,7 +31,6 @@ if (!$isEmployee && !$isCompany) {
     exit;
 }
 
-// Determinar userId (ID da empresa)
 if ($isEmployee) {
     $userId = (int)$_SESSION['employee_auth']['empresa_id'];
     $userType = 'funcionario';
@@ -46,7 +39,6 @@ if ($isEmployee) {
     $userType = 'gestor';
 }
 
-// Se vier user_id por GET, validar que é o mesmo
 if (isset($_GET['user_id'])) {
     $requestUserId = (int)$_GET['user_id'];
     if ($requestUserId !== $userId) {
@@ -64,11 +56,12 @@ try {
     logDebug('Buscando produtos da empresa');
     
     $stmt = $mysqli->prepare("
-        SELECT id, name
+        SELECT id, nome as name
         FROM products
         WHERE user_id = ?
-        AND is_active = 1
-        ORDER BY name ASC
+        AND status = 'ativo'
+        AND deleted_at IS NULL
+        ORDER BY nome ASC
     ");
     
     $stmt->bind_param('i', $userId);

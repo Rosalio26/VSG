@@ -1,12 +1,4 @@
 <?php
-/**
- * ================================================================================
- * VISIONGREEN - MÓDULO DE PRODUTOS
- * Arquivo: pages/business/modules/produtos/produtos.php
- * ✅ COMPLETO: Galeria de 5 imagens no modal de edição
- * ================================================================================
- */
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -31,12 +23,7 @@ if ($isEmployee) {
     $userName = $_SESSION['employee_auth']['nome'];
     $userType = 'funcionario';
     
-    $stmt = $mysqli->prepare("
-        SELECT can_view, can_create, can_edit, can_delete 
-        FROM employee_permissions 
-        WHERE employee_id = ? AND module = 'produtos'
-        LIMIT 1
-    ");
+    $stmt = $mysqli->prepare("SELECT can_view, can_create, can_edit, can_delete FROM employee_permissions WHERE employee_id = ? AND module = 'produtos' LIMIT 1");
     $stmt->bind_param('i', $employeeId);
     $stmt->execute();
     $permissions = $stmt->get_result()->fetch_assoc();
@@ -74,7 +61,6 @@ $empresa = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 $stats_data = ['total' => 0, 'active' => 0];
-
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $category_filter = isset($_GET['category']) ? trim($_GET['category']) : '';
 $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
@@ -164,6 +150,34 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
     font-size: 24px;
     color: var(--gh-text-secondary);
     z-index: 0;
+}
+
+.image-error-indicator {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: #ff4d4d;
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    z-index: 5;
+}
+
+.product-image {
+    position: relative;
+}
+
+.product-image img {
+    transition: opacity 0.3s ease;
+}
+
+.product-image img.error {
+    opacity: 0.3;
 }
 </style>
 
@@ -264,13 +278,7 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
         >
     </form>
     <select class="filter-select" id="categoryFilter">
-        <option value="">Categoria</option>
-        <option value="reciclavel" <?= $category_filter === 'reciclavel' ? 'selected' : '' ?>>♻️ Reciclável</option>
-        <option value="sustentavel" <?= $category_filter === 'sustentavel' ? 'selected' : '' ?>>🌿 Sustentável</option>
-        <option value="servico" <?= $category_filter === 'servico' ? 'selected' : '' ?>>🛠️ Serviço</option>
-        <option value="visiongreen" <?= $category_filter === 'visiongreen' ? 'selected' : '' ?>>🌱 VisionGreen</option>
-        <option value="ecologico" <?= $category_filter === 'ecologico' ? 'selected' : '' ?>>🌍 Ecológico</option>
-        <option value="outro" <?= $category_filter === 'outro' ? 'selected' : '' ?>>📦 Outro</option>
+        <option value="">Todas as Categorias</option>
     </select>
     <select class="filter-select" id="statusFilter">
         <option value="">Status</option>
@@ -333,13 +341,8 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
 
                 <div class="form-group">
                     <label class="form-label">Categoria *</label>
-                    <select class="form-control" id="productCategory" name="categoria" required>
-                        <option value="reciclavel">♻️ Reciclável</option>
-                        <option value="sustentavel">🌿 Sustentável</option>
-                        <option value="servico">🛠️ Serviço</option>
-                        <option value="visiongreen">🌱 VisionGreen</option>
-                        <option value="ecologico">🌍 Ecológico</option>
-                        <option value="outro">📦 Outro</option>
+                    <select class="form-control" id="productCategory" name="category_id" required>
+                        <option value="">Selecione...</option>
                     </select>
                 </div>
 
@@ -378,14 +381,14 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
 
                         <?php for($i = 1; $i <= 4; $i++): ?>
                         <div class="gallery-upload-item">
-                            <input type="file" name="imagem<?= $i ?>" class="file-input-hidden" accept="image/*" onchange="previewGallery(this, 'prev_imagem<?= $i ?>')">
+                            <input type="file" name="image_path<?= $i ?>" class="file-input-hidden" accept="image/*" onchange="previewGallery(this, 'prev_image_path<?= $i ?>')">
                             <div class="image-preview-wrapper">
-                                <img id="prev_imagem<?= $i ?>" src="" style="display: none;">
+                                <img id="prev_image_path<?= $i ?>" src="" style="display: none;">
                                 <div class="image-overlay">
                                     <i class="fa-solid fa-plus"></i>
                                     <span>Mudar Foto</span>
                                 </div>
-                                <i class="fa-solid fa-images placeholder-icon" id="icon_imagem<?= $i ?>"></i>
+                                <i class="fa-solid fa-images placeholder-icon" id="icon_image_path<?= $i ?>"></i>
                             </div>
                             <label style="font-size: 10px; color: var(--gh-text-secondary);">Foto <?= $i + 1 ?></label>
                         </div>
@@ -434,7 +437,9 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
         search: '',
         category: '',
         status: '',
-        originalImages: {}
+        originalImages: {},
+        categories: [],
+        imageErrors: new Set()
     };
     
     const elements = {
@@ -450,6 +455,52 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
     if (!elements.searchInput || !elements.productsTable) {
         console.error('❌ Elementos não encontrados');
         return;
+    }
+
+    async function loadCategories() {
+        try {
+            const response = await fetch('modules/produtos/actions/get_categories.php');
+            
+            if (!response.ok) {
+                throw new Error('Erro HTTP: ' + response.status);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success && data.categories) {
+                state.categories = data.categories;
+                console.log('✅ Categorias carregadas:', state.categories.length);
+                
+                const categoryFilterEl = document.getElementById('categoryFilter');
+                const productCategoryEl = document.getElementById('productCategory');
+                
+                if (categoryFilterEl) {
+                    categoryFilterEl.innerHTML = '<option value="">Todas as Categorias</option>';
+                    data.categories.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.id;
+                        option.textContent = cat.name;
+                        categoryFilterEl.appendChild(option);
+                    });
+                }
+                
+                if (productCategoryEl) {
+                    productCategoryEl.innerHTML = '<option value="">Selecione...</option>';
+                    data.categories.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.id;
+                        option.textContent = cat.name;
+                        productCategoryEl.appendChild(option);
+                    });
+                }
+            } else {
+                console.warn('⚠️ Nenhuma categoria retornada');
+                showAlert('warning', 'Nenhuma categoria disponível. Crie categorias primeiro.');
+            }
+        } catch (error) {
+            console.error('❌ Erro ao carregar categorias:', error);
+            showAlert('error', 'Erro ao carregar categorias: ' + error.message);
+        }
     }
 
     async function loadProducts() {
@@ -513,6 +564,22 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
         if (valorEl) valorEl.textContent = formatMoney(valorTotal);
     }
 
+    function handleImageError(img, productId) {
+        img.classList.add('error');
+        state.imageErrors.add(productId);
+        
+        const wrapper = img.closest('.product-image');
+        if (wrapper && !wrapper.querySelector('.image-error-indicator')) {
+            const errorIndicator = document.createElement('div');
+            errorIndicator.className = 'image-error-indicator';
+            errorIndicator.innerHTML = '<i class="fa-solid fa-exclamation"></i>';
+            errorIndicator.title = 'Imagem não encontrada';
+            wrapper.appendChild(errorIndicator);
+        }
+        
+        console.warn(`⚠️ Imagem não encontrada para produto #${productId}`);
+    }
+
     function renderProductsTable(products) {
         if (!elements.productsTable) return;
         
@@ -537,15 +604,6 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
             return;
         }
         
-        const categoryLabels = {
-            'reciclavel': '♻️ Reciclável',
-            'sustentavel': '🌿 Sustentável',
-            'servico': '🛠️ Serviço',
-            'visiongreen': '🌱 VisionGreen',
-            'ecologico': '🌍 Ecológico',
-            'outro': '📦 Outro'
-        };
-        
         let cardsHTML = '<div class="products-grid">';
         
         products.forEach(product => {
@@ -563,12 +621,13 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
             
             const imagePath = product.imagem ? `../uploads/products/${product.imagem}` : null;
             
+            const categoryName = state.categories.find(c => c.id == product.category_id)?.name || 'Sem categoria';
+            
             cardsHTML += `
                 <div class="product-card">
                     ${imagePath ? 
-                        `<img src="${imagePath}" class="product-image" alt="${escapeHtml(product.nome)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                         <div class="product-image" style="display: none; align-items: center; justify-content: center;">
-                            <i class="fa-solid fa-box" style="font-size: 48px; color: var(--gh-text-muted);"></i>
+                        `<div class="product-image">
+                            <img src="${imagePath}" class="product-image-img" style="height: 100%; width: 100%;" alt="${escapeHtml(product.nome)}" onerror="window.ProductsModule.handleImageError(this, ${product.id})">
                          </div>` :
                         `<div class="product-image" style="display: flex; align-items: center; justify-content: center;">
                             <i class="fa-solid fa-box" style="font-size: 48px; color: var(--gh-text-muted);"></i>
@@ -579,8 +638,8 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
                         <div class="product-description">${escapeHtml(truncatedDesc)}</div>
                         
                         <div style="margin-bottom: 8px;">
-                            <span class="label label-${product.categoria}">
-                                ${categoryLabels[product.categoria] || product.categoria}
+                            <span class="label">
+                                ${escapeHtml(categoryName)}
                             </span>
                         </div>
                         
@@ -620,6 +679,10 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
         
         cardsHTML += '</div>';
         elements.productsTable.innerHTML = cardsHTML;
+        
+        if (state.imageErrors.size > 0) {
+            console.warn(`⚠️ ${state.imageErrors.size} produto(s) com imagens faltando`);
+        }
     }
 
     function escapeHtml(text) {
@@ -688,7 +751,7 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
         if (productStatus) productStatus.value = 'ativo';
         state.originalImages = {};
     
-        const galleryKeys = ['imagem', 'imagem1', 'imagem2', 'imagem3', 'imagem4'];
+        const galleryKeys = ['imagem', 'image_path1', 'image_path2', 'image_path3', 'image_path4'];
         galleryKeys.forEach(key => {
             const previewEl = document.getElementById('prev_' + key);
             const iconEl = document.getElementById('icon_' + key);
@@ -737,17 +800,17 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
         if (productStock) productStock.value = product.stock || '';
         if (productStockMin) productStockMin.value = product.stock_minimo || 5;
         if (productDescription) productDescription.value = product.descricao || '';
-        if (productCategory) productCategory.value = product.categoria || 'outro';
+        if (productCategory) productCategory.value = product.category_id || '';
         if (productStatus) productStatus.value = product.status || 'ativo';
 
-        const basePath = '../uploads/products/';
+        const basePath = '../../uploads/products/';
 
         const galleryMap = {
             'imagem': product.imagem,
-            'imagem1': product.image_path1,
-            'imagem2': product.image_path2,
-            'imagem3': product.image_path3,
-            'imagem4': product.image_path4
+            'image_path1': product.image_path1,
+            'image_path2': product.image_path2,
+            'image_path3': product.image_path3,
+            'image_path4': product.image_path4
         };
 
         state.originalImages = {};
@@ -769,8 +832,10 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
                     previewEl.src = fullImageUrl;
                     previewEl.style.display = 'block';
                     previewEl.onerror = function() { 
+                        console.warn(`⚠️ Falha ao carregar imagem: ${fullImageUrl}`);
                         this.style.display = 'none';
                         if (iconEl) iconEl.style.display = 'block';
+                        showAlert('warning', 'Algumas imagens não puderam ser carregadas');
                     };
                 }
                 if (iconEl) {
@@ -1008,7 +1073,8 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
         closeModal,
         deleteProduct,
         verProduto,
-        loadProducts
+        loadProducts,
+        handleImageError
     };
 
     window.openAddProductPage = function() {
@@ -1033,7 +1099,11 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
         state.status = elements.statusFilter.value;
     }
 
+    loadCategories();
     loadProducts();
 
+    console.log('✅ Módulo de produtos carregado');
+    console.log('📂 Categorias:', state.categories.length);
+    console.log('🖼️ Sistema de detecção de imagens ativo');
 })();
 </script>

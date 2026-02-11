@@ -1,12 +1,4 @@
 <?php
-/**
- * ================================================================================
- * VISIONGREEN - ADICIONAR PRODUTO
- * Arquivo: pages/business/modules/produtos/actions/adicionar_produto.php
- * ✅ CORRIGIDO: Campos ajustados para SQL real
- * ================================================================================
- */
-
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/../../../../logs/product_save_errors.log');
 error_reporting(E_ALL);
@@ -70,10 +62,10 @@ try {
 
     $nome = trim($_POST['nome'] ?? '');
     $descricao = trim($_POST['descricao'] ?? '');
-    $categoria = $_POST['categoria'] ?? '';
+    $category_id = intval($_POST['category_id'] ?? 0);
     $preco = floatval($_POST['preco'] ?? 0);
     
-    if (empty($nome) || empty($categoria) || $preco <= 0) {
+    if (empty($nome) || $category_id <= 0 || $preco <= 0) {
         throw new Exception('Preencha todos os campos obrigatórios');
     }
 
@@ -83,7 +75,6 @@ try {
     $image_path3 = null;
     $image_path4 = null;
     
-    // Upload da imagem principal
     if (isset($_FILES['imagem']) && $_FILES['imagem']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = __DIR__ . '/../../../../../pages/uploads/products/';
         
@@ -99,7 +90,7 @@ try {
             throw new Exception('Formato de imagem não permitido');
         }
         
-        $file_name = 'product_' . $userId . '_' . time() . '.' . $file_ext;
+        $file_name = 'product_' . $userId . '_' . time() . '_main.' . $file_ext;
         $full_path = $upload_dir . $file_name;
         
         if (move_uploaded_file($file['tmp_name'], $full_path)) {
@@ -107,11 +98,14 @@ try {
         }
     }
     
-    // Upload das imagens adicionais (1-4)
     for ($i = 1; $i <= 4; $i++) {
-        $fieldName = 'imagem' . $i;
+        $fieldName = 'image_path' . $i;
         if (isset($_FILES[$fieldName]) && $_FILES[$fieldName]['error'] === UPLOAD_ERR_OK) {
             $upload_dir = __DIR__ . '/../../../../../pages/uploads/products/';
+            
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0755, true);
+            }
             
             $file = $_FILES[$fieldName];
             $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -138,12 +132,12 @@ try {
     
     $sql = "
         INSERT INTO products (
-            user_id, nome, descricao, imagem, image_path1, image_path2, image_path3, image_path4,
-            categoria, preco, currency, stock, stock_minimo,
+            user_id, nome, descricao, category_id, imagem, image_path1, image_path2, image_path3, image_path4,
+            preco, currency, stock, stock_minimo,
             status, created_at
         ) VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?,
-            ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?,
             ?, NOW()
         )
     ";
@@ -155,16 +149,16 @@ try {
     }
 
     $stmt->bind_param(
-        "issssssssdsiis",
+        "issississdsiis",
         $userId,
         $nome,
         $descricao,
+        $category_id,
         $image_path,
         $image_path1,
         $image_path2,
         $image_path3,
         $image_path4,
-        $categoria,
         $preco,
         $currency,
         $stock,

@@ -1,9 +1,4 @@
 <?php
-/**
- * ESTATÍSTICAS DE VENDAS
- * ATUALIZADO: Suporta empresa e funcionário
- */
-
 header('Content-Type: application/json');
 
 function logDebug($message, $data = null) {
@@ -27,7 +22,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Verificar autenticação (empresa OU funcionário)
 $isEmployee = isset($_SESSION['employee_auth']['employee_id']);
 $isCompany = isset($_SESSION['auth']['user_id']) && isset($_SESSION['auth']['type']) && $_SESSION['auth']['type'] === 'company';
 
@@ -37,7 +31,6 @@ if (!$isEmployee && !$isCompany) {
     exit;
 }
 
-// Determinar userId (ID da empresa)
 if ($isEmployee) {
     $userId = (int)$_SESSION['employee_auth']['empresa_id'];
     $userType = 'funcionario';
@@ -48,7 +41,6 @@ if ($isEmployee) {
     logDebug('Gestor acessando', ['user_id' => $userId]);
 }
 
-// Se vier user_id por GET, validar que é o mesmo
 if (isset($_GET['user_id'])) {
     $requestUserId = (int)$_GET['user_id'];
     if ($requestUserId !== $userId) {
@@ -66,30 +58,28 @@ require_once __DIR__ . '/../../../../../registration/includes/db.php';
 logDebug('User ID validado', ['user_id' => $userId, 'type' => $userType]);
 
 try {
-    // Total vendas mês atual
     logDebug('Calculando vendas mês atual');
     $stmt = $mysqli->prepare("
         SELECT COUNT(*) as total
-        FROM product_purchases pp
-        INNER JOIN products p ON pp.product_id = p.id
-        WHERE p.user_id = ?
-        AND MONTH(pp.purchase_date) = MONTH(NOW())
-        AND YEAR(pp.purchase_date) = YEAR(NOW())
+        FROM orders
+        WHERE company_id = ?
+        AND MONTH(order_date) = MONTH(NOW())
+        AND YEAR(order_date) = YEAR(NOW())
+        AND deleted_at IS NULL
     ");
     $stmt->bind_param('i', $userId);
     $stmt->execute();
     $totalVendas = $stmt->get_result()->fetch_assoc()['total'];
     logDebug('Total vendas', ['total' => $totalVendas]);
     
-    // Vendas mês anterior
     logDebug('Calculando vendas mês anterior');
     $stmt = $mysqli->prepare("
         SELECT COUNT(*) as total
-        FROM product_purchases pp
-        INNER JOIN products p ON pp.product_id = p.id
-        WHERE p.user_id = ?
-        AND MONTH(pp.purchase_date) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH))
-        AND YEAR(pp.purchase_date) = YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH))
+        FROM orders
+        WHERE company_id = ?
+        AND MONTH(order_date) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH))
+        AND YEAR(order_date) = YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH))
+        AND deleted_at IS NULL
     ");
     $stmt->bind_param('i', $userId);
     $stmt->execute();
@@ -99,31 +89,29 @@ try {
         round((($totalVendas - $vendasMesAnterior) / $vendasMesAnterior) * 100, 1) : 0;
     logDebug('Trend vendas', ['trend' => $vendasTrend]);
     
-    // Receita total
     logDebug('Calculando receita total');
     $stmt = $mysqli->prepare("
-        SELECT SUM(pp.total_amount) as total
-        FROM product_purchases pp
-        INNER JOIN products p ON pp.product_id = p.id
-        WHERE p.user_id = ?
-        AND pp.status = 'completed'
-        AND MONTH(pp.purchase_date) = MONTH(NOW())
-        AND YEAR(pp.purchase_date) = YEAR(NOW())
+        SELECT COALESCE(SUM(total), 0) as total
+        FROM orders
+        WHERE company_id = ?
+        AND payment_status = 'pago'
+        AND MONTH(order_date) = MONTH(NOW())
+        AND YEAR(order_date) = YEAR(NOW())
+        AND deleted_at IS NULL
     ");
     $stmt->bind_param('i', $userId);
     $stmt->execute();
     $receitaTotal = $stmt->get_result()->fetch_assoc()['total'] ?? 0;
     logDebug('Receita total', ['receita' => $receitaTotal]);
     
-    // Receita mês anterior
     $stmt = $mysqli->prepare("
-        SELECT SUM(pp.total_amount) as total
-        FROM product_purchases pp
-        INNER JOIN products p ON pp.product_id = p.id
-        WHERE p.user_id = ?
-        AND pp.status = 'completed'
-        AND MONTH(pp.purchase_date) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH))
-        AND YEAR(pp.purchase_date) = YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH))
+        SELECT COALESCE(SUM(total), 0) as total
+        FROM orders
+        WHERE company_id = ?
+        AND payment_status = 'pago'
+        AND MONTH(order_date) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH))
+        AND YEAR(order_date) = YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH))
+        AND deleted_at IS NULL
     ");
     $stmt->bind_param('i', $userId);
     $stmt->execute();
@@ -133,23 +121,21 @@ try {
         round((($receitaTotal - $receitaMesAnterior) / $receitaMesAnterior) * 100, 1) : 0;
     logDebug('Trend receita', ['trend' => $receitaTrend]);
     
-    // Pendentes
     logDebug('Calculando pendentes');
     $stmt = $mysqli->prepare("
         SELECT 
             COUNT(*) as count,
-            SUM(pp.total_amount) as valor
-        FROM product_purchases pp
-        INNER JOIN products p ON pp.product_id = p.id
-        WHERE p.user_id = ?
-        AND pp.status = 'pending'
+            COALESCE(SUM(total), 0) as valor
+        FROM orders
+        WHERE company_id = ?
+        AND status = 'pendente'
+        AND deleted_at IS NULL
     ");
     $stmt->bind_param('i', $userId);
     $stmt->execute();
     $pendentes = $stmt->get_result()->fetch_assoc();
     logDebug('Pendentes', $pendentes);
     
-    // Taxa conversão
     $taxaConversao = $totalVendas > 0 ? 
         round(($totalVendas / ($totalVendas + $pendentes['count'])) * 100, 1) : 0;
     logDebug('Taxa conversão', ['taxa' => $taxaConversao]);
@@ -164,7 +150,7 @@ try {
         'valor_pendente' => $pendentes['valor'] ?? 0,
         'taxa_conversao' => $taxaConversao,
         'conversao_trend' => 0,
-        'user_type' => $userType // Informação adicional
+        'user_type' => $userType
     ];
     
     logDebug('Stats calculadas');

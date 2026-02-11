@@ -4,8 +4,14 @@
  * Finalidade: Alternar o tipo de cadastro (Pessoa/Negócio) via AJAX
  */
 
+// Inicia buffer de saída ANTES de qualquer include
+ob_start();
+
 require_once __DIR__ . '/../bootstrap.php'; 
 require_once __DIR__ . '/../includes/security.php';
+
+// Limpa qualquer output buffer existente antes de enviar JSON
+ob_clean();
 
 header('Content-Type: application/json');
 

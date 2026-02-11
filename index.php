@@ -2,11 +2,7 @@
 // ==================== INICIALIZAÇÃO E SEGURANÇA ====================
 require_once __DIR__ . '/registration/bootstrap.php';
 require_once __DIR__ . '/registration/includes/security.php';
-
 require_once __DIR__ . '/geo_location.php';
-
-// ==================== INICIALIZAR SISTEMA DE CÂMBIO ====================
-// require_once __DIR__ . '/includes/currency/currency_bootstrap.php';
 
 // Habilitar cache de saída
 ob_start();
@@ -31,60 +27,190 @@ if (empty($_SESSION['csrf_token'])) {
 define('PRODUCT_NEW_DAYS', 7);
 define('PRODUCT_POPULAR_MIN_SALES', 50);
 
-// ==================== QUERY OTIMIZADA - ESTATÍSTICAS ====================
-$stats_query = "
-    SELECT 
-        (SELECT COUNT(*) FROM products WHERE status = 'ativo' AND deleted_at IS NULL) as total_products,
-        (SELECT COUNT(*) FROM users WHERE type = 'company' AND status = 'active') as total_suppliers,
-        (SELECT COUNT(DISTINCT country) FROM users WHERE country IS NOT NULL) as total_countries,
-        (SELECT COALESCE(AVG(rating), 0) FROM customer_reviews) as avg_rating
-";
-$stats_result = $mysqli->query($stats_query);
+// ==================== SISTEMA DE CACHE (10 MINUTOS) ====================
+$cache_key = 'vsg_homepage_v2';
+$cache_file = sys_get_temp_dir() . '/' . $cache_key . '.cache';
+$cache_duration = 600; // 10 minutos
+$use_cache = file_exists($cache_file) && (time() - filemtime($cache_file) < $cache_duration);
 
-if (!$stats_result) {
-    error_log("Erro na query de estatísticas: " . $mysqli->error);
-    $stats = [
-        'total_products' => 0,
-        'total_suppliers' => 0,
-        'total_countries' => 0,
-        'avg_rating' => 0
-    ];
+if ($use_cache) {
+    // CARREGAR DO CACHE
+    $cached_data = unserialize(file_get_contents($cache_file));
+    $stats = $cached_data['stats'];
+    $categories = $cached_data['categories'];
+    $featured_products = $cached_data['featured_products'];
+    $new_products = $cached_data['new_products'];
 } else {
-    $stats = $stats_result->fetch_assoc();
-    $stats_result->free();
-}
+    // ==================== QUERY OTIMIZADA - ESTATÍSTICAS ====================
+    $stats_query = "
+        SELECT 
+            (SELECT COUNT(*) FROM products WHERE status = 'ativo' AND deleted_at IS NULL) as total_products,
+            (SELECT COUNT(*) FROM users WHERE type = 'company' AND status = 'active') as total_suppliers,
+            (SELECT COUNT(DISTINCT country) FROM users WHERE country IS NOT NULL) as total_countries,
+            (SELECT COALESCE(AVG(rating), 0) FROM customer_reviews) as avg_rating
+    ";
+    $stats_result = $mysqli->query($stats_query);
 
-// ==================== CATEGORIAS COM LIMIT E OTIMIZAÇÃO ====================
-$categories_query = "
-    SELECT 
-        c.id,
-        c.name,
-        c.icon,
-        COALESCE((
-            SELECT COUNT(DISTINCT p.id) 
+    if (!$stats_result) {
+        error_log("Erro na query de estatísticas: " . $mysqli->error);
+        $stats = [
+            'total_products' => 0,
+            'total_suppliers' => 0,
+            'total_countries' => 0,
+            'avg_rating' => 0
+        ];
+    } else {
+        $stats = $stats_result->fetch_assoc();
+        $stats_result->free();
+    }
+
+    // ==================== CATEGORIAS COM LIMIT E OTIMIZAÇÃO ====================
+    $categories_query = "
+        SELECT 
+            c.id,
+            c.name,
+            c.icon,
+            COALESCE((
+                SELECT COUNT(DISTINCT p.id) 
+                FROM products p
+                LEFT JOIN categories sub ON p.category_id = sub.id
+                WHERE (sub.id = c.id OR sub.parent_id = c.id)
+                AND p.status = 'ativo' 
+                AND p.deleted_at IS NULL
+            ), 0) as product_count
+        FROM categories c
+        WHERE c.parent_id IS NULL
+        AND c.status = 'ativa'
+        ORDER BY product_count DESC, c.name ASC
+        LIMIT 12
+    ";
+    $categories_result = $mysqli->query($categories_query);
+
+    if (!$categories_result) {
+        error_log("Erro na query de categorias: " . $mysqli->error);
+        $categories = [];
+    } else {
+        $categories = $categories_result->fetch_all(MYSQLI_ASSOC);
+        $categories_result->free();
+    }
+
+    // ==================== PRODUTOS EM DESTAQUE ====================
+    $products_query = "
+        SELECT 
+            p.id, p.nome, p.preco, p.currency, p.imagem, p.image_path1, p.stock, p.created_at,
+            c.name as category_name,
+            c.icon as category_icon,
+            u.nome as company_name,
+            COALESCE(AVG(cr.rating), 0) as avg_rating,
+            COUNT(DISTINCT cr.id) as review_count,
+            COALESCE(SUM(oi.quantity), 0) as total_sales,
+            DATEDIFF(NOW(), p.created_at) as days_old
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN customer_reviews cr ON p.id = cr.product_id
+        LEFT JOIN order_items oi ON p.id = oi.product_id
+        WHERE p.status = 'ativo' 
+        AND p.deleted_at IS NULL
+        AND p.stock > 0
+        GROUP BY p.id
+        HAVING total_sales > 0
+        ORDER BY total_sales DESC, p.created_at DESC
+        LIMIT 8
+    ";
+    $products_result = $mysqli->query($products_query);
+
+    if (!$products_result) {
+        error_log("Erro na query de produtos em destaque: " . $mysqli->error);
+        $featured_products = [];
+    } else {
+        $featured_products = $products_result->fetch_all(MYSQLI_ASSOC);
+        $products_result->free();
+    }
+
+    $displayed_product_ids = array_column($featured_products, 'id');
+
+    // ==================== PRODUTOS NOVOS ====================
+    $new_products_days = PRODUCT_NEW_DAYS;
+
+    $exclude_ids_clause = '';
+    if (!empty($displayed_product_ids)) {
+        $exclude_ids = implode(',', array_map('intval', $displayed_product_ids));
+        $exclude_ids_clause = "AND p.id NOT IN ($exclude_ids)";
+    }
+
+    $new_products_query = "
+        SELECT 
+            p.id, p.nome, p.preco, p.currency, p.imagem, p.image_path1, p.stock, p.created_at,
+            c.name as category_name,
+            c.icon as category_icon,
+            u.nome as company_name,
+            COALESCE(AVG(cr.rating), 0) as avg_rating,
+            COUNT(DISTINCT cr.id) as review_count,
+            DATEDIFF(NOW(), p.created_at) as days_old
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN customer_reviews cr ON p.id = cr.product_id
+        WHERE p.status = 'ativo' 
+        AND p.deleted_at IS NULL
+        AND p.stock > 0
+        AND p.created_at >= DATE_SUB(NOW(), INTERVAL $new_products_days DAY)
+        $exclude_ids_clause
+        GROUP BY p.id
+        ORDER BY p.created_at DESC
+        LIMIT 8
+    ";
+    $new_products_result = $mysqli->query($new_products_query);
+
+    if (!$new_products_result) {
+        error_log("Erro na query de produtos novos: " . $mysqli->error);
+        $new_products = [];
+    } else {
+        $new_products = $new_products_result->fetch_all(MYSQLI_ASSOC);
+        $new_products_result->free();
+    }
+
+    if (empty($new_products)) {
+        $recent_products_query = "
+            SELECT 
+                p.id, p.nome, p.preco, p.currency, p.imagem, p.image_path1, p.stock, p.created_at,
+                c.name as category_name,
+                c.icon as category_icon,
+                u.nome as company_name,
+                COALESCE(AVG(cr.rating), 0) as avg_rating,
+                COUNT(DISTINCT cr.id) as review_count,
+                DATEDIFF(NOW(), p.created_at) as days_old
             FROM products p
-            LEFT JOIN categories sub ON p.category_id = sub.id
-            WHERE (sub.id = c.id OR sub.parent_id = c.id)
-            AND p.status = 'ativo' 
+            LEFT JOIN categories c ON p.category_id = c.id
+            LEFT JOIN users u ON p.user_id = u.id
+            LEFT JOIN customer_reviews cr ON p.id = cr.product_id
+            WHERE p.status = 'ativo' 
             AND p.deleted_at IS NULL
-        ), 0) as product_count
-    FROM categories c
-    WHERE c.parent_id IS NULL
-    AND c.status = 'ativa'
-    ORDER BY product_count DESC, c.name ASC
-    LIMIT 12
-";
-$categories_result = $mysqli->query($categories_query);
-
-if (!$categories_result) {
-    error_log("Erro na query de categorias: " . $mysqli->error);
-    $categories = [];
-} else {
-    $categories = $categories_result->fetch_all(MYSQLI_ASSOC);
-    $categories_result->free();
+            AND p.stock > 0
+            $exclude_ids_clause
+            GROUP BY p.id
+            ORDER BY p.created_at DESC
+            LIMIT 8
+        ";
+        $recent_result = $mysqli->query($recent_products_query);
+        
+        if ($recent_result) {
+            $new_products = $recent_result->fetch_all(MYSQLI_ASSOC);
+            $recent_result->free();
+        }
+    }
+    
+    // SALVAR NO CACHE
+    file_put_contents($cache_file, serialize([
+        'stats' => $stats,
+        'categories' => $categories,
+        'featured_products' => $featured_products,
+        'new_products' => $new_products
+    ]));
 }
 
-// ==================== LOCALIZAÇÃO E DADOS DO USUÁRIO ====================
+// ==================== LOCALIZAÇÃO E DADOS DO USUÁRIO (NÃO CACHEAR) ====================
 $user_db_location = 'Definir localização';
 $user_country = '';
 $cart_count = 0;
@@ -131,113 +257,6 @@ if (empty($user_country) && !empty($_SESSION['user_location']['country'])) {
 // Detectar moeda do usuário
 $user_currency_info = get_user_currency_info($user_country ?: 'MZ');
 
-// ==================== PRODUTOS EM DESTAQUE ====================
-$products_query = "
-    SELECT 
-        p.id, p.nome, p.preco, p.currency, p.imagem, p.image_path1, p.stock, p.created_at,
-        c.name as category_name,
-        c.icon as category_icon,
-        u.nome as company_name,
-        COALESCE(AVG(cr.rating), 0) as avg_rating,
-        COUNT(DISTINCT cr.id) as review_count,
-        COALESCE(SUM(oi.quantity), 0) as total_sales,
-        DATEDIFF(NOW(), p.created_at) as days_old
-    FROM products p
-    LEFT JOIN categories c ON p.category_id = c.id
-    LEFT JOIN users u ON p.user_id = u.id
-    LEFT JOIN customer_reviews cr ON p.id = cr.product_id
-    LEFT JOIN order_items oi ON p.id = oi.product_id
-    WHERE p.status = 'ativo' 
-    AND p.deleted_at IS NULL
-    AND p.stock > 0
-    GROUP BY p.id
-    HAVING total_sales > 0
-    ORDER BY total_sales DESC, p.created_at DESC
-    LIMIT 8
-";
-$products_result = $mysqli->query($products_query);
-
-if (!$products_result) {
-    error_log("Erro na query de produtos em destaque: " . $mysqli->error);
-    $featured_products = [];
-} else {
-    $featured_products = $products_result->fetch_all(MYSQLI_ASSOC);
-    $products_result->free();
-}
-
-$displayed_product_ids = array_column($featured_products, 'id');
-
-// ==================== PRODUTOS NOVOS ====================
-$new_products_days = PRODUCT_NEW_DAYS;
-
-$exclude_ids_clause = '';
-if (!empty($displayed_product_ids)) {
-    $exclude_ids = implode(',', array_map('intval', $displayed_product_ids));
-    $exclude_ids_clause = "AND p.id NOT IN ($exclude_ids)";
-}
-
-$new_products_query = "
-    SELECT 
-        p.id, p.nome, p.preco, p.currency, p.imagem, p.image_path1, p.stock, p.created_at,
-        c.name as category_name,
-        c.icon as category_icon,
-        u.nome as company_name,
-        COALESCE(AVG(cr.rating), 0) as avg_rating,
-        COUNT(DISTINCT cr.id) as review_count,
-        DATEDIFF(NOW(), p.created_at) as days_old
-    FROM products p
-    LEFT JOIN categories c ON p.category_id = c.id
-    LEFT JOIN users u ON p.user_id = u.id
-    LEFT JOIN customer_reviews cr ON p.id = cr.product_id
-    WHERE p.status = 'ativo' 
-    AND p.deleted_at IS NULL
-    AND p.stock > 0
-    AND p.created_at >= DATE_SUB(NOW(), INTERVAL $new_products_days DAY)
-    $exclude_ids_clause
-    GROUP BY p.id
-    ORDER BY p.created_at DESC
-    LIMIT 8
-";
-$new_products_result = $mysqli->query($new_products_query);
-
-if (!$new_products_result) {
-    error_log("Erro na query de produtos novos: " . $mysqli->error);
-    $new_products = [];
-} else {
-    $new_products = $new_products_result->fetch_all(MYSQLI_ASSOC);
-    $new_products_result->free();
-}
-
-if (empty($new_products)) {
-    $recent_products_query = "
-        SELECT 
-            p.id, p.nome, p.preco, p.currency, p.imagem, p.image_path1, p.stock, p.created_at,
-            c.name as category_name,
-            c.icon as category_icon,
-            u.nome as company_name,
-            COALESCE(AVG(cr.rating), 0) as avg_rating,
-            COUNT(DISTINCT cr.id) as review_count,
-            DATEDIFF(NOW(), p.created_at) as days_old
-        FROM products p
-        LEFT JOIN categories c ON p.category_id = c.id
-        LEFT JOIN users u ON p.user_id = u.id
-        LEFT JOIN customer_reviews cr ON p.id = cr.product_id
-        WHERE p.status = 'ativo' 
-        AND p.deleted_at IS NULL
-        AND p.stock > 0
-        $exclude_ids_clause
-        GROUP BY p.id
-        ORDER BY p.created_at DESC
-        LIMIT 8
-    ";
-    $recent_result = $mysqli->query($recent_products_query);
-    
-    if ($recent_result) {
-        $new_products = $recent_result->fetch_all(MYSQLI_ASSOC);
-        $recent_result->free();
-    }
-}
-
 // ==================== FUNÇÕES AUXILIARES ====================
 function getProductImageUrl($product) {
     if (!empty($product['imagem'])) {
@@ -264,7 +283,6 @@ function isProductPopular($product) {
     return $total_sales >= PRODUCT_POPULAR_MIN_SALES;
 }
 
-// Função auxiliar para converter e formatar preço
 function displayPrice($product, $user_country = null) {
     $converted = format_product_price($product, $user_country);
     return $converted;
@@ -445,8 +463,8 @@ function displayPrice($product, $user_country = null) {
                         </a>
                         <?php if (!$user_logged_in): ?>
                         <a href="registration/register/painel_cadastro.php" class="btn-secondary">
-                            <i class="fa-solid fa-building"></i>
-                            Sou Fornecedor
+                            <i class="fa-solid fa-register"></i>
+                            Cadastrar - Se
                         </a>
                         <?php endif; ?>
                     </div>
@@ -550,8 +568,6 @@ function displayPrice($product, $user_country = null) {
                     $isPopular = isProductPopular($product);
                     $isLowStock = $product['stock'] > 0 && $product['stock'] <= 10;
                     $productImage = getProductImageUrl($product);
-                    
-                    // Converter preço
                     $priceConverted = displayPrice($product, $user_country);
                 ?>
                     <a href="marketplace.php?product=<?= $product['id'] ?>" class="product-card">
@@ -649,7 +665,7 @@ function displayPrice($product, $user_country = null) {
                     ?>
                         <a href="marketplace.php?product=<?= $product['id'] ?>" class="featured-card">
                             <div class="featured-image">
-                                <img src="<?= $productImage ?>" alt="<?= escapeHtml($product['nome']) ?>" loading="lazy">
+                                <img src="pages/<?= $productImage ?>" alt="<?= escapeHtml($product['nome']) ?>" loading="lazy">
                                 <?php if ($isNew): ?>
                                     <span class="product-badge new">Novo</span>
                                 <?php endif; ?>
@@ -693,7 +709,7 @@ function displayPrice($product, $user_country = null) {
                     ?>
                         <a href="marketplace.php?product=<?= $product['id'] ?>" class="flex-card">
                             <div class="flex-image">
-                                <img src="<?= $productImage ?>" alt="<?= escapeHtml($product['nome']) ?>" loading="lazy">
+                                <img src="pages/<?= $productImage ?>" alt="<?= escapeHtml($product['nome']) ?>" loading="lazy">
                                 <?php if ($isNew): ?>
                                     <span class="product-badge new">Novo</span>
                                 <?php endif; ?>
@@ -772,8 +788,10 @@ function displayPrice($product, $user_country = null) {
 
     <?php include 'includes/footer.html'; ?>
 
-    <script src="assets/scripts/currency_exchange.js"></script>
-    <script src="assets/scripts/main_index.js"></script>
+    <script src="assets/scripts/currency_exchange.js" defer></script>
+    <script src="assets/scripts/main_index.js" defer></script>
+    <script src="assets/scripts/redirect_handler.js"></script>
+    
 </body>
 </html>
 <?php ob_end_flush(); ?>

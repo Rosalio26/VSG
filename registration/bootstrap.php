@@ -1,4 +1,6 @@
 <?php
+/* ===== BUFFER DE SAÍDA (Captura qualquer output acidental) ===== */
+ob_start();
 
 /* ===== CONFIGURAÇÃO DE AMBIENTE ===== */
 if (!defined('APP_ENV')) {

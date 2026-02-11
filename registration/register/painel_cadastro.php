@@ -22,6 +22,7 @@ $isMobile = count($tiposPermitidos) === 1;
 $csrf = csrf_generate(); 
 ?>
 
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -527,6 +528,43 @@ $csrf = csrf_generate();
 
 <!-- ===== SCRIPT UNIFICADO COMPLETO ===== -->
 <script src="../../assets/scripts/painel_cadastro_ultimate.js"></script>
+<script src="../../assets/scripts/redirect_handler.js"></script>
+
+<script>
+// Integração com sistema existente
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tipoURL = urlParams.get('tipo');
+        
+        if (tipoURL && (tipoURL === 'business' || tipoURL === 'pessoal')) {
+            console.log(`🎯 Tipo detectado: ${tipoURL}`);
+            
+            // Força renderização correta
+            if (typeof renderizar === 'function') {
+                renderizar();
+            }
+            
+            // Atualiza botões
+            document.querySelectorAll('.btn-toggle').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tipo === tipoURL);
+            });
+            
+            // Mostra formulário correto
+            const formBusiness = document.getElementById('formBusiness');
+            const formPessoa = document.getElementById('formPessoa');
+            
+            if (tipoURL === 'business') {
+                if (formBusiness) formBusiness.hidden = false;
+                if (formPessoa) formPessoa.hidden = true;
+            } else {
+                if (formBusiness) formBusiness.hidden = true;
+                if (formPessoa) formPessoa.hidden = false;
+            }
+        }
+    }, 100);
+});
+</script>
 
 <script>
 // ===== VALIDAÇÃO DE LARGURA DE TELA PARA BUSINESS =====

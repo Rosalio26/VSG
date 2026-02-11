@@ -1,12 +1,4 @@
 <?php
-/**
- * ================================================================================
- * VISIONGREEN - DELETAR PRODUTO
- * Arquivo: pages/business/modules/produtos/actions/deletar_produto.php
- * ✅ CORRIGIDO: Soft delete usando deleted_at
- * ================================================================================
- */
-
 header('Content-Type: application/json');
 
 if (session_status() === PHP_SESSION_NONE) {

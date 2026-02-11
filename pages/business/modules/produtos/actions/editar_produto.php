@@ -1,12 +1,4 @@
 <?php
-/**
- * ================================================================================
- * VISIONGREEN - EDITAR PRODUTO
- * Arquivo: pages/business/modules/produtos/actions/editar_produto.php
- * ✅ CORRIGIDO: Campos ajustados para SQL real
- * ================================================================================
- */
-
 header('Content-Type: application/json');
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -102,31 +94,47 @@ try {
     $id = intval($_POST['id']);
     $nome = trim($_POST['nome']);
     $descricao = trim($_POST['descricao'] ?? '');
-    $categoria = $_POST['categoria'];
+    $category_id = intval($_POST['category_id']);
     $preco = floatval($_POST['preco']);
     $currency = $_POST['currency'] ?? 'MZN';
     $stock = !empty($_POST['stock']) ? intval($_POST['stock']) : 0;
     $stock_minimo = !empty($_POST['stock_minimo']) ? intval($_POST['stock_minimo']) : 5;
     $status = $_POST['status'] ?? 'ativo';
     
-    $valid_categories = ['reciclavel', 'sustentavel', 'servico', 'visiongreen', 'ecologico', 'outro'];
-    if (!in_array($categoria, $valid_categories)) {
-        echo json_encode(['success' => false, 'message' => 'Categoria inválida']);
-        exit;
-    }
-    
     $valid_status = ['ativo', 'inativo', 'esgotado'];
     if (!in_array($status, $valid_status)) {
         $status = 'ativo';
     }
     
-    // Processar upload de imagens adicionais
     $image_updates = [];
     $image_params = [];
     $image_types = '';
     
+    if (isset($_FILES['imagem']) && $_FILES['imagem']['error'] === UPLOAD_ERR_OK) {
+        $upload_dir = __DIR__ . '/../../../../../pages/uploads/products/';
+        
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+        
+        $file = $_FILES['imagem'];
+        $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $allowed_ext = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        
+        if (in_array($file_ext, $allowed_ext)) {
+            $file_name = 'product_' . $userId . '_' . time() . '_main.' . $file_ext;
+            $full_path = $upload_dir . $file_name;
+            
+            if (move_uploaded_file($file['tmp_name'], $full_path)) {
+                $image_updates[] = "imagem = ?";
+                $image_params[] = $file_name;
+                $image_types .= 's';
+            }
+        }
+    }
+    
     for ($i = 1; $i <= 4; $i++) {
-        $field_name = 'imagem' . $i;
+        $field_name = 'image_path' . $i;
         if (isset($_FILES[$field_name]) && $_FILES[$field_name]['error'] === UPLOAD_ERR_OK) {
             $upload_dir = __DIR__ . '/../../../../../pages/uploads/products/';
             
@@ -151,8 +159,7 @@ try {
         }
     }
     
-    // Construir query
-    $set_clause = "nome = ?, descricao = ?, categoria = ?, preco = ?, currency = ?, 
+    $set_clause = "nome = ?, descricao = ?, category_id = ?, preco = ?, currency = ?, 
             stock = ?, stock_minimo = ?, status = ?";
     
     if (!empty($image_updates)) {
@@ -165,13 +172,13 @@ try {
         WHERE id = ? AND user_id = ?
     ");
     
-    $base_types = "sssdsiis";
+    $base_types = "ssidsiis";
     $all_types = $base_types . $image_types . "ii";
     
     $params = [
         $nome, 
         $descricao, 
-        $categoria, 
+        $category_id, 
         $preco, 
         $currency, 
         $stock, 

@@ -61,7 +61,6 @@ try {
             p.image_path2,
             p.image_path3,
             p.image_path4,
-            p.categoria,
             p.preco,
             p.currency,
             p.stock,
@@ -69,9 +68,12 @@ try {
             p.status,
             p.visualizacoes,
             p.created_at,
+            p.category_id,
+            c.name AS categoria,
             u.nome AS company_name
         FROM products p
         LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN categories c ON p.category_id = c.id
         WHERE p.user_id = ? AND p.deleted_at IS NULL
     ";
     
@@ -87,9 +89,9 @@ try {
     }
     
     if (!empty($category)) {
-        $sql .= " AND p.categoria = ?";
+        $sql .= " AND p.category_id = ?";
         $params[] = $category;
-        $types .= 's';
+        $types .= 'i';
     }
     
     if (!empty($status)) {

@@ -2,7 +2,7 @@
 /**
  * ================================================================================
  * VISIONGREEN - BUSINESS DASHBOARD (COM SUPORTE A FUNCIONÁRIOS)
- * Arquivo: pages/business/index.php
+ * Arquivo: pages/business/dashboard_business.php
  * Descrição: Dashboard unificado para GESTORES e FUNCIONÁRIOS
  * ATUALIZADO: Usa user_employee_id e email_company + SQL corrigido
  * ================================================================================
@@ -55,14 +55,14 @@ if (isset($_SESSION['employee_auth']['employee_id'])) {
     
     if (!$employeeData) {
         unset($_SESSION['employee_auth']);
-        header("Location: employee/login_funcionario.php?error=session_expired");
+        header("Location: ../../registration/login/login.php?info=session_expired");
         exit;
     }
     
     // Verificar status
     if ($employeeData['status'] !== 'ativo') {
         unset($_SESSION['employee_auth']);
-        header("Location: employee/login_funcionario.php?error=account_inactive");
+        header("Location: ../../registration/login/login.php?info=session_expired");
         exit;
     }
     
@@ -94,7 +94,7 @@ if (isset($_SESSION['employee_auth']['employee_id'])) {
     
 } else {
     // NÃO AUTENTICADO
-    header("Location: ../../registration/login/login.php");
+    header("Location: ../../registration/login/login.php?info=login_required");
     exit;
 }
 
@@ -123,7 +123,8 @@ $company = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 if (!$company) {
-    header("Location: ../../registration/login/login.php");
+    session_destroy();
+    header("Location: ../../registration/login/login.php?info=session_expired");
     exit;
 }
 
@@ -143,7 +144,7 @@ if ($isEmployee) {
 }
 
 /* ================= VALIDAR LOCKDOWN (APENAS GESTORES) ================= */
-if ($isManager && $company['is_in_lockdown']) {
+if ($isManager && isset($company['is_in_lockdown']) && $company['is_in_lockdown']) {
     header("Location: process/blocked.php");
     exit;
 }
@@ -241,6 +242,7 @@ $stmt = $mysqli->prepare("
     FROM notifications 
     WHERE receiver_id = ? 
     AND status = 'nao_lida'
+    AND deleted_at IS NULL
 ");
 $stmt->bind_param('i', $userId);
 $stmt->execute();
@@ -370,7 +372,6 @@ if ($isManager && $statusDoc === 'rejeitado') {
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/produtos.css">
     <style>
-        /* ==================== VARIÁVEIS GITHUB DARK ==================== */
         :root {
             --bg-body: #0d1117;
             --bg-sidebar: #161b22;
@@ -417,7 +418,6 @@ if ($isManager && $statusDoc === 'rejeitado') {
             transform: rotate(180deg);
         }
 
-        /* ==================== SIDEBAR ==================== */
         .sidebar {
             width: var(--sidebar-width);
             background: var(--bg-sidebar);
@@ -682,7 +682,6 @@ if ($isManager && $statusDoc === 'rejeitado') {
             color: #fff;
         }
 
-        /* ==================== MAIN CONTENT ==================== */
         .main-wrapper {
             margin-left: var(--sidebar-width);
             flex: 1;
@@ -853,13 +852,11 @@ if ($isManager && $statusDoc === 'rejeitado') {
             border: 1px solid var(--border-color);
         }
 
-        /* ==================== CONTENT AREA ==================== */
         .main-wrapper-content {
             flex: 1;
             padding: 30px;
         }
 
-        /* ==================== REJECTION ALERT ==================== */
         .rejection-alert-banner {
             background: rgba(255, 77, 77, 0.1);
             border: 1px solid rgba(255, 77, 77, 0.3);
@@ -909,183 +906,180 @@ if ($isManager && $statusDoc === 'rejeitado') {
             align-items: center;
             gap: 8px;
         }
+
         .btn-reenviar:hover {
-        background: #ff3232;
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(255, 77, 77, 0.3);
-    }
+            background: #ff3232;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 77, 77, 0.3);
+        }
 
-    /* ==================== LOADING BAR ==================== */
-    #page-loader {
-        display: none;
-        position: fixed;
-        top: 0;
-        right: 0;
-        width: calc(100% - var(--sidebar-width));
-        height: 4px;
-        background: linear-gradient(90deg, transparent, var(--accent-green), transparent);
-        z-index: 1000;
-        animation: loadingBar 1.5s infinite linear;
-    }
+        #page-loader {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: calc(100% - var(--sidebar-width));
+            height: 4px;
+            background: linear-gradient(90deg, transparent, var(--accent-green), transparent);
+            z-index: 1000;
+            animation: loadingBar 1.5s infinite linear;
+        }
 
-    @keyframes loadingBar {
-        0% { transform: translateX(-100%); }
-        100% { transform: translateX(100%); }
-    }
+        @keyframes loadingBar {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
 
-    /* ==================== EMPLOYEE BADGE ==================== */
-    .employee-badge-header {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        background: rgba(77, 163, 255, 0.15);
-        border: 1px solid rgba(77, 163, 255, 0.3);
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 700;
-        color: var(--accent-blue);
-        margin-left: 10px;
-    }
-</style>
+        .employee-badge-header {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(77, 163, 255, 0.15);
+            border: 1px solid rgba(77, 163, 255, 0.3);
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin-left: 10px;
+        }
+    </style>
 </head>
 <body id="masterBody">
 <div id="page-loader"></div>
-<!-- ==================== SIDEBAR ==================== -->
 <aside class="sidebar">
     <div class="collapse-btn" onclick="toggleSidebar()">
         <i class="fa-solid fa-chevron-left"></i>
     </div>
     <div class="header-section">
-    <div class="brand-area">
-        <div class="logo-icon">
-            <i class="fa-solid fa-leaf"></i>
-        </div>
-        <div class="logo-text">
-            <span class="logo-main">VISIONGREEN</span>
-            <span class="company-badge <?= $verifClass ?>">
-                <i class="fa-solid <?= $verifIcon ?>"></i> <?= $verifText ?>
-            </span>
-        </div>
-    </div>
-
-    <div class="company-info-widget">
-        <div class="company-avatar">
-            <?php if($isEmployee && $employeeData['empresa_logo']): ?>
-                <img src="<?= $uploadBase . htmlspecialchars($employeeData['empresa_logo']) ?>" alt="Logo">
-            <?php elseif($company['logo_path']): ?>
-                <img src="<?= $uploadBase . htmlspecialchars($company['logo_path']) ?>" alt="Logo">
-            <?php else: ?>
-                <i class="fa-solid fa-building" style="color: var(--text-secondary);"></i>
-            <?php endif; ?>
-        </div>
-        <div class="company-details">
-            <div class="company-name">
-                <?= $isEmployee ? htmlspecialchars($employeeData['empresa_nome']) : htmlspecialchars($company['nome']) ?>
+        <div class="brand-area">
+            <div class="logo-icon">
+                <i class="fa-solid fa-leaf"></i>
             </div>
-            <span class="company-id"><?= htmlspecialchars($company['public_id']) ?></span>
+            <div class="logo-text">
+                <span class="logo-main">VISIONGREEN</span>
+                <span class="company-badge <?= $verifClass ?>">
+                    <i class="fa-solid <?= $verifIcon ?>"></i> <?= $verifText ?>
+                </span>
+            </div>
+        </div>
+
+        <div class="company-info-widget">
+            <div class="company-avatar">
+                <?php if($isEmployee && !empty($employeeData['empresa_logo'])): ?>
+                    <img src="<?= $uploadBase . htmlspecialchars($employeeData['empresa_logo']) ?>" alt="Logo">
+                <?php elseif(!empty($company['logo_path'])): ?>
+                    <img src="<?= $uploadBase . htmlspecialchars($company['logo_path']) ?>" alt="Logo">
+                <?php else: ?>
+                    <i class="fa-solid fa-building" style="color: var(--text-secondary);"></i>
+                <?php endif; ?>
+            </div>
+            <div class="company-details">
+                <div class="company-name">
+                    <?= $isEmployee ? htmlspecialchars($employeeData['empresa_nome']) : htmlspecialchars($company['nome']) ?>
+                </div>
+                <span class="company-id"><?= htmlspecialchars($company['public_id']) ?></span>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="nav-menu">
-    <div class="nav-label"><?= $isEmployee ? 'Meus Acessos' : 'Centro de Comando' ?></div>
-    
-    <?php if(canAccess('dashboard', $minhaConfig)): ?>
-        <a href="javascript:void(0)" onclick="loadContent('modules/dashboard/dashboard', this)" class="nav-item <?= !$isEmployee ? 'active' : '' ?>">
-            <div class="nav-icon-box"><i class="fa-solid fa-gauge-high"></i></div>
-            <span>Dashboard</span>
+    <div class="nav-menu">
+        <div class="nav-label"><?= $isEmployee ? 'Meus Acessos' : 'Centro de Comando' ?></div>
+        
+        <?php if(canAccess('dashboard', $minhaConfig)): ?>
+            <a href="javascript:void(0)" onclick="loadContent('modules/dashboard/dashboard', this)" class="nav-item <?= !$isEmployee ? 'active' : '' ?>">
+                <div class="nav-icon-box"><i class="fa-solid fa-gauge-high"></i></div>
+                <span>Dashboard</span>
+            </a>
+        <?php endif; ?>
+
+        <?php if(canAccess('produtos', $minhaConfig)): ?>
+            <a href="javascript:void(0)" onclick="loadContent('modules/produtos/produtos', this)" class="nav-item <?= $isEmployee ? 'active' : '' ?>">
+                <div class="nav-icon-box"><i class="fa-solid fa-box"></i></div>
+                <span>Produtos</span>
+                <?php if($stats['produtos_estoque_baixo'] > 0): ?>
+                    <span class="notification-badge"><?= $stats['produtos_estoque_baixo'] ?></span>
+                <?php endif; ?>
+            </a>
+        <?php endif; ?>
+
+        <?php if(canAccess('vendas', $minhaConfig)): ?>
+            <a href="javascript:void(0)" onclick="loadContent('modules/vendas/vendas', this)" class="nav-item">
+                <div class="nav-icon-box"><i class="fa-solid fa-chart-line"></i></div>
+                <span>Vendas</span>
+            </a>
+        <?php endif; ?>
+
+        <?php if(canAccess('compras', $minhaConfig)): ?>
+            <a href="javascript:void(0)" onclick="loadContent('modules/compras/compras', this)" class="nav-item">
+                <div class="nav-icon-box"><i class="fa-solid fa-shopping-cart"></i></div>
+                <span>Compras</span>
+                <?php if($stats['pedidos_pendentes'] > 0): ?>
+                    <span class="notification-badge"><?= $stats['pedidos_pendentes'] ?></span>
+                <?php endif; ?>
+            </a>
+        <?php endif; ?>
+
+        <?php if(canAccess('clientes', $minhaConfig)): ?>
+            <a href="javascript:void(0)" onclick="loadContent('modules/clientes/clientes', this)" class="nav-item">
+                <div class="nav-icon-box"><i class="fa-solid fa-user"></i></div>
+                <span>Clientes</span>
+            </a>
+        <?php endif; ?>
+
+        <?php if(canAccess('funcionarios', $minhaConfig)): ?>
+            <a href="javascript:void(0)" onclick="loadContent('modules/funcionarios/funcionarios', this)" class="nav-item">
+                <div class="nav-icon-box"><i class="fa-solid fa-users"></i></div>
+                <span>Funcionários</span>
+            </a>
+        <?php endif; ?>
+
+        <?php if(canAccess('assinatura', $minhaConfig)): ?>
+            <a href="javascript:void(0)" onclick="loadContent('modules/assinatura/assinatura', this)" class="nav-item">
+                <div class="nav-icon-box"><i class="fa-solid fa-credit-card"></i></div>
+                <span>Assinatura</span>
+                <?php if($subscription && isset($subscription['dias_restantes']) && $subscription['dias_restantes'] <= 7): ?>
+                    <span class="notification-badge">!</span>
+                <?php endif; ?>
+            </a>
+        <?php endif; ?>
+
+        <?php if(canAccess('mensagens', $minhaConfig)): ?>
+            <a href="javascript:void(0)" onclick="loadContent('modules/mensagens/mensagens', this)" class="nav-item">
+                <div class="nav-icon-box"><i class="fa-solid fa-comments"></i></div>
+                <span>Mensagens</span>
+                <?php if($stats['mensagens_nao_lidas'] > 0): ?>
+                    <span class="notification-badge"><?= $stats['mensagens_nao_lidas'] ?></span>
+                <?php endif; ?>
+            </a>
+        <?php endif; ?>
+
+        <?php if(canAccess('relatorios', $minhaConfig)): ?>
+            <a href="javascript:void(0)" onclick="loadContent('modules/relatorios/relatorios', this)" class="nav-item">
+                <div class="nav-icon-box"><i class="fa-solid fa-file-invoice"></i></div>
+                <span>Relatórios</span>
+            </a>
+        <?php endif; ?>
+
+        <?php if($isManager): ?>
+        <div class="nav-label">Sistema</div>
+        
+        <?php if(canAccess('configuracoes', $minhaConfig)): ?>
+            <a href="javascript:void(0)" onclick="loadContent('modules/configuracoes/configuracoes', this)" class="nav-item">
+                <div class="nav-icon-box"><i class="fa-solid fa-sliders"></i></div>
+                <span>Configurações</span>
+            </a>
+        <?php endif; ?>
+        <?php endif; ?>
+    </div>
+
+    <div class="sidebar-footer-fixed">
+        <a href="<?= $isEmployee ? '../../registration/login/logout.php?employee=1' : '../../registration/login/logout.php' ?>" class="logout-btn">
+            <i class="fa-solid fa-power-off"></i>
+            <span>Finalizar Sessão</span>
         </a>
-    <?php endif; ?>
-
-    <?php if(canAccess('produtos', $minhaConfig)): ?>
-        <a href="javascript:void(0)" onclick="loadContent('modules/produtos/produtos', this)" class="nav-item <?= $isEmployee ? 'active' : '' ?>">
-            <div class="nav-icon-box"><i class="fa-solid fa-box"></i></div>
-            <span><?= $isEmployee ? 'Produtos' : 'Produtos' ?></span>
-            <?php if($stats['produtos_estoque_baixo'] > 0): ?>
-                <span class="notification-badge"><?= $stats['produtos_estoque_baixo'] ?></span>
-            <?php endif; ?>
-        </a>
-    <?php endif; ?>
-
-    <?php if(canAccess('vendas', $minhaConfig)): ?>
-        <a href="javascript:void(0)" onclick="loadContent('modules/vendas/vendas', this)" class="nav-item">
-            <div class="nav-icon-box"><i class="fa-solid fa-chart-line"></i></div>
-            <span>Vendas</span>
-        </a>
-    <?php endif; ?>
-
-    <?php if(canAccess('compras', $minhaConfig)): ?>
-        <a href="javascript:void(0)" onclick="loadContent('modules/compras/compras', this)" class="nav-item">
-            <div class="nav-icon-box"><i class="fa-solid fa-shopping-cart"></i></div>
-            <span>Compras</span>
-            <?php if($stats['pedidos_pendentes'] > 0): ?>
-                <span class="notification-badge"><?= $stats['pedidos_pendentes'] ?></span>
-            <?php endif; ?>
-        </a>
-    <?php endif; ?>
-
-    <?php if(canAccess('clientes', $minhaConfig)): ?>
-        <a href="javascript:void(0)" onclick="loadContent('modules/clientes/clientes', this)" class="nav-item">
-            <div class="nav-icon-box"><i class="fa-solid fa-user"></i></div>
-            <span>Clientes</span>
-        </a>
-    <?php endif; ?>
-
-    <?php if(canAccess('funcionarios', $minhaConfig)): ?>
-        <a href="javascript:void(0)" onclick="loadContent('modules/funcionarios/funcionarios', this)" class="nav-item">
-            <div class="nav-icon-box"><i class="fa-solid fa-users"></i></div>
-            <span>Funcionários</span>
-        </a>
-    <?php endif; ?>
-
-    <?php if(canAccess('assinatura', $minhaConfig)): ?>
-        <a href="javascript:void(0)" onclick="loadContent('modules/assinatura/assinatura', this)" class="nav-item">
-            <div class="nav-icon-box"><i class="fa-solid fa-credit-card"></i></div>
-            <span>Assinatura</span>
-            <?php if($subscription && $subscription['dias_restantes'] && $subscription['dias_restantes'] <= 7): ?>
-                <span class="notification-badge">!</span>
-            <?php endif; ?>
-        </a>
-    <?php endif; ?>
-
-    <?php if(canAccess('mensagens', $minhaConfig)): ?>
-        <a href="javascript:void(0)" onclick="loadContent('modules/mensagens/mensagens', this)" class="nav-item">
-            <div class="nav-icon-box"><i class="fa-solid fa-comments"></i></div>
-            <span>Mensagens</span>
-            <?php if($stats['mensagens_nao_lidas'] > 0): ?>
-                <span class="notification-badge"><?= $stats['mensagens_nao_lidas'] ?></span>
-            <?php endif; ?>
-        </a>
-    <?php endif; ?>
-
-    <?php if(canAccess('relatorios', $minhaConfig)): ?>
-        <a href="javascript:void(0)" onclick="loadContent('modules/relatorios/relatorios', this)" class="nav-item">
-            <div class="nav-icon-box"><i class="fa-solid fa-file-invoice"></i></div>
-            <span>Relatórios</span>
-        </a>
-    <?php endif; ?>
-
-    <?php if($isManager): ?>
-    <div class="nav-label">Sistema</div>
-    
-    <?php if(canAccess('configuracoes', $minhaConfig)): ?>
-        <a href="javascript:void(0)" onclick="loadContent('modules/configuracoes/configuracoes', this)" class="nav-item">
-            <div class="nav-icon-box"><i class="fa-solid fa-sliders"></i></div>
-            <span>Configurações</span>
-        </a>
-    <?php endif; ?>
-    <?php endif; ?>
-</div>
-
-<div class="sidebar-footer-fixed">
-    <a href="<?= $isEmployee ? 'employee/logout_funcionario.php' : '../../registration/login/logout.php' ?>" class="logout-btn">
-        <i class="fa-solid fa-power-off"></i>
-        <span>Finalizar Sessão</span>
-    </a>
-</div>
+    </div>
 </aside>
-<!-- ==================== MAIN CONTENT ==================== -->
 <main class="main-wrapper">
     <header class="header-section-main">
         <div class="header-content">
@@ -1105,59 +1099,59 @@ if ($isManager && $statusDoc === 'rejeitado') {
                 </div>
             </div>
             <div class="search-container">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="mainSearchInput" placeholder="Pesquisar..." autocomplete="off">
-        </div>
-
-        <div class="header-right">
-            <div class="system-ping">
-                <div class="ping-dot"></div>
-                <span>ONLINE</span>
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="mainSearchInput" placeholder="Pesquisar..." autocomplete="off">
             </div>
 
-            <div class="icon-action-btn" title="Notificações">
-                <i class="fa-solid fa-bell"></i>
-                <?php if($stats['mensagens_nao_lidas'] > 0): ?>
-                    <span class="badge-dot"></span>
-                <?php endif; ?>
-            </div>
-
-            <div class="master-profile">
-                <div class="master-info">
-                    <span class="master-name"><?= htmlspecialchars($displayName) ?></span>
-                    <span class="master-role"><?= htmlspecialchars($displayCargo) ?></span>
+            <div class="header-right">
+                <div class="system-ping">
+                    <div class="ping-dot"></div>
+                    <span>ONLINE</span>
                 </div>
-                <div class="avatar-box">
-                    <img src="<?= $displayAvatar ?>" alt="Avatar">
+
+                <div class="icon-action-btn" title="Notificações">
+                    <i class="fa-solid fa-bell"></i>
+                    <?php if($stats['mensagens_nao_lidas'] > 0): ?>
+                        <span class="badge-dot"></span>
+                    <?php endif; ?>
+                </div>
+
+                <div class="master-profile">
+                    <div class="master-info">
+                        <span class="master-name"><?= htmlspecialchars($displayName) ?></span>
+                        <span class="master-role"><?= htmlspecialchars($displayCargo) ?></span>
+                    </div>
+                    <div class="avatar-box">
+                        <img src="<?= $displayAvatar ?>" alt="Avatar">
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</header>
+    </header>
 
-<?php if($showRejectionAlert): ?>
-<div class="main-wrapper-content">
-    <div class="rejection-alert-banner">
-        <div style="flex: 1;">
-            <h3><i class="fa-solid fa-triangle-exclamation"></i> Documentos Rejeitados - Prazo Expirando!</h3>
-            <p><strong>Motivo:</strong> <?= htmlspecialchars($company['motivo_rejeicao'] ?? 'Não especificado') ?></p>
+    <?php if($showRejectionAlert): ?>
+    <div class="main-wrapper-content">
+        <div class="rejection-alert-banner">
+            <div style="flex: 1;">
+                <h3><i class="fa-solid fa-triangle-exclamation"></i> Documentos Rejeitados - Prazo Expirando!</h3>
+                <p><strong>Motivo:</strong> <?= htmlspecialchars($company['motivo_rejeicao'] ?? 'Não especificado') ?></p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <span id="deadline-clock" class="countdown-timer">--:--:--</span>
+                <button onclick="window.location.href='process/reenviar_documentos.php'" class="btn-reenviar">
+                    <i class="fa-solid fa-upload"></i>
+                    Reenviar
+                </button>
+            </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 20px;">
-            <span id="deadline-clock" class="countdown-timer">--:--:--</span>
-            <button onclick="window.location.href='process/reenviar_documentos.php'" class="btn-reenviar">
-                <i class="fa-solid fa-upload"></i>
-                Reenviar
-            </button>
-        </div>
-    </div>
-<?php else: ?>
-<div class="main-wrapper-content">
-<?php endif; ?>
+    <?php else: ?>
+    <div class="main-wrapper-content">
+    <?php endif; ?>
 
-    <div id="content-area">
-        <!-- Conteúdo dinâmico será carregado aqui -->
+        <div id="content-area">
+            <!-- Conteúdo dinâmico será carregado aqui -->
+        </div>
     </div>
-</div>
 </main>
 <script>
     const userData = <?= json_encode([
@@ -1182,7 +1176,6 @@ if ($isManager && $statusDoc === 'rejeitado') {
         document.getElementById('masterBody').classList.toggle('sidebar-is-collapsed');
     }
 
-    // Countdown para documentos rejeitados
     if (deadline > 0) {
         function updateCountdown() {
             const timerElement = document.getElementById('deadline-clock');
@@ -1212,7 +1205,6 @@ if ($isManager && $statusDoc === 'rejeitado') {
         setInterval(updateCountdown, 1000);
     }
 
-    // ==================== SISTEMA DE NAVEGAÇÃO ====================
     let contentCache = new Map();
     let isLoading = false;
 
@@ -1227,7 +1219,6 @@ if ($isManager && $statusDoc === 'rejeitado') {
         isLoading = true;
         if(loader) loader.style.display = 'block';
         
-        // Limpar query strings e extensões
         const parts = pageName.split('?');
         const cleanName = parts[0].replace(/\.(php|html)$/, "");
         const queryString = parts[1] ? '?' + parts[1] : "";
@@ -1240,14 +1231,11 @@ if ($isManager && $statusDoc === 'rejeitado') {
         try {
             let html;
             
-            // Cache
             if (contentCache.has(fullUrl)) {
                 html = contentCache.get(fullUrl);
             } else {
-                // Tentar .php primeiro
                 let response = await fetch(cleanName + '.php' + queryString, { cache: 'no-cache' });
                 
-                // Se falhar, tentar .html
                 if (!response.ok) {
                     response = await fetch(cleanName + '.html' + queryString, { cache: 'no-cache' });
                 }
@@ -1257,7 +1245,6 @@ if ($isManager && $statusDoc === 'rejeitado') {
                 } else {
                     html = await response.text();
                     
-                    // Limitar cache
                     if (contentCache.size > 20) {
                         const firstKey = contentCache.keys().next().value;
                         contentCache.delete(firstKey);
@@ -1268,7 +1255,6 @@ if ($isManager && $statusDoc === 'rejeitado') {
             
             contentArea.innerHTML = html;
 
-            // Executar scripts inline
             const existingScripts = new Set();
             contentArea.querySelectorAll('script').forEach(oldScript => {
                 const scriptContent = oldScript.innerHTML.trim();
@@ -1295,7 +1281,6 @@ if ($isManager && $statusDoc === 'rejeitado') {
                 }
             });
 
-            // Atualizar navegação ativa
             if(element && element.classList) {
                 document.querySelectorAll('.nav-item').forEach(btn => {
                     if(btn && btn.classList) btn.classList.remove('active');
@@ -1303,7 +1288,6 @@ if ($isManager && $statusDoc === 'rejeitado') {
                 
                 element.classList.add('active');
                 
-                // Atualizar breadcrumb
                 const labelSpan = element.querySelector('span');
                 if(labelSpan) {
                     document.getElementById('current-page-title').innerHTML = labelSpan.innerText + 
@@ -1311,7 +1295,6 @@ if ($isManager && $statusDoc === 'rejeitado') {
                 }
             }
 
-            // Atualizar URL
             const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + cleanName + queryString;
             window.history.pushState({ path: newUrl }, '', newUrl);
 
@@ -1335,7 +1318,6 @@ if ($isManager && $statusDoc === 'rejeitado') {
         }
     }
 
-    // Carregar página inicial
     window.addEventListener('DOMContentLoaded', function() {
         const urlParams = new URLSearchParams(window.location.search);
         const defaultPage = userData.isEmployee ? 'modules/produtos/produtos' : 'modules/dashboard/dashboard';
@@ -1343,7 +1325,6 @@ if ($isManager && $statusDoc === 'rejeitado') {
         loadContent(page, null);
     });
 
-    // Navegação com botão voltar
     window.onpopstate = () => {
         const urlParams = new URLSearchParams(window.location.search);
         const defaultPage = userData.isEmployee ? 'modules/produtos/produtos' : 'modules/dashboard/dashboard';
