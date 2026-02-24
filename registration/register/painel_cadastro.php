@@ -197,7 +197,7 @@ $csrf = csrf_generate();
         <?php if (!$isMobile && count($tiposPermitidos) > 1): ?>
             <div id="switchConta">
                 <button type="button" class="btn-toggle <?= $tipoAtual === 'business' ? 'active' : '' ?>" data-tipo="business">
-                    <i class="fa-solid fa-building"></i> Negócio
+                    <i class="fa-solid fa-building"></i> Negócio / Fornecedor
                 </button>
                 <button type="button" class="btn-toggle <?= $tipoAtual === 'pessoal' ? 'active' : '' ?>" data-tipo="pessoal">
                     <i class="fa-solid fa-user"></i> Pessoa
@@ -219,7 +219,7 @@ $csrf = csrf_generate();
                 </div>
                 
                 <div class="person-field-input">
-                    <label>Nome da Empresa / Negócio <span class="required">*</span></label>
+                    <label>Nome da Empresa / Negócio  <span class="required">*</span></label>
                     <input type="text" name="nome_empresa" id="nome_empresa" required placeholder="Digite o nome da sua empresa">
                     <span class="error-message">Este campo é obrigatório.</span>
                 </div>
