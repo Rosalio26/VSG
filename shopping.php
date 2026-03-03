@@ -1670,6 +1670,16 @@ input, select { font-family: var(--font); }
           $eco_first = is_array($eco_raw) && !empty($eco_raw) ? ($eco_opts[$eco_raw[0]] ?? null) : null;
           $nome_hl   = $search !== '' ? highlightTerm($p['nome'], $search) : esc($p['nome']);
           $pid       = (int)$p['id'];
+          
+          $card_meta = json_encode([
+            'name'     => $p['nome'],
+            'price'    => (float)$p['preco'],
+            'img'      => $img,
+            'stock'    => (int)$p['stock'],
+            'category' => $p['category_name'] ?: 'Geral',
+            'icon'     => $p['category_icon']  ?: 'box',
+            'company'  => $p['company_name']   ?: '',
+          ]);
         ?>
         <div class="pcard" onclick="location.href='product.php?id=<?= $pid ?>'">
           <div class="pcard-img">
@@ -1726,7 +1736,7 @@ input, select { font-family: var(--font); }
             <!-- Botões de acção — aparecem no hover -->
             <div class="pcard-actions">
               <button class="pcard-cart"
-                onclick="event.stopPropagation(); addToCart(<?= $pid ?>, this)"
+                onclick="event.stopPropagation(); addToCart(<?= $pid ?>, this, <?= htmlspecialchars($card_meta, ENT_QUOTES) ?>)"
                 title="Adicionar ao carrinho">
                 <i class="fa-solid fa-cart-plus"></i>
                 <span>Carrinho</span>
@@ -1774,39 +1784,114 @@ input, select { font-family: var(--font); }
 'use strict';
 
 /* ── Add to Cart (AJAX) ─────────────────────────── */
-window.addToCart = function(productId, btn) {
+/* ── Config guest cart ───────────────────────────── */
+var _LOGGED = <?= $user_logged_in ? 'true' : 'false' ?>;
+var _CSRF   = <?= json_encode($_SESSION['csrf_token']) ?>;
+
+/* ── Add to Cart: logado=AJAX / visitante=localStorage ── */
+window.addToCart = function(productId, btn, meta) {
   const orig = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>...</span>';
-  fetch('ajax/ajax_cart.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
-    body: 'action=add&product_id=' + productId + '&quantity=1&csrf_token=<?= $_SESSION['csrf_token'] ?>'
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.success) {
+  btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>...</span>';
+
+  function syncBadge(n) {
+    document.querySelectorAll('.cart-badge').forEach(el => {
+      el.textContent = n > 99 ? '99+' : n;
+      el.style.display = n > 0 ? '' : 'none';
+    });
+    if (n > 0 && !document.querySelector('.cart-badge')) {
+      const cb = document.querySelector('.cart-btn');
+      if (cb) { const b = document.createElement('span'); b.className = 'cart-badge'; b.textContent = n > 99 ? '99+' : n; cb.appendChild(b); }
+    }
+  }
+
+  function showToast(msg, tp) {
+    document.querySelectorAll('.vsg-toast').forEach(t => t.remove());
+    const colors = { success: ['#f0fdf4','#166534','#bbf7d0'], error: ['#fef2f2','#991b1b','#fecaca'] };
+    const [bg, co, bd] = colors[tp] || colors.success;
+    const ic = tp === 'error' ? 'exclamation-circle' : 'check-circle';
+    if (!document.getElementById('_vsgks')) {
+      const s = document.createElement('style'); s.id = '_vsgks';
+      s.textContent = '@keyframes _vsgIn{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}';
+      document.head.appendChild(s);
+    }
+    const el = document.createElement('div');
+    el.className = 'vsg-toast flash flash-' + tp;
+    el.style.cssText = `position:fixed;bottom:24px;right:20px;z-index:9999;background:${bg};color:${co};border-color:${bd};animation:_vsgIn .3s cubic-bezier(.16,1,.3,1);top:auto`;
+    el.innerHTML = `<i class="fa-solid fa-${ic}"></i><span>${msg}</span>`;
+    document.body.appendChild(el);
+    setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 320); }, 3000);
+  }
+
+  if (_LOGGED) {
+    /* utilizador logado — comportamento original */
+    fetch('ajax/ajax_cart.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+      body: 'action=add&product_id=' + productId + '&quantity=1&csrf_token=' + encodeURIComponent(_CSRF)
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> <span>Adicionado</span>';
+        btn.classList.add('added');
+        syncBadge(data.cart_count || 0);
+        try { sessionStorage.setItem('cart_count', data.cart_count); } catch(_) {}
+        showToast('Produto adicionado ao carrinho!', 'success');
+        setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('added'); btn.disabled = false; }, 2200);
+      } else {
+        btn.innerHTML = orig; btn.disabled = false;
+        if (data.redirect) { location.href = data.redirect; }
+        else { showToast(data.message || 'Erro ao adicionar.', 'error'); }
+      }
+    })
+    .catch(() => { btn.innerHTML = orig; btn.disabled = false; showToast('Erro de conexão.', 'error'); });
+
+  } else {
+    /* visitante — guarda em localStorage */
+    try {
+      const LS = 'vsg_cart_v2';
+      const d  = JSON.parse(localStorage.getItem(LS) || '{}');
+      const mx = (meta && meta.stock) ? parseInt(meta.stock) : 9999;
+      d[productId] = {
+        qty      : Math.min(((d[productId] && d[productId].qty) || 0) + 1, mx),
+        name     : (meta && meta.name)     || '',
+        price    : parseFloat(meta && meta.price)  || 0,
+        img      : (meta && meta.img)      || '',
+        stock    : mx,
+        category : (meta && meta.category) || 'Geral',
+        icon     : (meta && meta.icon)     || 'box',
+        company  : (meta && meta.company)  || '',
+      };
+      localStorage.setItem(LS, JSON.stringify(d));
+      const total = Object.values(d).reduce((a, i) => a + (parseInt(i.qty) || 0), 0);
+      syncBadge(total);
       btn.innerHTML = '<i class="fa-solid fa-check"></i> <span>Adicionado</span>';
       btn.classList.add('added');
-      // Actualiza badge do carrinho
-      const badge = document.querySelector('.cart-badge');
-      if (data.cart_count !== undefined) {
-        if (badge) { badge.textContent = data.cart_count > 99 ? '99+' : data.cart_count; badge.style.display = 'grid'; }
-        else {
-          const cb = document.querySelector('.cart-btn');
-          if (cb) { const b = document.createElement('span'); b.className = 'cart-badge'; b.textContent = data.cart_count; cb.appendChild(b); }
-        }
-        try { sessionStorage.setItem('cart_count', data.cart_count); } catch(_) {}
-      }
+      showToast('Produto adicionado ao carrinho!', 'success');
       setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('added'); btn.disabled = false; }, 2200);
-    } else {
+    } catch(e) {
       btn.innerHTML = orig; btn.disabled = false;
-      if (data.redirect) { location.href = data.redirect; }
-      else { alert(data.message || 'Erro ao adicionar ao carrinho.'); }
+      showToast('Não foi possível adicionar.', 'error');
     }
-  })
-  .catch(() => { btn.innerHTML = orig; btn.disabled = false; });
+  }
 };
+
+/* inicializa badge para visitantes ao carregar a página */
+if (!_LOGGED) {
+  try {
+    const d = JSON.parse(localStorage.getItem('vsg_cart_v2') || '{}');
+    const n = Object.values(d).reduce((a, i) => a + (parseInt(i.qty) || 0), 0);
+    if (n > 0) {
+      const badge = document.querySelector('.cart-badge');
+      if (badge) { badge.textContent = n > 99 ? '99+' : n; }
+      else {
+        const cb = document.querySelector('.cart-btn');
+        if (cb) { const b = document.createElement('span'); b.className = 'cart-badge'; b.textContent = n > 99 ? '99+' : n; cb.appendChild(b); }
+      }
+    }
+  } catch(_) {}
+}
 
 /* ── Sidebar mobile ─────────────────────────────── */
 function openSb() {
