@@ -1,247 +1,154 @@
 <?php
 /**
- * geo_location.php
- * Arquivo para incluir no topo do seu index.php ou header
- * Detecta a localização do usuário e disponibiliza as variáveis
+ * geo_location.php — VSG Marketplace
+ *
+ * FIX PERFORMANCE: Versão anterior fazia 2-3 chamadas HTTP externas
+ * (ipify.org + ipinfo.io + ip-api.com) a cada request quando IP = localhost,
+ * causando 5-30s de atraso. Esta versão:
+ *  1. Detecta localhost e usa país padrão (MZ) sem chamadas externas
+ *  2. Respeita o cache de sessão (1h) correctamente
+ *  3. Timeout reduzido de 5s para 2s
+ *  4. Uma única chamada HTTP (ip-api.com) com fallback silencioso
  */
 
-// Inicia sessão se ainda não foi iniciada
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-/**
- * Classe de Geolocalização
- */
-class GeoLocator {
-    
-    public $ip;
-    
-    public function __construct($ip = null) {
-        $this->ip = $ip ?? $this->getClientIP();
-    }
-    
-    private function getClientIP() {
-        $ip = '';
-        
-        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-            $ip = $_SERVER['HTTP_CLIENT_IP'];
-        } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $ip = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];
-        } else {
-            $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-        }
-        
-        $ip = trim($ip);
-        
-        // Se for localhost, busca o IP público real
-        if ($ip === '::1' || $ip === '127.0.0.1' || strpos($ip, '192.168.') === 0 || strpos($ip, '10.') === 0) {
-            $publicIP = $this->getPublicIP();
-            if ($publicIP) {
-                return $publicIP;
-            }
-        }
-        
-        return $ip;
-    }
-    
-    private function getPublicIP() {
-        $services = [
-            'https://api.ipify.org?format=json',
-            'https://ipinfo.io/json',
-        ];
-        
-        foreach ($services as $service) {
-            try {
-                $response = $this->makeRequest($service);
-                if ($response) {
-                    $data = json_decode($response, true);
-                    if (isset($data['ip'])) {
-                        return $data['ip'];
-                    }
-                }
-            } catch (Exception $e) {
-                continue;
-            }
-        }
-        
-        return null;
-    }
-    
-    private function makeRequest($url) {
-        if (function_exists('curl_init')) {
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            
-            return ($httpCode == 200) ? $response : false;
-        } else {
-            $context = stream_context_create([
-                'http' => [
-                    'timeout' => 5,
-                    'ignore_errors' => true
-                ]
-            ]);
-            return @file_get_contents($url, false, $context);
-        }
-    }
-    
-    public function getLocationFromIPAPI() {
-        $ip = ($this->ip === '127.0.0.1' || $this->ip === '::1') ? '' : $this->ip;
-        $url = "http://ip-api.com/json/{$ip}?fields=status,country,countryCode,region,regionName,city,lat,lon,timezone";
-        
-        $response = $this->makeRequest($url);
-        
-        if ($response === false) {
-            return null;
-        }
-        
-        $data = json_decode($response, true);
-        
-        if (isset($data['status']) && $data['status'] === 'success') {
-            return [
-                'ip' => $data['query'] ?? $this->ip,
-                'country' => $data['country'] ?? '',
-                'country_code' => $data['countryCode'] ?? '',
-                'region' => $data['regionName'] ?? '',
-                'city' => $data['city'] ?? '',
-                'latitude' => $data['lat'] ?? 0,
-                'longitude' => $data['lon'] ?? 0,
-                'timezone' => $data['timezone'] ?? '',
-                'source' => 'IP-API.com'
-            ];
-        }
-        
-        return null;
-    }
-    
-    public function getLocationFromIPInfo($token = null) {
-        $ip = ($this->ip === '127.0.0.1' || $this->ip === '::1') ? '' : $this->ip;
-        $url = $token 
-            ? "https://ipinfo.io/{$ip}?token={$token}"
-            : "https://ipinfo.io/{$ip}/json";
-        
-        $response = $this->makeRequest($url);
-        
-        if ($response === false) {
-            return null;
-        }
-        
-        $data = json_decode($response, true);
-        
-        if (isset($data['city'])) {
-            $coords = explode(',', $data['loc'] ?? '0,0');
-            return [
-                'ip' => $data['ip'] ?? $this->ip,
-                'country' => $data['country'] ?? '',
-                'country_code' => $data['country'] ?? '',
-                'region' => $data['region'] ?? '',
-                'city' => $data['city'] ?? '',
-                'latitude' => $coords[0] ?? 0,
-                'longitude' => $coords[1] ?? 0,
-                'timezone' => $data['timezone'] ?? '',
-                'source' => 'IPInfo.io'
-            ];
-        }
-        
-        return null;
-    }
-    
-    public function getLocation($config = []) {
-        // Tenta IP-API primeiro
-        $location = $this->getLocationFromIPAPI();
-        if ($location) return $location;
-        
-        // Tenta IPInfo
-        $location = $this->getLocationFromIPInfo($config['ipinfo_token'] ?? null);
-        if ($location) return $location;
-        
-        return null;
-    }
+// ── Já temos localização válida em sessão? ─────────────────────────────
+// Cache de 1 hora — evita qualquer chamada HTTP
+if (
+    isset($_SESSION['user_location'], $_SESSION['location_timestamp']) &&
+    (time() - $_SESSION['location_timestamp']) < 3600 &&
+    !empty($_SESSION['user_location']['source'])
+) {
+    // Disponibiliza variáveis globais e sai
+    _geo_set_globals($_SESSION['user_location']);
+    return; // ← sai do include sem executar o resto
 }
 
-// ============================================
-// DETECTA E ARMAZENA LOCALIZAÇÃO NA SESSÃO
-// ============================================
+// ── Detecta IP do cliente ──────────────────────────────────────────────
+function _geo_get_ip(): string {
+    foreach (['HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $key) {
+        if (!empty($_SERVER[$key])) {
+            $ip = trim(explode(',', $_SERVER[$key])[0]);
+            if (filter_var($ip, FILTER_VALIDATE_IP)) return $ip;
+        }
+    }
+    return '127.0.0.1';
+}
 
-// Verifica se já existe localização na sessão e se ainda é válida (cache de 1 hora)
-if (!isset($_SESSION['user_location']) || !isset($_SESSION['location_timestamp']) || 
-    (time() - $_SESSION['location_timestamp']) > 3600) {
-    
-    $locator = new GeoLocator();
-    $location = $locator->getLocation();
-    
-    if ($location && !empty($location['country'])) {
-        $_SESSION['user_location'] = $location;
-        $_SESSION['location_timestamp'] = time();
+// ── É localhost / IP privado? ──────────────────────────────────────────
+function _geo_is_local(string $ip): bool {
+    return in_array($ip, ['::1', '127.0.0.1'], true)
+        || str_starts_with($ip, '192.168.')
+        || str_starts_with($ip, '10.')
+        || str_starts_with($ip, '172.');
+}
+
+// ── Chamada HTTP leve (curl ou stream, timeout 2s) ─────────────────────
+function _geo_http(string $url): ?array {
+    $response = false;
+
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 2,      // ← era 5s, agora 2s
+            CURLOPT_CONNECTTIMEOUT => 1,      // ← era 5s, agora 1s
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        $response = curl_exec($ch);
+        $ok       = curl_getinfo($ch, CURLINFO_HTTP_CODE) === 200;
+        curl_close($ch);
+        if (!$ok) $response = false;
     } else {
-        // Localização padrão VAZIA (Melhor para UX do que "Desconhecido")
-        $_SESSION['user_location'] = [
-            'ip' => $locator->ip,
-            'country' => '', 
-            'country_code' => '',
-            'region' => '',
-            'city' => '', 
-            'latitude' => 0,
-            'longitude' => 0,
-            'timezone' => '',
-            'source' => 'Default'
-        ];
-        $_SESSION['location_timestamp'] = time();
+        $ctx = stream_context_create(['http' => ['timeout' => 2]]);
+        $response = @file_get_contents($url, false, $ctx);
     }
+
+    if (!$response) return null;
+    $data = json_decode($response, true);
+    return is_array($data) ? $data : null;
 }
 
-// Disponibiliza variáveis globais para uso no template
-$user_location = $_SESSION['user_location'];
-$user_city = $user_location['city'];
-$user_country = $user_location['country'];
-$user_region = $user_location['region'];
+// ── Resolve localização ────────────────────────────────────────────────
+$ip       = _geo_get_ip();
+$location = null;
 
-// Lógica de exibição amigável
-if (!empty($user_country)) {
-    $user_full_location = (!empty($user_city)) ? $user_city . ', ' . $user_country : $user_country;
+if (_geo_is_local($ip)) {
+    // Localhost: não faz chamadas externas — usa padrão MZ directamente
+    $location = [
+        'ip'           => $ip,
+        'country'      => 'Mozambique',
+        'country_code' => 'MZ',
+        'region'       => '',
+        'city'         => '',
+        'latitude'     => -18.665695,
+        'longitude'    => 35.529562,
+        'timezone'     => 'Africa/Maputo',
+        'source'       => 'localhost-default',
+    ];
 } else {
-    $user_full_location = 'Selecionar localização';
-}
+    // IP real: uma única chamada a ip-api.com
+    $data = _geo_http("http://ip-api.com/json/{$ip}?fields=status,country,countryCode,regionName,city,lat,lon,timezone,query");
 
-// Para uso em JavaScript
-$location_json = json_encode($user_location);
-?>
-
-<script>
-// Dados de localização do usuário
-const userLocation = <?= $location_json ?>;
-
-// Atualiza o texto de localização no header quando a página carregar
-document.addEventListener('DOMContentLoaded', function() {
-    const locationElement = document.querySelector('.location-now');
-    if (locationElement) {
-        const fullLocation = "<?= htmlspecialchars($user_full_location) ?>";
-        locationElement.textContent = fullLocation;
+    if ($data && ($data['status'] ?? '') === 'success') {
+        $location = [
+            'ip'           => $data['query']      ?? $ip,
+            'country'      => $data['country']    ?? '',
+            'country_code' => $data['countryCode'] ?? '',
+            'region'       => $data['regionName'] ?? '',
+            'city'         => $data['city']        ?? '',
+            'latitude'     => $data['lat']         ?? 0,
+            'longitude'    => $data['lon']         ?? 0,
+            'timezone'     => $data['timezone']    ?? '',
+            'source'       => 'ip-api.com',
+        ];
     }
+}
+
+// Fallback se tudo falhar
+if (!$location) {
+    $location = [
+        'ip'           => $ip,
+        'country'      => 'Mozambique',
+        'country_code' => 'MZ',
+        'region'       => '', 'city'      => '',
+        'latitude'     => 0,  'longitude' => 0,
+        'timezone'     => 'Africa/Maputo',
+        'source'       => 'fallback',
+    ];
+}
+
+// Guarda em sessão (1 hora de cache)
+$_SESSION['user_location']      = $location;
+$_SESSION['location_timestamp'] = time();
+
+_geo_set_globals($location);
+
+// ── Variáveis globais para templates ──────────────────────────────────
+function _geo_set_globals(array $loc): void {
+    global $user_location, $user_city, $user_country, $user_region, $user_full_location, $location_json;
+    $user_location    = $loc;
+    $user_city        = $loc['city']    ?? '';
+    $user_country     = $loc['country'] ?? '';
+    $user_region      = $loc['region']  ?? '';
+    $user_full_location = $user_city
+        ? "$user_city, $user_country"
+        : ($user_country ?: 'Selecionar localização');
+    $location_json = json_encode($loc, JSON_UNESCAPED_UNICODE);
+}
+?>
+<script>
+const userLocation = <?= $location_json ?? '{}' ?>;
+document.addEventListener('DOMContentLoaded', function () {
+    const el = document.querySelector('.location-now');
+    if (el) el.textContent = <?= json_encode($user_full_location ?? '') ?>;
 });
-
-// Função para abrir modal de seleção de localização (opcional)
-function changeLocation() {
-    // Aqui você pode adicionar um modal para o usuário escolher outra cidade
-    alert('Recurso de alteração de localização em desenvolvimento');
-}
 </script>
-
 <style>
-/* Estilos adicionais para o indicador de localização */
-.location-now {
-    font-weight: 600;
-    color: #2ecc71;
-}
-
-.top-link:hover .location-now {
-    text-decoration: underline;
-}
+.location-now { font-weight:600; color:#2ecc71; }
+.top-link:hover .location-now { text-decoration:underline; }
 </style>
