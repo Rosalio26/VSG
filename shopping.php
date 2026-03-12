@@ -1701,10 +1701,17 @@ function loadCache() {
 function saveCache(rates) { try { localStorage.setItem(CACHE_KEY, JSON.stringify({ rates, ts: Date.now() })); } catch(_) {} }
 async function fetchRates(silent) {
   try {
-    const r = await fetch('/api/get_exchange_rates.php?t=' + Date.now(), { headers: { 'X-Requested-With': 'XMLHttpRequest' }, signal: AbortSignal.timeout(5000) });
-    const data = await r.json();
+    const r = await fetch('api/get_exchange_rates.php?t=' + Date.now(), {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const text = await r.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch(pe) { throw new Error('Resposta inválida do servidor'); }
     if (data.success && data.rates) { saveCache(data.rates); applyRates(data.rates); }
-  } catch(e) { if (!silent) console.warn('[VSG]', e.message); }
+  } catch(e) { if (!silent) console.warn('[VSG Rates]', e.message); }
 }
 const cached = loadCache();
 if (cached) { applyRates(cached); fetchRates(true); } else fetchRates(false);

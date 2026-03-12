@@ -1,314 +1,177 @@
 <?php
 /**
- * API Endpoint - Taxas de Câmbio
- * Retorna taxas de câmbio em tempo real para o JavaScript
- * Versão corrigida com tratamento robusto de erros
- * 
- * @author VSG Development Team
- * @version 3.2
+ * API Endpoint — Taxas de Câmbio
+ * GET /api/get_exchange_rates.php
+ *
+ * Caminhos esperados (relativo à raiz do projecto, onde está shopping.php):
+ *   registration/includes/db.php          → define $mysqli
+ *   includes/currency/CurrencyExchange.php → classe CurrencyExchange
+ *
+ * @version 4.0
  */
 
-// ============================================================================
-// CONFIGURAÇÃO INICIAL - Suprimir TODOS os outputs não-JSON
-// ============================================================================
-
-// Desabilitar exibição de erros no output (mas continuar logando)
+// ── Output buffer + suprimir erros no output ─────────────────────────────────
 ini_set('display_errors', '0');
 ini_set('display_startup_errors', '0');
 error_reporting(E_ALL);
-
-// Iniciar buffer de saída ANTES de qualquer coisa
 ob_start();
 
-// Configurar headers HTTP primeiro
+// ── Headers ───────────────────────────────────────────────────────────────────
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, must-revalidate, max-age=0');
 header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
 header('Pragma: no-cache');
+header('X-Content-Type-Options: nosniff');
 
-// CORS para desenvolvimento (ajuste conforme necessário)
-if (isset($_SERVER['HTTP_ORIGIN'])) {
+// CORS (desenvolvimento)
+if (!empty($_SERVER['HTTP_ORIGIN'])) {
     header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
     header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Max-Age: 86400');
 }
-
-// Tratar requisições OPTIONS (preflight CORS)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    }
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
-        header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
-    }
+    header('Access-Control-Allow-Methods: GET, OPTIONS');
+    header('Access-Control-Allow-Headers: X-Requested-With, Content-Type');
     exit(0);
 }
 
-// ============================================================================
-// FUNÇÃO AUXILIAR - Enviar resposta JSON limpa
-// ============================================================================
-
-/**
- * Envia resposta JSON garantindo que não há lixo no output
- * 
- * @param array $data Dados para enviar
- * @param int $httpCode Código HTTP (padrão: 200)
- */
-function sendJsonResponse($data, $httpCode = 200) {
-    // Limpar completamente qualquer output anterior
+// ── Helper: enviar JSON limpo e terminar ──────────────────────────────────────
+function jsonOut(array $data, int $code = 200): void
+{
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
-    
-    // Definir código HTTP
-    http_response_code($httpCode);
-    
-    // Reconfirmar header (em caso de redirecionamentos internos)
+    http_response_code($code);
     header('Content-Type: application/json; charset=utf-8');
-    
-    // Enviar JSON formatado
-    echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit(0);
 }
 
-// ============================================================================
-// FUNÇÃO AUXILIAR - Log de erros seguro
-// ============================================================================
-
-/**
- * Registra erro no log do servidor sem quebrar a API
- * 
- * @param string $message Mensagem de erro
- * @param Exception|null $exception Exceção opcional
- */
-function logApiError($message, $exception = null) {
-    $logMessage = "[VSG Currency API] " . $message;
-    
-    if ($exception) {
-        $logMessage .= " | Erro: " . $exception->getMessage();
-        $logMessage .= " | Arquivo: " . $exception->getFile();
-        $logMessage .= " | Linha: " . $exception->getLine();
+// ── Helper: log de erro ───────────────────────────────────────────────────────
+function apiLog(string $msg, ?\Throwable $e = null): void
+{
+    $line = '[VSG Currency API] ' . $msg;
+    if ($e) {
+        $line .= ' | ' . $e->getMessage()
+               . ' em ' . $e->getFile() . ':' . $e->getLine();
     }
-    
-    error_log($logMessage);
+    error_log($line);
 }
 
-// ============================================================================
-// BLOCO TRY-CATCH PRINCIPAL
-// ============================================================================
+// ── Validar método ────────────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+    jsonOut(['success' => false, 'error' => 'Método não permitido.', 'rates' => []], 405);
+}
 
+// ── Localizar raiz do projecto ────────────────────────────────────────────────
+//
+// Este ficheiro fica em:  <raiz>/api/get_exchange_rates.php
+// A raiz do projecto é:   dirname(__DIR__)
+//
+$root = dirname(__DIR__);   // sobe um nível acima de /api/
+
+$dbPath       = $root . '/registration/includes/db.php';
+$exchangePath = $root . '/includes/currency/CurrencyExchange.php';
+
+// ── Verificar existência dos ficheiros ────────────────────────────────────────
+if (!file_exists($dbPath)) {
+    apiLog("db.php não encontrado em: {$dbPath}");
+    jsonOut([
+        'success' => false,
+        'error'   => 'Configuração do servidor em falta (db).',
+        'rates'   => [],
+    ], 500);
+}
+
+if (!file_exists($exchangePath)) {
+    apiLog("CurrencyExchange.php não encontrado em: {$exchangePath}");
+    jsonOut([
+        'success' => false,
+        'error'   => 'Configuração do servidor em falta (exchange).',
+        'rates'   => [],
+    ], 500);
+}
+
+// ── Carregar dependências ─────────────────────────────────────────────────────
 try {
-    // ------------------------------------------------------------------------
-    // VALIDAÇÃO DE MÉTODO HTTP
-    // ------------------------------------------------------------------------
-    
-    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-        throw new Exception('Método não permitido. Use GET.');
-    }
-    
-    // ------------------------------------------------------------------------
-    // DETECÇÃO E CARREGAMENTO DE ARQUIVOS NECESSÁRIOS
-    // ------------------------------------------------------------------------
-    
-    // Detectar diretório raiz do projeto
-    $currentDir = __DIR__;
-    $projectRoot = null;
-    
-    // Tentar localizar bootstrap.php subindo na hierarquia de diretórios
-    $maxLevels = 5; // Máximo de níveis para subir
-    for ($i = 0; $i < $maxLevels; $i++) {
-        $testPath = $currentDir . str_repeat('/..', $i) . '/registration/bootstrap.php';
-        
-        if (file_exists($testPath)) {
-            $projectRoot = realpath(dirname($testPath) . '/..');
-            break;
-        }
-    }
-    
-    if (!$projectRoot) {
-        throw new Exception(
-            'Não foi possível localizar o arquivo bootstrap.php. ' .
-            'Verifique a estrutura de diretórios do projeto.'
-        );
-    }
-    
-    // Definir caminhos absolutos
-    $bootstrapPath = $projectRoot . '/registration/bootstrap.php';
-    $currencyClassPath = $projectRoot . '/includes/currency/CurrencyExchange.php';
-    
-    // Verificar existência dos arquivos
-    if (!file_exists($bootstrapPath)) {
-        throw new Exception("Bootstrap não encontrado: {$bootstrapPath}");
-    }
-    
-    if (!file_exists($currencyClassPath)) {
-        throw new Exception("Classe CurrencyExchange não encontrada: {$currencyClassPath}");
-    }
-    
-    // ------------------------------------------------------------------------
-    // CARREGAR DEPENDÊNCIAS
-    // ------------------------------------------------------------------------
-    
-    // Capturar qualquer output gerado pelos requires
     ob_start();
-    
-    require_once $bootstrapPath;
-    require_once $currencyClassPath;
-    
-    // Descartar output dos requires
+    require_once $dbPath;
+    require_once $exchangePath;
     ob_end_clean();
-    
-    // Reiniciar buffer limpo
-    ob_start();
-    
-    // ------------------------------------------------------------------------
-    // VALIDAR CONEXÃO COM BANCO DE DADOS
-    // ------------------------------------------------------------------------
-    
-    if (!isset($mysqli)) {
-        throw new Exception('Variável $mysqli não foi definida pelo bootstrap.');
-    }
-    
-    if (!($mysqli instanceof mysqli)) {
-        throw new Exception('$mysqli não é uma instância válida de mysqli.');
-    }
-    
-    if ($mysqli->connect_error) {
-        throw new Exception('Erro de conexão MySQL: ' . $mysqli->connect_error);
-    }
-    
-    // ------------------------------------------------------------------------
-    // VALIDAR CLASSE CurrencyExchange
-    // ------------------------------------------------------------------------
-    
-    if (!class_exists('CurrencyExchange')) {
-        throw new Exception('Classe CurrencyExchange não foi carregada corretamente.');
-    }
-    
-    // ------------------------------------------------------------------------
-    // INICIALIZAR SISTEMA DE CÂMBIO
-    // ------------------------------------------------------------------------
-    
-    $exchange = new CurrencyExchange($mysqli);
-    
-    // ------------------------------------------------------------------------
-    // OBTER TAXAS DE CÂMBIO
-    // ------------------------------------------------------------------------
-    
-    // Tentar obter do cache primeiro
-    $rates = $exchange->getAllRates();
+    ob_start(); // buffer limpo para o resto
+} catch (\Throwable $e) {
+    apiLog('Erro ao carregar dependências', $e);
+    jsonOut(['success' => false, 'error' => 'Erro ao inicializar servidor.', 'rates' => []], 500);
+}
+
+// ── Validar $mysqli ───────────────────────────────────────────────────────────
+if (empty($mysqli) || !($mysqli instanceof mysqli) || $mysqli->connect_error) {
+    $detail = isset($mysqli) && $mysqli instanceof mysqli ? $mysqli->connect_error : 'variável não definida';
+    apiLog("Conexão MySQL inválida: {$detail}");
+    jsonOut(['success' => false, 'error' => 'Erro de conexão com base de dados.', 'rates' => []], 500);
+}
+
+// ── Validar classe ────────────────────────────────────────────────────────────
+if (!class_exists('CurrencyExchange')) {
+    apiLog('Classe CurrencyExchange não carregada.');
+    jsonOut(['success' => false, 'error' => 'Serviço de câmbio indisponível.', 'rates' => []], 500);
+}
+
+// ── Obter taxas ───────────────────────────────────────────────────────────────
+try {
+    $exchange  = new CurrencyExchange($mysqli);
+
+    // 1. Tentar cache/BD
+    $rates     = $exchange->getAllRates();
     $fromCache = !empty($rates);
-    
-    // Se cache vazio, buscar taxas principais
+
+    // 2. Se vazio, buscar moedas principais
     if (empty($rates)) {
-        $mainCurrencies = ['EUR', 'USD', 'BRL', 'GBP', 'CAD', 'AUD', 'ZAR', 'AOA'];
-        
-        foreach ($mainCurrencies as $currency) {
+        $main = ['EUR', 'USD', 'BRL', 'GBP', 'CAD', 'AUD', 'ZAR', 'AOA', 'CNY', 'JPY', 'CHF'];
+        foreach ($main as $cur) {
             try {
-                $rate = $exchange->getExchangeRate('MZN', $currency);
-                
+                $rate = $exchange->getExchangeRate('MZN', $cur);
                 if ($rate !== null && $rate > 0) {
-                    $rates["MZN_{$currency}"] = $rate;
-                    $rates["{$currency}_MZN"] = 1 / $rate;
+                    $rates["MZN_{$cur}"] = round($rate, 6);
+                    $rates["{$cur}_MZN"] = round(1 / $rate, 6);
                 }
-            } catch (Exception $e) {
-                logApiError("Erro ao buscar taxa MZN_{$currency}", $e);
-                // Continuar com outras moedas mesmo se uma falhar
-                continue;
+            } catch (\Throwable $e) {
+                apiLog("Taxa MZN_{$cur} falhou", $e);
             }
         }
     }
-    
-    // ------------------------------------------------------------------------
-    // CALCULAR TAXAS CRUZADAS COMUNS
-    // ------------------------------------------------------------------------
-    
-    $crossRates = [];
-    
-    // EUR <-> USD
-    if (isset($rates['MZN_EUR']) && isset($rates['MZN_USD'])) {
-        $crossRates['EUR_USD'] = $rates['MZN_USD'] / $rates['MZN_EUR'];
-        $crossRates['USD_EUR'] = $rates['MZN_EUR'] / $rates['MZN_USD'];
+
+    // 3. Taxas cruzadas derivadas
+    $pairs = [
+        ['EUR', 'USD'], ['EUR', 'BRL'], ['EUR', 'GBP'],
+        ['USD', 'BRL'], ['USD', 'GBP'], ['USD', 'ZAR'],
+        ['GBP', 'USD'], ['AOA', 'USD'],
+    ];
+    foreach ($pairs as [$a, $b]) {
+        $ka = "MZN_{$a}";
+        $kb = "MZN_{$b}";
+        if (!empty($rates[$ka]) && !empty($rates[$kb])) {
+            $rates["{$a}_{$b}"] = round($rates[$kb] / $rates[$ka], 6);
+            $rates["{$b}_{$a}"] = round($rates[$ka] / $rates[$kb], 6);
+        }
     }
-    
-    // EUR <-> BRL
-    if (isset($rates['MZN_EUR']) && isset($rates['MZN_BRL'])) {
-        $crossRates['EUR_BRL'] = $rates['MZN_BRL'] / $rates['MZN_EUR'];
-        $crossRates['BRL_EUR'] = $rates['MZN_EUR'] / $rates['MZN_BRL'];
-    }
-    
-    // USD <-> BRL
-    if (isset($rates['MZN_USD']) && isset($rates['MZN_BRL'])) {
-        $crossRates['USD_BRL'] = $rates['MZN_BRL'] / $rates['MZN_USD'];
-        $crossRates['BRL_USD'] = $rates['MZN_USD'] / $rates['MZN_BRL'];
-    }
-    
-    // GBP <-> EUR
-    if (isset($rates['MZN_GBP']) && isset($rates['MZN_EUR'])) {
-        $crossRates['GBP_EUR'] = $rates['MZN_EUR'] / $rates['MZN_GBP'];
-        $crossRates['EUR_GBP'] = $rates['MZN_GBP'] / $rates['MZN_EUR'];
-    }
-    
-    // Mesclar taxas
-    $rates = array_merge($rates, $crossRates);
-    
-    // ------------------------------------------------------------------------
-    // PREPARAR RESPOSTA DE SUCESSO
-    // ------------------------------------------------------------------------
-    
-    $response = [
-        'success' => true,
-        'rates' => $rates,
+
+    jsonOut([
+        'success'       => true,
+        'rates'         => $rates,
         'base_currency' => 'MZN',
-        'timestamp' => time(),
-        'cached' => $fromCache,
-        'total_rates' => count($rates),
-        'server_time' => date('Y-m-d H:i:s'),
-        'api_version' => '3.2'
-    ];
-    
-    sendJsonResponse($response, 200);
-    
-} catch (Exception $e) {
-    // ------------------------------------------------------------------------
-    // TRATAMENTO DE ERROS
-    // ------------------------------------------------------------------------
-    
-    // Logar erro no servidor
-    logApiError('Erro fatal na API', $e);
-    
-    // Preparar resposta de erro
-    $errorResponse = [
+        'timestamp'     => time(),
+        'cached'        => $fromCache,
+        'total_rates'   => count($rates),
+        'server_time'   => date('Y-m-d H:i:s'),
+        'api_version'   => '4.0',
+    ]);
+
+} catch (\Throwable $e) {
+    apiLog('Erro ao obter taxas', $e);
+    jsonOut([
         'success' => false,
-        'error' => 'Erro ao buscar taxas de câmbio',
+        'error'   => 'Não foi possível obter as taxas de câmbio.',
         'message' => $e->getMessage(),
-        'rates' => [],
-        'timestamp' => time(),
-        'server_time' => date('Y-m-d H:i:s')
-    ];
-    
-    // Adicionar detalhes extras em modo debug
-    if (defined('DEBUG_MODE') && DEBUG_MODE === true) {
-        $errorResponse['debug'] = [
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'trace' => $e->getTraceAsString()
-        ];
-    }
-    
-    sendJsonResponse($errorResponse, 500);
+        'rates'   => [],
+    ], 500);
 }
-
-// ============================================================================
-// FALLBACK - Caso algo dê errado com o sendJsonResponse
-// ============================================================================
-
-// Este código só executa se sendJsonResponse() falhar (não deveria acontecer)
-ob_end_clean();
-http_response_code(500);
-echo json_encode([
-    'success' => false,
-    'error' => 'Erro crítico no servidor',
-    'rates' => []
-]);
