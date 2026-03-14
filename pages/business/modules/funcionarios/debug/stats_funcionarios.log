@@ -46,3 +46,15 @@
 07:02:06 - Departamentos - {"departamentos":1}
 07:02:06 - Stats calculadas - {"success":true,"total":1,"ativos":1,"inativos":0,"departamentos":1}
 07:02:06 - === FIM STATS FUNCIONÁRIOS (SUCESSO) ===
+22:51:11 - === INÍCIO STATS FUNCIONÁRIOS ===
+21:51:11 - User ID - {"user_id":2}
+21:51:11 - Calculando total
+21:51:11 - Total - {"total":0}
+21:51:11 - Calculando ativos
+21:51:11 - Ativos - {"ativos":0}
+21:51:11 - Calculando inativos
+21:51:11 - Inativos - {"inativos":0}
+21:51:11 - Calculando departamentos
+21:51:11 - Departamentos - {"departamentos":0}
+21:51:12 - Stats calculadas - {"success":true,"total":0,"ativos":0,"inativos":0,"departamentos":0}
+21:51:12 - === FIM STATS FUNCIONÁRIOS (SUCESSO) ===

@@ -18,9 +18,9 @@ ob_start();
 
 // ── Headers ───────────────────────────────────────────────────────────────────
 header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: no-cache, must-revalidate, max-age=0');
-header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
-header('Pragma: no-cache');
+// Cache de 1h — taxas não mudam ao segundo e o JS já tem cache local de 6h
+header('Cache-Control: public, max-age=3600, s-maxage=3600');
+header('Vary: Accept-Encoding');
 header('X-Content-Type-Options: nosniff');
 
 // CORS (desenvolvimento)
@@ -163,7 +163,7 @@ try {
         'cached'        => $fromCache,
         'total_rates'   => count($rates),
         'server_time'   => date('Y-m-d H:i:s'),
-        'api_version'   => '4.0',
+        'api_version'   => '4.1',
     ]);
 
 } catch (\Throwable $e) {

@@ -93,12 +93,12 @@ function highlightTerm(string $text, string $term): string {
 /* ===== MOEDA ===== */
 $currency_map = [
     'MZ' => ['currency' => 'MZN', 'symbol' => 'MT',  'rate' => 1],
-    'BR' => ['currency' => 'BRL', 'symbol' => 'R$',   'rate' => 0.062],
-    'PT' => ['currency' => 'EUR', 'symbol' => '€',    'rate' => 0.015],
-    'US' => ['currency' => 'USD', 'symbol' => '$',    'rate' => 0.016],
-    'GB' => ['currency' => 'GBP', 'symbol' => '£',    'rate' => 0.013],
-    'ZA' => ['currency' => 'ZAR', 'symbol' => 'R',    'rate' => 0.29],
-    'AO' => ['currency' => 'AOA', 'symbol' => 'Kz',   'rate' => 15.2],
+    'BR' => ['currency' => 'BRL', 'symbol' => 'R$',  'rate' => 0.062],
+    'PT' => ['currency' => 'EUR', 'symbol' => '€',   'rate' => 0.015],
+    'US' => ['currency' => 'USD', 'symbol' => '$',   'rate' => 0.016],
+    'GB' => ['currency' => 'GBP', 'symbol' => '£',   'rate' => 0.013],
+    'ZA' => ['currency' => 'ZAR', 'symbol' => 'R',   'rate' => 0.29],
+    'AO' => ['currency' => 'AOA', 'symbol' => 'Kz',  'rate' => 15.2],
 ];
 $user_country_code  = $_SESSION['auth']['country_code'] ?? $_SESSION['user_location']['country_code'] ?? 'MZ';
 $user_currency_info = $currency_map[strtoupper($user_country_code)] ?? $currency_map['MZ'];
@@ -109,6 +109,9 @@ $user_name      = $user_logged_in ? ($_SESSION['auth']['nome']   ?? 'Usuário') 
 $user_avatar    = $user_logged_in ? ($_SESSION['auth']['avatar'] ?? null)      : null;
 $user_type      = $user_logged_in ? ($_SESSION['auth']['type']   ?? 'person')  : null;
 $user_id        = $user_logged_in ? (int)$_SESSION['auth']['user_id']          : 0;
+
+/* ===== RESTRIÇÃO: empresas não podem aceder à loja ===== */
+require_once __DIR__ . '/includes/company_guard.php';
 
 /* ===== FLASH ===== */
 $flash_message = $_SESSION['flash_message'] ?? null;
@@ -152,13 +155,27 @@ $sort_map = [
 $sort      = in_array($sort, array_keys($sort_map)) ? $sort : 'recent';
 $order_sql = $sort_map[$sort];
 
-/* ===== FULLTEXT CHECK ===== */
+/* ===== FULLTEXT CHECK
+   FIX #1: Guardado na sessão — evita consultar information_schema em cada request.
+   information_schema.STATISTICS é uma view do sistema sem índices, pode demorar
+   200-800ms por chamada. O índice raramente muda, portanto a sessão é segura.
+===== */
 $use_fulltext = false;
 $search_score = '0';
 if ($search !== '') {
-    $ft_check     = $mysqli->query("SELECT 1 FROM information_schema.STATISTICS WHERE table_schema=DATABASE() AND table_name='products' AND index_type='FULLTEXT' AND index_name='ft_products_search' LIMIT 1");
-    $use_fulltext = $ft_check && $ft_check->num_rows > 0;
-    if ($ft_check) $ft_check->free();
+    if (!isset($_SESSION['_ft_check'])) {
+        $ft_check = $mysqli->query(
+            "SELECT 1 FROM information_schema.STATISTICS
+             WHERE table_schema = DATABASE()
+               AND table_name   = 'products'
+               AND index_type   = 'FULLTEXT'
+               AND index_name   = 'ft_products_search'
+             LIMIT 1"
+        );
+        $_SESSION['_ft_check'] = ($ft_check && $ft_check->num_rows > 0);
+        if ($ft_check) $ft_check->free();
+    }
+    $use_fulltext = $_SESSION['_ft_check'];
 }
 
 /* ===== WHERE DINÂMICO ===== */
@@ -168,19 +185,28 @@ $types  = '';
 
 if ($search !== '') {
     if ($use_fulltext) {
-        $ft_term = '+' . implode(' +', array_filter(explode(' ', preg_replace('/[^\w\s]/u', ' ', $search)))) . '*';
-        if (trim(str_replace('+', '', $ft_term)) === '*') {
+        // Construir termo fulltext boolean: "+palavra1 +palavra2*"
+        $words   = array_filter(explode(' ', preg_replace('/[^\w\s]/u', ' ', $search)));
+        $ft_term = implode(' ', array_map(fn($w) => '+' . $w . '*', $words));
+
+        // Validar que o termo não ficou vazio
+        if ($ft_term === '' || trim(str_replace(['+','*',' '], '', $ft_term)) === '') {
             $use_fulltext = false;
         } else {
             $where[]      = "MATCH(p.nome, p.descricao) AGAINST(? IN BOOLEAN MODE)";
             $search_score = "MATCH(p.nome, p.descricao) AGAINST(? IN BOOLEAN MODE)";
-            $params[]     = $ft_term; $types .= 's';
+            $params[]     = $ft_term;
+            $types       .= 's';
         }
     }
+
+    // LIKE — executado se fulltext não estiver disponível OU se a validação falhou
     if (!$use_fulltext) {
+        $wild         = '%' . $search . '%';
         $where[]      = "(p.nome LIKE ? OR p.descricao LIKE ?)";
-        $wild         = "%{$search}%";
-        $params[]     = $wild; $params[] = $wild; $types .= 'ss';
+        $params[]     = $wild;
+        $params[]     = $wild;
+        $types       .= 'ss';
         $search_score = "(CASE WHEN p.nome LIKE ? THEN 2 ELSE 1 END)";
     }
 }
@@ -194,16 +220,42 @@ if ($eco_filter !== '') {
 }
 $where_sql = implode(' AND ', $where);
 
-/* ===== SIDEBAR CACHE (5 min) ===== */
+/* ===== SIDEBAR CACHE (5 min em sessão) ===== */
 if (isset($_SESSION['_sb_cache']) && (time() - ($_SESSION['_sb_cache']['ts'] ?? 0)) < 300) {
     $categories = $_SESSION['_sb_cache']['cats'];
     $suppliers  = $_SESSION['_sb_cache']['sups'];
 } else {
-    $cr = $mysqli->query("SELECT c.id,c.name,c.icon,COUNT(p.id) AS cnt FROM categories c LEFT JOIN products p ON p.category_id=c.id AND p.status='ativo' AND p.deleted_at IS NULL AND p.stock>0 WHERE c.parent_id IS NULL AND c.status='ativa' GROUP BY c.id,c.name,c.icon ORDER BY cnt DESC,c.name ASC LIMIT 20");
+    $cr = $mysqli->query("
+        SELECT c.id, c.name, c.icon, COUNT(p.id) AS cnt
+        FROM categories c
+        LEFT JOIN products p
+            ON p.category_id = c.id
+            AND p.status     = 'ativo'
+            AND p.deleted_at IS NULL
+            AND p.stock      > 0
+        WHERE c.parent_id IS NULL
+          AND c.status = 'ativa'
+        GROUP BY c.id, c.name, c.icon
+        ORDER BY cnt DESC, c.name ASC
+        LIMIT 20
+    ");
     $categories = $cr ? $cr->fetch_all(MYSQLI_ASSOC) : [];
     if ($cr) $cr->free();
 
-    $sr = $mysqli->query("SELECT u.id,u.nome,COUNT(p.id) AS cnt FROM users u INNER JOIN products p ON p.user_id=u.id AND p.status='ativo' AND p.deleted_at IS NULL AND p.stock>0 WHERE u.type='company' AND u.status='active' GROUP BY u.id,u.nome ORDER BY cnt DESC LIMIT 15");
+    $sr = $mysqli->query("
+        SELECT u.id, u.nome, COUNT(p.id) AS cnt
+        FROM users u
+        INNER JOIN products p
+            ON p.user_id     = u.id
+            AND p.status     = 'ativo'
+            AND p.deleted_at IS NULL
+            AND p.stock      > 0
+        WHERE u.type   = 'company'
+          AND u.status = 'active'
+        GROUP BY u.id, u.nome
+        ORDER BY cnt DESC
+        LIMIT 15
+    ");
     $suppliers = $sr ? $sr->fetch_all(MYSQLI_ASSOC) : [];
     if ($sr) $sr->free();
 
@@ -227,31 +279,64 @@ $total_pages = max(1, ceil($total_rows / $per_page));
 $page        = min($page, $total_pages);
 $offset      = ($page - 1) * $per_page;
 
-/* ===== QUERY PRODUTOS ===== */
+/* ===== QUERY PRODUTOS
+   FIX #2: Subqueries correlacionadas substituídas por um único LEFT JOIN com
+   derived table. As subqueries antigas executavam 2 queries extra por produto
+   (até 48 queries adicionais por page load com 24 produtos).
+===== */
 $score_col   = $search !== '' ? "({$search_score}) AS search_score" : "0 AS search_score";
-$order_sql_f = ($search !== '' && $sort === 'recent') ? "search_score DESC, p.total_sales DESC, p.created_at DESC" : $order_sql;
+$order_sql_f = ($search !== '' && $sort === 'recent')
+    ? "search_score DESC, p.total_sales DESC, p.created_at DESC"
+    : $order_sql;
 
 $products_sql = "
-    SELECT p.id,p.nome,p.descricao,p.preco,p.currency,p.imagem,p.image_path1,
-           p.stock,p.created_at,p.eco_badges,p.total_sales,
-           COALESCE(c.name,'') AS category_name,
-           COALESCE(c.icon,'box') AS category_icon,
-           COALESCE(u.nome,'') AS company_name,
-           COALESCE((SELECT ROUND(AVG(r.rating),1) FROM customer_reviews r WHERE r.product_id=p.id),0) AS avg_rating,
-           COALESCE((SELECT COUNT(*) FROM customer_reviews r WHERE r.product_id=p.id),0) AS review_count,
-           {$score_col}
+    SELECT
+        p.id, p.nome, p.descricao, p.preco, p.currency,
+        p.imagem, p.image_path1, p.stock, p.created_at,
+        p.eco_badges, p.total_sales,
+        COALESCE(c.name,  '')    AS category_name,
+        COALESCE(c.icon,  'box') AS category_icon,
+        COALESCE(u.nome,  '')    AS company_name,
+        COALESCE(rv.avg_rating,   0) AS avg_rating,
+        COALESCE(rv.review_count, 0) AS review_count,
+        {$score_col}
     FROM products p
-    LEFT JOIN categories c ON c.id=p.category_id
-    LEFT JOIN users      u ON u.id=p.user_id
-    WHERE $where_sql
-    ORDER BY $order_sql_f
+    LEFT JOIN categories c ON c.id = p.category_id
+    LEFT JOIN users      u ON u.id = p.user_id
+    LEFT JOIN (
+        SELECT product_id,
+               ROUND(AVG(rating), 1) AS avg_rating,
+               COUNT(*)              AS review_count
+        FROM   customer_reviews
+        GROUP  BY product_id
+    ) rv ON rv.product_id = p.id
+    WHERE {$where_sql}
+    ORDER BY {$order_sql_f}
     LIMIT ? OFFSET ?
 ";
 
+/*
+ * $score_params — parâmetro extra para o ? do search_score no SELECT.
+ *
+ * Fulltext: a expressão MATCH(...) AGAINST(?) no SELECT precisa do $ft_term.
+ * LIKE:     a expressão CASE WHEN p.nome LIKE ? precisa de $wild (sem %).
+ *           Usamos o mesmo $wild que foi passado ao WHERE.
+ *
+ * Nota: o ? do score aparece no SELECT antes do WHERE, por isso
+ * $score_params tem de ser o PRIMEIRO no array de bind.
+ */
 $score_params = [];
 $score_types  = '';
-if ($search !== '' && $use_fulltext)  { $score_params = [$ft_term];       $score_types = 's'; }
-elseif ($search !== '')               { $score_params = ["%{$search}%"]; $score_types = 's'; }
+if ($search !== '') {
+    if ($use_fulltext) {
+        $score_params = [$ft_term];
+        $score_types  = 's';
+    } else {
+        // $wild já foi definido no bloco WHERE acima
+        $score_params = [$wild];
+        $score_types  = 's';
+    }
+}
 
 $products = [];
 $st = $mysqli->prepare($products_sql);
@@ -272,7 +357,12 @@ if ($user_logged_in) {
     if (isset($_SESSION['cart_count'])) {
         $cart_count = (int)$_SESSION['cart_count'];
     } else {
-        $st = $mysqli->prepare("SELECT COALESCE(SUM(ci.quantity),0) AS n FROM shopping_carts sc INNER JOIN cart_items ci ON ci.cart_id=sc.id WHERE sc.user_id=? AND sc.status='active'");
+        $st = $mysqli->prepare("
+            SELECT COALESCE(SUM(ci.quantity), 0) AS n
+            FROM shopping_carts sc
+            INNER JOIN cart_items ci ON ci.cart_id = sc.id
+            WHERE sc.user_id = ? AND sc.status = 'active'
+        ");
         if ($st) {
             $st->bind_param('i', $user_id);
             $st->execute();
@@ -567,7 +657,7 @@ input,select{font-family:var(--font)}
 .hdr-btn img{width:26px;height:26px;border-radius:50%;object-fit:cover}
 
 /* ════════════════════════════════════════════
-   CATEGORY BAR  (estilo Alibaba/Amazon)
+   CATEGORY BAR
 ════════════════════════════════════════════ */
 .cat-bar{
   background:var(--sur);
@@ -575,6 +665,7 @@ input,select{font-family:var(--font)}
   position:sticky;
   top:var(--hdr-h);
   z-index:490;
+  overflow:hidden;
 }
 .cat-bar-in{
   display:flex;align-items:center;
@@ -585,7 +676,6 @@ input,select{font-family:var(--font)}
   scrollbar-width:none;
 }
 .cat-bar-in::-webkit-scrollbar{display:none}
-
 .cat-all{
   display:flex;align-items:center;gap:8px;
   padding:0 20px;height:100%;flex-shrink:0;
@@ -597,7 +687,6 @@ input,select{font-family:var(--font)}
 }
 .cat-all:hover{background:var(--g5)}
 .cat-all i{font-size:15px}
-
 .cat-item{
   display:flex;align-items:center;gap:7px;
   padding:0 18px;height:100%;flex-shrink:0;
@@ -621,8 +710,6 @@ input,select{font-family:var(--font)}
   margin-left:2px;
 }
 .cat-item.on .cnt{background:var(--g1);color:var(--g5)}
-
-/* Scroll arrows */
 .cat-arrow{
   position:absolute;top:0;bottom:0;
   width:32px;display:flex;align-items:center;justify-content:center;
@@ -634,10 +721,9 @@ input,select{font-family:var(--font)}
 .cat-arrow:hover{color:var(--g4)}
 .cat-arrow.left{left:0;background:linear-gradient(to left,transparent,var(--sur) 60%)}
 .cat-arrow.right{right:0}
-.cat-bar{position:sticky;top:var(--hdr-h);z-index:490;overflow:hidden}
 
 /* ════════════════════════════════════════════
-   FILTER BAR  (inline, entre cats e produtos)
+   FILTER BAR
 ════════════════════════════════════════════ */
 .filter-bar{
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
@@ -645,8 +731,6 @@ input,select{font-family:var(--font)}
 }
 .filter-bar-l{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:0}
 .filter-bar-r{display:flex;align-items:center;gap:8px;flex-shrink:0}
-
-/* Pills activos */
 .f-pill{
   display:inline-flex;align-items:center;gap:5px;
   padding:5px 12px;
@@ -656,8 +740,6 @@ input,select{font-family:var(--font)}
 }
 .f-pill a{color:var(--ink4);font-size:13px;margin-left:4px;transition:color .1s}
 .f-pill a:hover{color:var(--red)}
-
-/* Filter dropdowns */
 .f-drop-wrap{position:relative}
 .f-drop-btn{
   display:inline-flex;align-items:center;gap:6px;
@@ -689,8 +771,6 @@ input,select{font-family:var(--font)}
 .f-opt .f-cnt{font-size:11.5px;color:var(--ink4);background:var(--bg);padding:2px 7px;border-radius:var(--r99)}
 .f-opt.on .f-cnt{background:var(--g1);color:var(--g5)}
 .f-sep{height:1px;background:var(--bdr2);margin:5px 0}
-
-/* Price form inline */
 .price-form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:6px 6px 8px}
 .price-form-row label{font-size:11px;font-weight:600;color:var(--ink4);margin-bottom:3px;display:block}
 .price-form-row input{
@@ -707,8 +787,6 @@ input,select{font-family:var(--font)}
   transition:background .15s;
 }
 .btn-apply:hover{background:var(--g5)}
-
-/* Sort select */
 .sort-sel{
   padding:7px 32px 7px 14px;
   border:1.5px solid var(--bdr);border-radius:var(--r99);
@@ -718,8 +796,6 @@ input,select{font-family:var(--font)}
   transition:border-color .15s;
 }
 .sort-sel:focus,.sort-sel:hover{border-color:var(--g3)}
-
-/* View toggle */
 .view-tog{display:flex;gap:4px}
 .v-btn{
   width:36px;height:36px;border-radius:var(--r8);
@@ -728,8 +804,6 @@ input,select{font-family:var(--font)}
   transition:all .15s;
 }
 .v-btn.on,.v-btn:hover{background:var(--g4);border-color:var(--g4);color:#fff}
-
-/* Total label */
 .total-lbl{font-size:13.5px;color:var(--ink3);flex-shrink:0}
 .total-lbl strong{color:var(--ink);font-weight:700}
 
@@ -774,8 +848,6 @@ input,select{font-family:var(--font)}
   transform:translateY(-3px);
   border-color:rgba(16,185,129,.3);
 }
-
-/* Image */
 .pcard-img{
   position:relative;width:100%;padding-top:100%;
   background:var(--bdr2);overflow:hidden;
@@ -786,8 +858,6 @@ input,select{font-family:var(--font)}
   transition:transform .3s var(--ease);
 }
 .pcard:hover .pcard-img img{transform:scale(1.05)}
-
-/* Badges */
 .pcard-badges{position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:4px;z-index:2}
 .pb{
   display:inline-block;padding:3px 8px;border-radius:var(--r4);
@@ -796,8 +866,6 @@ input,select{font-family:var(--font)}
 .pb-new{background:#3b82f6;color:#fff}
 .pb-hot{background:var(--amber);color:#fff}
 .pb-eco{background:var(--g1);color:var(--g5);border:1px solid var(--g2)}
-
-/* Quick actions */
 .pcard-qa{
   position:absolute;top:10px;right:10px;z-index:2;
   display:flex;flex-direction:column;gap:5px;
@@ -814,8 +882,6 @@ input,select{font-family:var(--font)}
   transition:background .1s,color .1s,border-color .1s;
 }
 .qa-btn:hover{background:var(--g4);color:#fff;border-color:var(--g4)}
-
-/* Body */
 .pcard-body{padding:14px 16px;flex:1;display:flex;flex-direction:column}
 .pcard-cat{
   display:inline-flex;align-items:center;gap:5px;
@@ -855,8 +921,6 @@ input,select{font-family:var(--font)}
 }
 .pcard-stock.ok{background:#f0fdf4;color:#166534;border-color:#bbf7d0}
 .pcard-stock.low{background:#fef2f2;color:#991b1b;border-color:#fecaca}
-
-/* Hover actions */
 .pcard-actions{
   display:flex;gap:7px;margin-top:10px;
   opacity:0;transform:translateY(4px);
@@ -880,16 +944,12 @@ input,select{font-family:var(--font)}
   transition:background .15s;white-space:nowrap;text-decoration:none;
 }
 .p-buy:hover{background:var(--ink2)}
-
-/* Description */
 .pcard-desc{
   font-size:12px;color:var(--ink3);line-height:1.45;
   margin-bottom:8px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
   overflow:hidden;
 }
-
-/* No-comment badge */
 .rv-nac{
   font-size:11px;font-weight:600;
   color:var(--ink4);
@@ -1128,7 +1188,7 @@ input,select{font-family:var(--font)}
           <i class="fa-solid fa-chevron-down ch"></i>
         </button>
         <div class="f-drop" id="priceD">
-          <form action="shopping.php" method="get" onsubmit="">
+          <form action="shopping.php" method="get">
             <?php foreach ($_GET as $k => $v): if (!in_array($k,['min','max','page'])): ?>
               <input type="hidden" name="<?= esc($k) ?>" value="<?= esc($v) ?>">
             <?php endif; endforeach; ?>
@@ -1290,23 +1350,18 @@ input,select{font-family:var(--font)}
         $nom_hl   = $search !== '' ? highlightTerm($p['nome'], $search) : esc($p['nome']);
         $pid      = (int)$p['id'];
 
-        // Description: strip tags, truncate at 90 chars
-        $desc_raw = trim(strip_tags($p['descricao'] ?? ''));
-        $desc_short = mb_strlen($desc_raw) > 90
-            ? mb_substr($desc_raw, 0, 90) . '…'
-            : $desc_raw;
+        $desc_raw   = trim(strip_tags($p['descricao'] ?? ''));
+        $desc_short = mb_strlen($desc_raw) > 90 ? mb_substr($desc_raw, 0, 90) . '…' : $desc_raw;
+        $buy_href   = 'checkout.php?buy_now=' . $pid . '&qty=1';
 
-        // Buy button: logged in → checkout directly; guest → login redirect
-        $buy_href = $user_logged_in
-            ? 'checkout.php?buy_now=' . $pid . '&qty=1'
-            : 'registration/login/login.php?redirect=' . urlencode('checkout.php?buy_now=' . $pid . '&qty=1');
-
-        $meta_js  = json_encode([
-          'name'=>$p['nome'],'price'=>(float)$p['preco'],
-          'img'=>$img,'stock'=>(int)$p['stock'],
-          'category'=>$p['category_name']?:'Geral',
-          'icon'=>$p['category_icon']?:'box',
-          'company'=>$p['company_name']?:'',
+        $meta_js = json_encode([
+          'name'     => $p['nome'],
+          'price'    => (float)$p['preco'],
+          'img'      => $img,
+          'stock'    => (int)$p['stock'],
+          'category' => $p['category_name'] ?: 'Geral',
+          'icon'     => $p['category_icon'] ?: 'box',
+          'company'  => $p['company_name']  ?: '',
         ]);
       ?>
       <div class="pcard" onclick="location.href='product.php?id=<?= $pid ?>'">
@@ -1412,7 +1467,6 @@ window.scrollCat = function(dx) {
   const bar = document.getElementById('catBar');
   if (bar) bar.scrollBy({ left: dx, behavior: 'smooth' });
 };
-// Show/hide arrows based on scroll
 (function() {
   const bar = document.getElementById('catBar');
   const btnL = document.getElementById('catLeft');
@@ -1432,7 +1486,6 @@ window.toggleDrop = function(id, btn) {
   const d = document.getElementById(id);
   if (!d) return;
   const isOpen = d.classList.contains('open');
-  // Close all
   document.querySelectorAll('.f-drop.open').forEach(x => x.classList.remove('open'));
   document.querySelectorAll('.f-drop-btn.open').forEach(x => x.classList.remove('open'));
   if (!isOpen) { d.classList.add('open'); if (btn) btn.classList.add('open'); }
@@ -1563,40 +1616,24 @@ if (!_LOGGED) {
 }
 
 /* ══ Search dropdown ══ */
-const inp = document.getElementById('searchInput');
-const sdrop = document.getElementById('sDrop');
-const xBtn = document.getElementById('searchX');
-const goBtn = document.getElementById('searchGo');
-const hdrIn = document.getElementById('hdrIn');
+const inp     = document.getElementById('searchInput');
+const sdrop   = document.getElementById('sDrop');
+const xBtn    = document.getElementById('searchX');
+const goBtn   = document.getElementById('searchGo');
+const hdrIn   = document.getElementById('hdrIn');
 const cancelBtn = document.getElementById('searchCancel');
 let sTimer = null;
 
-/* Search expand / collapse (mobile) */
 function isMobile() { return window.innerWidth <= 600; }
-
-function expandSearch() {
-  if (!isMobile()) return;
-  hdrIn.classList.add('search-active');
-  inp.focus();
-}
-function collapseSearch() {
-  hdrIn.classList.remove('search-active');
-  hideDrop();
-}
+function expandSearch()  { if (!isMobile()) return; hdrIn.classList.add('search-active'); inp.focus(); }
+function collapseSearch(){ hdrIn.classList.remove('search-active'); hideDrop(); }
 
 inp?.addEventListener('focus', () => {
   expandSearch();
   if (inp.value.trim().length >= 2 && sdrop.innerHTML) sdrop.style.display = 'block';
 });
-cancelBtn?.addEventListener('click', () => {
-  collapseSearch();
-  inp.value = '';
-  xBtn.style.display = 'none';
-});
-/* Colapsa quando muda o tamanho da janela para desktop */
-window.addEventListener('resize', () => {
-  if (!isMobile()) hdrIn.classList.remove('search-active');
-}, { passive: true });
+cancelBtn?.addEventListener('click', () => { collapseSearch(); inp.value = ''; xBtn.style.display = 'none'; });
+window.addEventListener('resize', () => { if (!isMobile()) hdrIn.classList.remove('search-active'); }, { passive: true });
 
 function escH(t) { return String(t??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function hlWord(text, term) {
@@ -1605,11 +1642,11 @@ function hlWord(text, term) {
   return escH(text).replace(re,'<span class="s-hi">$1</span>');
 }
 function showDrop(html) { sdrop.innerHTML = html; sdrop.style.display = 'block'; }
-function hideDrop() { sdrop.style.display = 'none'; }
+function hideDrop()     { sdrop.style.display = 'none'; }
 
 function doSearch(term) {
   showDrop('<div class="s-drop-loading"><div class="s-spin"></div><p>Procurando…</p></div>');
-  fetch('pages/app/ajax/ajax_search.php?search=' + encodeURIComponent(term) + '&limit=8')
+  fetch('ajax/ajax_search.php?search=' + encodeURIComponent(term) + '&limit=8')
     .then(r => r.json())
     .then(data => {
       if (!data.success || !data.products?.length) {
@@ -1661,15 +1698,19 @@ btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth'
 const flash = document.getElementById('flashMsg');
 if (flash) setTimeout(() => { flash.style.opacity = '0'; setTimeout(() => flash.remove(), 350); }, 5000);
 
-/* ══ Currency ══ */
-const CACHE_KEY = 'vsg_rates';
-const CACHE_DUR = 6*60*60*1000;
+/* ══ Currency
+   FIX #3: Só busca taxas do servidor se o cache local tiver mais de 1 hora.
+   Antes ia sempre buscar em background mesmo com cache válido de 6h.
+══ */
+const CACHE_KEY    = 'vsg_rates';
+const CACHE_DUR    = 6 * 60 * 60 * 1000; // 6h — validade total do cache
+const REFRESH_AFTER = 1 * 60 * 60 * 1000; // 1h — só refresca após este tempo
 const BASE = 'MZN';
-const SYM = {MZN:'MT',EUR:'€',BRL:'R$',USD:'$',GBP:'£',CAD:'CA$',AUD:'A$',JPY:'¥',CNY:'¥',CHF:'Fr',AOA:'Kz',ZAR:'R',MXN:'MX$'};
+const SYM  = {MZN:'MT',EUR:'€',BRL:'R$',USD:'$',GBP:'£',CAD:'CA$',AUD:'A$',JPY:'¥',CNY:'¥',CHF:'Fr',AOA:'Kz',ZAR:'R',MXN:'MX$'};
 const PREFIX_S = new Set(['USD','GBP','EUR','CAD','AUD','CHF']);
+
 function getCur() {
   try { const s = localStorage.getItem('vsg_preferred_currency'); if (s) return s.toUpperCase(); } catch(_) {}
-  const el = document.querySelector('[data-price-mzn]');
   return '<?= esc($user_currency_info['currency']) ?>';
 }
 function convert(amt, rates, from, to) {
@@ -1695,27 +1736,40 @@ function applyRates(rates) {
   });
 }
 function loadCache() {
-  try { const raw = localStorage.getItem(CACHE_KEY); if (raw) { const d = JSON.parse(raw); if (Date.now() - d.ts < CACHE_DUR) return d.rates; } } catch(_) {}
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (raw) { const d = JSON.parse(raw); if (Date.now() - d.ts < CACHE_DUR) return d; }
+  } catch(_) {}
   return null;
 }
-function saveCache(rates) { try { localStorage.setItem(CACHE_KEY, JSON.stringify({ rates, ts: Date.now() })); } catch(_) {} }
+function saveCache(rates) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ rates, ts: Date.now() })); } catch(_) {}
+}
 async function fetchRates(silent) {
   try {
-    const r = await fetch('api/get_exchange_rates.php?t=' + Date.now(), {
+    const r = await fetch('api/get_exchange_rates.php', {
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
       signal: AbortSignal.timeout(5000)
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const text = await r.text();
     let data;
-    try { data = JSON.parse(text); }
-    catch(pe) { throw new Error('Resposta inválida do servidor'); }
+    try { data = JSON.parse(text); } catch(pe) { throw new Error('Resposta inválida do servidor'); }
     if (data.success && data.rates) { saveCache(data.rates); applyRates(data.rates); }
   } catch(e) { if (!silent) console.warn('[VSG Rates]', e.message); }
 }
+
 const cached = loadCache();
-if (cached) { applyRates(cached); fetchRates(true); } else fetchRates(false);
-window.addEventListener('currency-changed', () => { const r = loadCache(); if (r) applyRates(r); else fetchRates(false); });
+if (cached) {
+  applyRates(cached.rates);
+  // Só refresca em background se já passaram mais de 1h desde o último fetch
+  if (Date.now() - cached.ts > REFRESH_AFTER) fetchRates(true);
+} else {
+  fetchRates(false);
+}
+window.addEventListener('currency-changed', () => {
+  const c = loadCache(); if (c) applyRates(c.rates); else fetchRates(false);
+});
 
 })();
 </script>

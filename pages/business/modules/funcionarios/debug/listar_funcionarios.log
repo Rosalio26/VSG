@@ -65,3 +65,10 @@
 07:02:06 - Funcionários encontrados - {"count":1}
 07:02:06 - Departamentos encontrados - {"count":1}
 07:02:06 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
+22:51:11 - === INÍCIO LISTAR FUNCIONÁRIOS ===
+21:51:12 - Parâmetros - {"empresa_id":2,"status":"","departamento":"","search":""}
+21:51:12 - Preparando query
+21:51:12 - Executando query
+21:51:12 - Funcionários encontrados - {"count":0}
+21:51:12 - Departamentos encontrados - {"count":0}
+21:51:12 - === FIM LISTAR FUNCIONÁRIOS (SUCESSO) ===
