@@ -147,8 +147,8 @@ function success_location(string $type, string $redirect_safe): string
     }
 
     return match($type) {
-        'person'  => '../../pages/person/index.php',
-        default   => '../../pages/person/index.php',
+        'person'  => '../../pages/person/dashboard_person.php',
+        default   => '../../pages/person/dashboard_person.php',
     };
 }
 
