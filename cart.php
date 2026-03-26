@@ -8,8 +8,9 @@
  * Um único ficheiro, dois comportamentos.
  */
 
-require_once __DIR__ . '/registration/bootstrap.php';
+require_once __DIR__ . '/registration/includes/db.php';
 require_once __DIR__ . '/registration/includes/security.php';
+if (session_status() === PHP_SESSION_NONE) session_start();
 
 ob_start();
 
@@ -496,26 +497,27 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none}
 (function(){
 'use strict';
 
-const IS_LOGGED  = <?= $user_logged_in ? 'true' : 'false' ?>;
-const CSRF       = <?= json_encode($_SESSION['csrf_token']) ?>;
-const SYM        = <?= json_encode($cur['symbol']) ?>;
-const RATE       = <?= (float)$cur['rate'] ?>;
-const IS_EMBED   = <?= $is_embed ? 'true' : 'false' ?>;
-const BASE_URL   = <?= json_encode($base_url) ?>;
-const LS_KEY     = 'vsg_cart_v2';
+/* Nomes únicos para evitar conflito com variáveis do dashboard pai */
+const CART_IS_LOGGED  = <?= $user_logged_in ? 'true' : 'false' ?>;
+const CART_CSRF       = <?= json_encode($_SESSION['csrf_token']) ?>;
+const CART_SYM        = <?= json_encode($cur['symbol']) ?>;
+const CART_RATE       = <?= (float)$cur['rate'] ?>;
+const CART_IS_EMBED   = <?= $is_embed ? 'true' : 'false' ?>;
+const CART_BASE_URL   = <?= json_encode($base_url) ?>;
+const LS_KEY          = 'vsg_cart_v2';
 
 /* Caminhos — sempre absolutos para funcionar em qualquer contexto */
-const PATH_CHECKOUT   = BASE_URL + '/checkout.php';
-const PATH_SHOPPING   = BASE_URL + '/shopping.php';
-const PATH_LOGIN      = BASE_URL + '/registration/login/login.php?redirect=' + encodeURIComponent(BASE_URL + '/cart.php');
-const PATH_AJAX_CART  = BASE_URL + '/ajax/ajax_cart.php';
-const PATH_AJAX_GUEST = BASE_URL + '/ajax/ajax_cart_guest.php';
-const PATH_PRODUCT    = BASE_URL + '/product.php';
+const PATH_CHECKOUT   = CART_BASE_URL + '/checkout.php';
+const PATH_SHOPPING   = CART_BASE_URL + '/shopping.php';
+const PATH_LOGIN      = CART_BASE_URL + '/registration/login/login.php?redirect=' + encodeURIComponent(CART_BASE_URL + '/cart.php');
+const PATH_AJAX_CART  = CART_BASE_URL + '/ajax/ajax_cart.php';
+const PATH_AJAX_GUEST = CART_BASE_URL + '/ajax/ajax_cart_guest.php';
+const PATH_PRODUCT    = CART_BASE_URL + '/product.php';
 
 const DB_ITEMS = <?= json_encode($user_logged_in ? $db_cart_items : [], JSON_UNESCAPED_UNICODE) ?>;
 
 function fmt(mzn) {
-  return SYM + ' ' + new Intl.NumberFormat('pt-MZ',{minimumFractionDigits:2,maximumFractionDigits:2}).format(mzn * RATE);
+  return CART_SYM + ' ' + new Intl.NumberFormat('pt-MZ',{minimumFractionDigits:2,maximumFractionDigits:2}).format(mzn * CART_RATE);
 }
 function flash(msg, type='success') {
   document.querySelectorAll('.flash').forEach(f=>f.remove());
@@ -533,7 +535,7 @@ function updateGlobalBadge(n){
     b.style.display=n>0?'':'none';
   });
   /* Notificar o dashboard pai se estiver em embed */
-  if(IS_EMBED && window.parent && window.parent !== window){
+  if(CART_IS_EMBED && window.parent && window.parent !== window){
     try{ window.parent.postMessage({type:'cart_count',count:n},'*'); }catch(_){}
   }
 }
@@ -656,7 +658,7 @@ function renderCart(items){
 
 window.Cart = {
   load(){
-    if(IS_LOGGED){
+    if(CART_IS_LOGGED){
       renderCart(DB_ITEMS);
       this._mergeGuestOnLogin();
     }else{
@@ -685,7 +687,7 @@ window.Cart = {
     if(qtyInp) qtyInp.value=qty;
     if(totalEl) totalEl.textContent=fmt(price*qty);
     this._recalcSummary();
-    if(IS_LOGGED){
+    if(CART_IS_LOGGED){
       clearTimeout(this._t);
       this._t=setTimeout(()=>{
         ajax('action=update&item_id='+itemId+'&quantity='+qty)
@@ -707,17 +709,17 @@ window.Cart = {
       const lbl=document.getElementById('cartCountLabel');
       if(lbl) lbl.textContent=total+(total===1?' item':' itens');
     };
-    if(IS_LOGGED){
+    if(CART_IS_LOGGED){
       ajax('action=remove&item_id='+itemId).then(done).catch(()=>{el.classList.remove('removing');flash('Erro ao remover.','error');});
     }else{LS.remove(pid);setTimeout(done,220);}
   },
   clear(){
     if(!confirm('Esvaziar o carrinho completo?')) return;
-    if(IS_LOGGED) ajax('action=clear').then(()=>renderCart([]));
+    if(CART_IS_LOGGED) ajax('action=clear').then(()=>renderCart([]));
     else{LS.clear();renderCart([]);}
   },
   checkout(){
-    if(!IS_LOGGED){location.href=PATH_LOGIN;}
+    if(!CART_IS_LOGGED){location.href=PATH_LOGIN;}
     else{location.href=PATH_CHECKOUT;}
   },
   _recalcSummary(){
@@ -728,12 +730,12 @@ window.Cart = {
     renderSummary(items);
   },
   _mergeGuestOnLogin(){
-    if(!IS_LOGGED) return;
+    if(!CART_IS_LOGGED) return;
     const stored=LS.get();
     const pids=Object.keys(stored).map(Number).filter(Boolean);
     if(!pids.length) return;
     const body=pids.map(pid=>`items[${pid}]=${stored[pid].qty||1}`).join('&');
-    fetch(PATH_AJAX_GUEST,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},body:'action=merge&csrf_token='+CSRF+'&'+body})
+    fetch(PATH_AJAX_GUEST,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},body:'action=merge&csrf_token='+CART_CSRF+'&'+body})
       .then(r=>r.json())
       .then(d=>{if(d.success){LS.clear();if(d.merged>0){flash(d.merged+' produto(s) do carrinho anterior adicionados.','info');location.reload();}}})
       .catch(()=>{});

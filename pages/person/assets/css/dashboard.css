@@ -318,3 +318,109 @@ button { font-family:var(--font); cursor:pointer; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
 ::-webkit-scrollbar-thumb:hover { background:var(--border2); }
+
+/* ══════════════════════════════════════════════════════════
+   CART EMBED — estilos do cart.php dentro do dashboard
+   Mapeia as variáveis do cart (--gr, --ink) para as do dashboard
+══════════════════════════════════════════════════════════ */
+#content-carrinho {
+    --gr:    var(--primary);
+    --gr-d:  var(--primary-dk);
+    --gr-l:  var(--primary-lt);
+    --ink:   var(--txt);
+    --ink-2: var(--txt2);
+    --ink-3: var(--txt3);
+    --bg:    var(--raised);
+    --sur:   var(--surface);
+    --bdr:   var(--border);
+    --bdr-2: var(--border);
+    --red:   var(--danger);
+    --sh-sm: var(--sh1);
+    --sh-md: var(--sh2);
+    --r6: 6px; --r8: 8px; --r10: 10px;
+    --r12: 12px; --r16: 16px; --r99: 999px;
+    --font: var(--font);
+}
+
+/* Layout embed — coluna única, sem grid */
+#content-carrinho .cart-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 0;
+    max-width: 100%;
+}
+
+/* Items compactos */
+#content-carrinho .cart-item {
+    padding: 12px 14px;
+    gap: 12px;
+    border-radius: var(--r12);
+}
+#content-carrinho .ci-img {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--r8);
+    flex-shrink: 0;
+}
+#content-carrinho .ci-name   { font-size: 13px; }
+#content-carrinho .ci-cat    { font-size: 10px; }
+#content-carrinho .ci-sup    { font-size: 11px; }
+#content-carrinho .ci-total  { font-size: 14px; }
+
+/* Controlo de quantidade pequeno */
+#content-carrinho .qty-ctrl  { height: 28px; }
+#content-carrinho .qty-btn   { width: 26px; font-size: 11px; }
+#content-carrinho .qty-val   { width: 34px; font-size: 12px; }
+
+/* Summary compacto */
+#content-carrinho .cart-summary {
+    padding: 16px;
+    border-radius: var(--r12);
+}
+#content-carrinho .summary-title { font-size: 14px; margin-bottom: 12px; }
+#content-carrinho .sum-row       { font-size: 13px; padding: 4px 0; }
+#content-carrinho .sum-row.total .sum-val { font-size: 1.1rem; }
+
+/* Botões inline em vez de largura total */
+#content-carrinho .cart-btns-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    align-items: center;
+}
+#content-carrinho .btn-checkout {
+    flex: 1;
+    width: auto;
+    padding: 10px 16px;
+    font-size: 13px;
+    margin-top: 0;
+    border-radius: var(--r8);
+}
+#content-carrinho .btn-continue {
+    flex-shrink: 0;
+    width: auto;
+    padding: 9px 14px;
+    font-size: 12px;
+    margin-top: 0;
+    border-radius: var(--r8);
+}
+
+/* Trust pills */
+#content-carrinho .trust-pills  { margin-top: 12px; padding-top: 12px; gap: 6px; }
+#content-carrinho .trust-pill   { font-size: 11.5px; }
+
+/* Skeleton */
+#content-carrinho .sk-item { height: 80px; }
+
+/* Secção de acções */
+#content-carrinho #cartActions { margin-top: 10px; }
+#content-carrinho #cartActions a,
+#content-carrinho #cartActions button { font-size: 12px; }
+
+/* Cart empty */
+#content-carrinho .cart-empty { padding: 40px 20px; }
+#content-carrinho .cart-empty-icon { width: 60px; height: 60px; font-size: 24px; }
+
+/* Secção título */
+#content-carrinho .section-title { font-size: 15px; }
