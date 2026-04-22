@@ -638,3 +638,18 @@
 08:49:45 - Taxa conversão - {"taxa":0}
 08:49:45 - Stats calculadas
 08:49:45 - === FIM STATS (SUCESSO) ===
+19:28:54 - === INÍCIO STATS ===
+19:28:54 - Gestor acessando - {"user_id":2}
+17:28:55 - User ID validado - {"user_id":2,"type":"gestor"}
+17:28:55 - Calculando vendas mês atual
+17:28:55 - Total vendas - {"total":0}
+17:28:55 - Calculando vendas mês anterior
+17:28:55 - Trend vendas - {"trend":0}
+17:28:55 - Calculando receita total
+17:28:55 - Receita total - {"receita":"0.00"}
+17:28:55 - Trend receita - {"trend":0}
+17:28:55 - Calculando pendentes
+17:28:55 - Pendentes - {"count":0,"valor":"0.00"}
+17:28:55 - Taxa conversão - {"taxa":0}
+17:28:55 - Stats calculadas
+17:28:55 - === FIM STATS (SUCESSO) ===
