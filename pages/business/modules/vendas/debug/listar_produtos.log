@@ -254,3 +254,8 @@
 17:28:55 - Buscando produtos da empresa
 17:28:55 - Produtos encontrados - {"count":14}
 17:28:55 - === FIM LISTAR PRODUTOS (SUCESSO) ===
+15:12:43 - === INÍCIO LISTAR PRODUTOS ===
+13:12:43 - User ID - {"user_id":2,"user_type":"gestor"}
+13:12:43 - Buscando produtos da empresa
+13:12:43 - Produtos encontrados - {"count":14}
+13:12:43 - === FIM LISTAR PRODUTOS (SUCESSO) ===

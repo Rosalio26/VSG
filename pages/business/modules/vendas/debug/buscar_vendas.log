@@ -406,3 +406,10 @@
 17:28:54 - Executando query
 17:28:54 - Vendas encontradas - {"count":0}
 17:28:54 - === FIM (SUCESSO) ===
+15:12:43 - === INÍCIO ===
+15:12:43 - Gestor acessando - {"user_id":2}
+13:12:43 - Parâmetros - {"user_id":2,"user_type":"gestor","periodo":30,"status":"","produto_id":"","search":""}
+13:12:43 - Preparando query
+13:12:43 - Executando query
+13:12:43 - Vendas encontradas - {"count":0}
+13:12:43 - === FIM (SUCESSO) ===
